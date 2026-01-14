@@ -413,52 +413,10 @@ class TripRepositoryImpl @Inject constructor(
                 )
             )
 
-            // ===================================================================================
-            // THEME 5: SVANETI - THE WARRIOR'S PATH
-            // ===================================================================================
-            tripsToInsert += TripEntity(
-                id = "svaneti_trek_4d",
-                title = "Svaneti: Land of Wolves",
-                description = "The classic Mestia-Ushguli trek. Medieval towers, glaciers, and Europe's highest village.",
-                imageUrl = "[https://images.pexels.com/photos/18413695/pexels-photo-18413695.jpeg?auto=compress&cs=tinysrgb&w=1200](https://images.pexels.com/photos/18413695/pexels-photo-18413695.jpeg?auto=compress&cs=tinysrgb&w=1200)",
-                category = "HIKING",
-                difficulty = Difficulty.WARRIOR.name,
-                totalRideTimeMinutes = 600,
-                durationDays = 4,
-                hasSnowWarning = true,
-                route = listOf(GeoPoint(43.0415, 42.7250), GeoPoint(42.9180, 43.0160)),
-                itinerary = listOf(
-                    // DAY 1: Mestia to Zhabeshi
-                    BattleNode("Mestia Museum", "Day 1 09:00: See the Svan treasures and manuscripts.", "D1 09:00"),
-                    BattleNode("Trek Start", "Day 1 10:30: Begin hike towards Mulkhra.", "D1 10:30"),
-                    BattleNode("Tsvirmi Ridge", "Day 1 13:00: Picnic with views of Mt. Ushba.", "D1 13:00"),
-                    BattleNode("Zhabeshi", "Day 1 16:00: Arrival in the valley of towers.", "D1 16:00"),
-                    BattleNode("Guest House", "Day 1 19:00: Dinner. Try Kubdari (meat pie) with Svan salt.", "D1 19:00"),
 
-                    // DAY 2: Zhabeshi to Adishi
-                    BattleNode("Tetnuldi Slope", "Day 2 09:00: Steep ascent through the forest.", "D2 09:00"),
-                    BattleNode("Tkharpel Hut", "Day 2 12:00: Coffee break at high altitude.", "D2 12:00"),
-                    BattleNode("Adishi Village", "Day 2 15:00: A village trapped in time, often cut off by snow.", "D2 15:00"),
-                    BattleNode("St George Church", "Day 2 16:30: Ancient frescoes in a tiny chapel.", "D2 16:30"),
-                    BattleNode("Stone House", "Day 2 19:00: Stay with locals. Very basic but authentic.", "D2 19:00"),
-
-                    // DAY 3: The Pass
-                    BattleNode("River Crossing", "Day 3 09:00: Horse rental needed to cross the icy river.", "D3 09:00", alertType = "RIVER_CROSSING"),
-                    BattleNode("Chkhunderi Pass", "Day 3 12:00: 2,700m altitude. Best view of Adishi Glacier.", "D3 12:00"),
-                    BattleNode("Khalde", "Day 3 14:30: The 'Hero Village' destroyed by Russians in the 19th century.", "D3 14:30"),
-                    BattleNode("Iprali", "Day 3 17:00: Arrival at the main road.", "D3 17:00"),
-
-                    // DAY 4: Ushguli
-                    BattleNode("Walk to Ushguli", "Day 4 09:00: Scenic road walk or forest trail.", "D4 09:00"),
-                    BattleNode("Lamaria Church", "Day 4 11:30: Monastery with Mt. Shkhara (5,193m) backdrop.", "D4 11:30"),
-                    BattleNode("Cafe Koshki", "Day 4 13:00: Lunch in a defensive tower complex.", "D4 13:00"),
-                    BattleNode("Tamar's Tower", "Day 4 15:00: Hike up to the queen's summer residence ruins.", "D4 15:00"),
-                    BattleNode("Ethnographic Museum", "Day 4 16:30: Private collection of Svan weapons.", "D4 16:30")
-                )
-            )
 
             // ===================================================================================
-            // THEME 6: WEST GEORGIA - COLCHIS LOOP
+            // WEST GEORGIA - COLCHIS LOOP
             // ===================================================================================
             tripsToInsert += TripEntity(
                 id = "west_colchis_3d",
