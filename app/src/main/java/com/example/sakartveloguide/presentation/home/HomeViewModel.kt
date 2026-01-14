@@ -151,7 +151,15 @@ class HomeViewModel @Inject constructor(
     private fun generateThread(trip: TripPath, profile: LogisticsProfile): List<MissionStep> {
         val thread = mutableListOf<MissionStep>()
 
-        // 1. Insertion
+        // 1. Insertion: Pre-Arrival Protocol
+        // STRATEGY: Capture users before they even land with essentials (Insurance/Flights check)
+        thread.add(MissionStep.LogisticsAnchor(
+            title = "PRE-FLIGHT CHECK",
+            description = "Secure Nomad Insurance & Flight Status.",
+            actionUrl = affiliateManager.getInsuranceLink(),
+            iconType = "INSURANCE"
+        ))
+
         val arrivalTitle = when (profile.entryPoint) {
             EntryPoint.AIRPORT_TBS -> "TBS: AIRPORT INFILTRATION"
             EntryPoint.AIRPORT_KUT -> "KUT: FLIGHT LANDING"
@@ -169,6 +177,7 @@ class HomeViewModel @Inject constructor(
             entryPoint = profile.entryPoint
         ))
 
+        // High-Conversion Utility: eSIM
         if (profile.needsEsim) {
             thread.add(MissionStep.AcquireEsim(
                 actionUrl = affiliateManager.getEsimLink()
@@ -176,37 +185,60 @@ class HomeViewModel @Inject constructor(
         }
 
         // Smart Transport Logic
-        // ARCHITECT'S FIX: trip.category is ALREADY an Enum (RouteCategory). No conversion needed.
         val categoryEnum = trip.category
+        val tripCity = trip.title.split(":").firstOrNull()?.trim() ?: ""
 
         if (profile.transportType == TransportType.TAXI) {
-            val taxiUrl = affiliateManager.getTaxiLink(categoryEnum)
+            // STRATEGY: Use GoTrip for intercity (High Commission) vs Bolt for local
+            val taxiUrl = affiliateManager.getTaxiLink(categoryEnum, tripCity)
             val isGoTrip = taxiUrl.contains("gotrip")
 
             thread.add(MissionStep.LogisticsAnchor(
-                title = if (isGoTrip) "SECURE TRANSFER" else "INITIAL DEPLOYMENT",
-                description = if (isGoTrip) "Book private driver (GoTrip)." else "Call Bolt.",
+                title = if (isGoTrip) "SECURE INTERCITY TRANSFER" else "INITIAL DEPLOYMENT",
+                description = if (isGoTrip) "Book private driver to $tripCity (GoTrip)." else "Call Bolt.",
                 actionUrl = taxiUrl,
                 iconType = "BOLT"
             ))
+
+            // Cross-Sell: Train for Batumi
+            if (tripCity.equals("Batumi", ignoreCase = true)) {
+                 thread.add(MissionStep.LogisticsAnchor(
+                    title = "ALTERNATIVE: RAILWAY",
+                    description = "Book Stadler train tickets to Batumi.",
+                    actionUrl = affiliateManager.getTrainLink(),
+                    iconType = "TRAIN"
+                ))
+            }
         } else if (profile.transportType == TransportType.RENTAL_4X4) {
             thread.add(MissionStep.LogisticsAnchor(
-                "ACQUIRE FLEET", "Pick up 4x4 vehicle.", affiliateManager.getRentalLink(), "RENTAL"
+                "ACQUIRE FLEET", "Pick up 4x4 vehicle (No Deposit).", affiliateManager.getRentalLink(), "RENTAL"
             ))
         }
 
+        // Accommodation
         if (profile.needsAccommodation) {
             thread.add(MissionStep.LogisticsAnchor(
-                "SECURE BASE CAMP", "Check-in via Booking.com", affiliateManager.getBookingLink(trip.title), "HOTEL"
+                "SECURE BASE CAMP", "Find guesthouses in $tripCity.", affiliateManager.getBookingLink(trip.title), "HOTEL"
             ))
         }
 
-        // 2. Campaign
-        if (categoryEnum == RouteCategory.WINE_CELLAR) {
+        // Luggage Storage (Utility)
+        thread.add(MissionStep.LogisticsAnchor(
+            "GEAR STASH", "Store excess luggage securely.", affiliateManager.getLuggageStorageLink(), "LOCKER"
+        ))
+
+        // 2. Campaign: Experiential Up-Sells
+        if (categoryEnum == RouteCategory.WINE_CELLAR || categoryEnum == RouteCategory.WINE_REGION) {
             thread.add(MissionStep.PremiumExperience(
                 actionUrl = affiliateManager.getWineTourLink()
             ))
         }
+
+        // Dynamic Tour Insertion based on Trip Type
+        val tourLink = affiliateManager.getTourLink(categoryEnum, tripCity)
+        thread.add(MissionStep.LogisticsAnchor(
+            "RECONNAISSANCE", "Book guided tours & experiences.", tourLink, "TOUR"
+        ))
 
         trip.itinerary.forEach { node ->
             thread.add(MissionStep.Activity(
