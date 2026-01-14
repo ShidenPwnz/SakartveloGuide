@@ -21,28 +21,13 @@ data class BattleNode(
     val description: String,
     val timeLabel: String,
     val imageUrl: String? = null,
-    val alertType: String? = null
+    val alertType: String? = null,
+    val location: GeoPoint? = null // ARCHITECT'S FIX: Enables Smart Transit
 )
 
-// ARCHITECT'S FIX: Expanded Enum to match the Phase 12 Data Injection
 enum class RouteCategory {
-    RELIGIOUS,
-    WINE_CELLAR,
-    WINE_REGION, // Added
-    MOUNTAIN,
-    HIKING,      // Added
-    URBAN,
-    URBAN_EXPLORER, // Added
-    COASTAL,
-    HISTORICAL,
-    CULTURE,     // Added
-    NATURE,
-    CAPITAL
+    GUIDE, RELIGIOUS, WINE_CELLAR, WINE_REGION, MOUNTAIN, HIKING, URBAN,
+    URBAN_EXPLORER, COASTAL, HISTORICAL, CULTURE, NATURE, CAPITAL
 }
 
-enum class Difficulty {
-    RELAXED,
-    NORMAL,
-    EXPLORER,
-    WARRIOR
-}
+enum class Difficulty { RELAXED, NORMAL, EXPLORER, WARRIOR }

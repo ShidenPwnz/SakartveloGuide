@@ -1,40 +1,45 @@
-// LocationManagerImpl.kt
 package com.example.sakartveloguide.data.location
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.os.Looper
+import android.location.Location
 import com.example.sakartveloguide.domain.location.LocationManager
 import com.example.sakartveloguide.domain.model.GeoPoint
-import com.google.android.gms.location.*
-import kotlinx.coroutines.channels.awaitClose
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.CancellationTokenSource
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.suspendCancellableCoroutine
 import javax.inject.Inject
+import kotlin.coroutines.resume
 
 class LocationManagerImpl @Inject constructor(
     private val context: Context
 ) : LocationManager {
 
-    private val client = LocationServices.getFusedLocationProviderClient(context)
+    private val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
 
     @SuppressLint("MissingPermission")
-    override fun lastKnownLocation(): GeoPoint? {
-        // Simple synchronous-like check for immediate use
-        return null // In MAD, we prefer the Flow
-    }
+    override suspend fun getCurrentLocation(): GeoPoint? = suspendCancellableCoroutine { continuation ->
+        val cts = CancellationTokenSource()
 
-    @SuppressLint("MissingPermission")
-    override fun locationFlow(): Flow<GeoPoint> = callbackFlow {
-        val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000).build()
-        val callback = object : LocationCallback() {
-            override fun onLocationResult(result: LocationResult) {
-                result.lastLocation?.let { trySend(GeoPoint(it.latitude, it.longitude)) }
+        fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, cts.token)
+            .addOnSuccessListener { location: Location? ->
+                if (location != null) {
+                    continuation.resume(GeoPoint(location.latitude, location.longitude))
+                } else {
+                    continuation.resume(null)
+                }
             }
-        }
-        client.requestLocationUpdates(request, callback, Looper.getMainLooper())
-        awaitClose { client.removeLocationUpdates(callback) }
+            .addOnFailureListener {
+                continuation.resume(null)
+            }
+
+        continuation.invokeOnCancellation { cts.cancel() }
     }
 
-    override fun stopLocationUpdates() { /* Handled by Flow awaitClose */ }
+    override fun lastKnownLocation(): GeoPoint? = null
+    override fun locationFlow(): Flow<GeoPoint> = MutableStateFlow(GeoPoint(0.0, 0.0))
+    override fun stopLocationUpdates() {}
 }

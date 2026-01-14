@@ -3,9 +3,6 @@ package com.example.sakartveloguide.presentation.mission
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.animation.*
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,14 +13,11 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.sakartveloguide.domain.model.*
 import com.example.sakartveloguide.presentation.theme.*
 import java.text.SimpleDateFormat
@@ -38,14 +32,17 @@ fun LogisticsWizard(
     onConfirm: (LogisticsProfile) -> Unit
 ) {
     val context = LocalContext.current
-    var isByAir by remember { mutableStateOf(currentProfile.isByAir) }
 
-    // ARCHITECT'S FIX: Default to NULL to force selection
-    var selectedTransport by remember { mutableStateOf<TransportType?>(null) }
+    // 1. PERSISTENT DATA STATES
+    var isByAir by remember { mutableStateOf(currentProfile.isByAir) }
+    var selectedTransport by remember { mutableStateOf<TransportType?>(
+        if (currentProfile.startDate != null) currentProfile.transportType else null
+    ) }
 
     var needFlight by remember { mutableStateOf(currentProfile.needsFlight) }
     var needHotel by remember { mutableStateOf(currentProfile.needsAccommodation) }
     var needEsim by remember { mutableStateOf(currentProfile.needsEsim) }
+    var needTransport by remember { mutableStateOf(currentProfile.needsTransport) }
 
     val datePickerState = rememberDatePickerState(initialSelectedDateMillis = currentProfile.startDate)
     var showDatePicker by remember { mutableStateOf(false) }
@@ -53,16 +50,27 @@ fun LogisticsWizard(
         SimpleDateFormat("EEE, MMM dd", Locale.getDefault()).format(Date(it))
     } ?: "Select Mission Start"
 
+    val scrollState = rememberScrollState()
+
     Scaffold(
         containerColor = MatteCharcoal,
         bottomBar = {
             Surface(color = MatteCharcoal, tonalElevation = 8.dp) {
-                Row(Modifier.fillMaxWidth().padding(24.dp).height(64.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(modifier = Modifier.fillMaxWidth().padding(24.dp).height(64.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Button(
                         onClick = {
                             val start = datePickerState.selectedDateMillis
                             val end = start?.let { it + ((trip.durationDays - 1) * 24 * 60 * 60 * 1000L) }
-                            onConfirm(LogisticsProfile(isByAir = isByAir, transportType = selectedTransport ?: TransportType.OWN_CAR, needsAccommodation = needHotel, needsEsim = needEsim, needsFlight = needFlight, startDate = start, endDate = end))
+                            onConfirm(LogisticsProfile(
+                                isByAir = isByAir,
+                                transportType = selectedTransport ?: TransportType.OWN_CAR,
+                                needsAccommodation = needHotel,
+                                needsEsim = needEsim,
+                                needsFlight = needFlight,
+                                needsTransport = needTransport,
+                                startDate = start,
+                                endDate = end
+                            ))
                         },
                         enabled = datePickerState.selectedDateMillis != null,
                         modifier = Modifier.weight(0.8f).fillMaxHeight(),
@@ -78,12 +86,13 @@ fun LogisticsWizard(
             }
         }
     ) { padding ->
-        Column(modifier = Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp)) {
+        Column(modifier = Modifier.padding(padding).fillMaxSize().verticalScroll(scrollState).padding(24.dp)) {
             Text("MISSION PARAMETERS", color = SakartveloRed, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
             Text("LOGISTICS SETUP", color = SnowWhite, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
+
             Spacer(Modifier.height(20.dp))
 
-            // ARRIVAL MODE
+            // MODE SELECTOR
             Text("MODE OF ARRIVAL", color = SnowWhite.copy(0.6f), style = MaterialTheme.typography.labelSmall)
             Spacer(Modifier.height(8.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -92,6 +101,8 @@ fun LogisticsWizard(
             }
 
             Spacer(Modifier.height(24.dp))
+
+            // DATES
             Text("MISSION START", color = SnowWhite.copy(0.6f), style = MaterialTheme.typography.labelSmall)
             Button(onClick = { showDatePicker = true }, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).height(56.dp), colors = ButtonDefaults.buttonColors(containerColor = SnowWhite.copy(0.05f)), shape = RoundedCornerShape(12.dp)) {
                 Icon(Icons.Default.CalendarToday, null, tint = SakartveloRed, modifier = Modifier.size(18.dp))
@@ -101,38 +112,45 @@ fun LogisticsWizard(
 
             Spacer(Modifier.height(16.dp))
 
-            // FLIGHT INTEL (Switched OFF by default, Auto-Expands)
+            // --- THE UNIFIED ASSET STACK ---
+
+            // 1. FLIGHT INTEL (Auto-Expansion)
             AnimatedVisibility(visible = isByAir) {
                 Column {
                     LogisticsToggle("Flight Intel", "Route discovery", Icons.Default.AirplaneTicket, needFlight) { needFlight = it }
                     AnimatedVisibility(visible = needFlight) {
-                        ReferralLinkBox("Airfare Intelligence", "Find cheapest routes.", "BOOK", Icons.AutoMirrored.Filled.AirplaneTicket, Color(0xFF00D7E1)) { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.skyscanner.net"))) }
+                        ReferralLinkBox("Airfare Intelligence", "Find cheapest routes.", "BOOK", Icons.AutoMirrored.Filled.AirplaneTicket, Color(0xFF00D7E1)) {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.skyscanner.net")))
+                        }
                     }
                     Spacer(Modifier.height(8.dp))
                 }
             }
 
-            // CONNECTIVITY (Auto-Expands)
+            // 2. CONNECTIVITY (Auto-Expansion)
             LogisticsToggle("Connectivity", "eSIM & Data Protocol", Icons.Default.SignalCellularAlt, needEsim) { needEsim = it }
             AnimatedVisibility(visible = needEsim) {
-                ReferralLinkBox("Secure Digital Signal", "Pre-order local 4G.", "GET ESIM", Icons.Default.PhonelinkSetup, SakartveloRed) { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.magticom.ge/en/esim"))) }
+                ReferralLinkBox("Secure Digital Signal", "Pre-order Magti 4G.", "GET ESIM", Icons.Default.PhonelinkSetup, SakartveloRed) {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.magticom.ge/en/esim")))
+                }
             }
 
             Spacer(Modifier.height(8.dp))
 
-            // LODGING (Auto-Expands)
+            // 3. LODGING (Auto-Expansion)
             LogisticsToggle("Lodging", "Secure base camps", Icons.Default.Hotel, needHotel) { needHotel = it }
             AnimatedVisibility(visible = needHotel) {
-                ReferralLinkBox("Secure Base Camp", "Vetted lodging deals.", "BOOK", Icons.Default.Bed, Color(0xFF003580)) { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.booking.com"))) }
+                ReferralLinkBox("Secure Base Camp", "Vetted lodging deals.", "BOOK", Icons.Default.Bed, Color(0xFF003580)) {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.booking.com")))
+                }
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(8.dp))
 
-            // TRANSPORT PLAN (BY LAND - Auto-Expands Selection)
-            AnimatedVisibility(visible = !isByAir) {
-                Column {
-                    Text("TRANSPORT PLAN", color = SnowWhite.copy(0.6f), style = MaterialTheme.typography.labelSmall)
-                    Spacer(Modifier.height(8.dp))
+            // 4. TRANSPORT PLAN (Auto-Expansion Selection)
+            LogisticsToggle("Transport Plan", "Tactical mobility", Icons.Default.DirectionsCar, needTransport) { needTransport = it }
+            AnimatedVisibility(visible = needTransport) {
+                Column(modifier = Modifier.padding(top = 8.dp)) {
                     TransportType.entries.forEach { type ->
                         Column {
                             TacticalTransportOption(type, selectedTransport == type) { selectedTransport = it }
@@ -141,7 +159,7 @@ fun LogisticsWizard(
                                     TransportType.RENTAL_4X4 -> ReferralLinkBox("Local Fleet", "4x4 inventory.", "RENT", Icons.Default.DirectionsCar, Color(0xFFFF9800)) { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://localrent.com"))) }
                                     TransportType.TAXI -> ReferralLinkBox("Rapid Deployment", "Call a Bolt.", "BOLT", Icons.Default.LocalTaxi, Color(0xFF32BB78)) { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://bolt.eu"))) }
                                     TransportType.PUBLIC_TRANSPORT -> ReferralLinkBox("Transit Network", "Check TTC schedules.", "TTC", Icons.Default.DirectionsBus, Color(0xFF673AB7)) { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://ttc.com.ge/en"))) }
-                                    else -> {} // Own Car = No tool
+                                    else -> {}
                                 }
                             }
                         }

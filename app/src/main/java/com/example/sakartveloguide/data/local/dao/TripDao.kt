@@ -18,7 +18,7 @@ interface TripDao {
     @Query("SELECT COUNT(*) FROM trips")
     suspend fun getTripCount(): Int
 
-    // ARCHITECT'S FIX: The Nuclear Option
+    // ARCHITECT'S FIX: The physical deletion command
     @Query("DELETE FROM trips")
     suspend fun nukeTable()
 

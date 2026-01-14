@@ -22,6 +22,7 @@ import org.maplibre.android.maps.MapView
 @Composable
 fun MapViewContainer(
     modifier: Modifier = Modifier,
+    isInteractable: Boolean = true, // NEW PARAMETER
     onMapReady: (MapLibreMap) -> Unit
 ) {
     val context = LocalContext.current
@@ -51,27 +52,29 @@ fun MapViewContainer(
     LaunchedEffect(mapView) {
         mapView.getMapAsync { map ->
             map.setStyle(styleUrl) { style ->
-                // ARCHITECT'S FIX: Sequence validation
+
+                // ARCHITECT'S FIX: Disable Gestures if not interactable
+                if (!isInteractable) {
+                    map.uiSettings.isScrollGesturesEnabled = false
+                    map.uiSettings.isZoomGesturesEnabled = false
+                    map.uiSettings.isTiltGesturesEnabled = false
+                    map.uiSettings.isRotateGesturesEnabled = false
+                }
+
                 if (ContextCompat.checkSelfPermission(
                         context, Manifest.permission.ACCESS_FINE_LOCATION
                     ) == PackageManager.PERMISSION_GRANTED) {
-
                     try {
                         val locationComponent = map.locationComponent
-                        // 1. ACTIVATE FIRST
                         locationComponent.activateLocationComponent(
-                            LocationComponentActivationOptions
-                                .builder(context, style).build()
+                            LocationComponentActivationOptions.builder(context, style).build()
                         )
-                        // 2. ENABLE SECOND
                         locationComponent.isLocationComponentEnabled = true
-                        // 3. SET MODES LAST
                         locationComponent.cameraMode = CameraMode.TRACKING
                     } catch (e: Exception) {
                         Log.e("SAKARTVELO", "Location activation failed: ${e.message}")
                     }
                 }
-
                 onMapReady(map)
             }
         }

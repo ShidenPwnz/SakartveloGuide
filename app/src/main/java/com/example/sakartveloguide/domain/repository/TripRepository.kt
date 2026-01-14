@@ -7,5 +7,8 @@ interface TripRepository {
     fun getAvailableTrips(): Flow<List<TripPath>>
     suspend fun refreshTrips()
     suspend fun lockTrip(tripId: String)
-    suspend fun getTripById(id: String): TripPath? // ARCHITECT'S FIX: Recovery function
+    suspend fun getTripById(id: String): TripPath?
+
+    // ARCHITECT'S FIX: The contract for the Nuclear Reset
+    suspend fun nukeAllData()
 }

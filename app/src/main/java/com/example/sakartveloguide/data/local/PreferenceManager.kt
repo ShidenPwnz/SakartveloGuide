@@ -17,8 +17,8 @@ class PreferenceManager @Inject constructor(
         private val KEY_STATE = stringPreferencesKey("journey_state")
         private val KEY_ACTIVE_TRIP = stringPreferencesKey("active_trip_id")
         private val KEY_IS_PRO = booleanPreferencesKey("is_pro_user")
-        // ARCHITECT'S FIX: New persistence key
         private val KEY_ACTIVE_STEP = intPreferencesKey("active_step_index")
+        private val KEY_HAS_SEEN_TUTORIAL = booleanPreferencesKey("has_seen_tutorial") // NEW
     }
 
     val userSession: Flow<UserSession> = dataStore.data.map { prefs ->
@@ -26,7 +26,8 @@ class PreferenceManager @Inject constructor(
             activePathId = prefs[KEY_ACTIVE_TRIP],
             state = UserJourneyState.valueOf(prefs[KEY_STATE] ?: UserJourneyState.BROWSING.name),
             isProUser = prefs[KEY_IS_PRO] ?: false,
-            activeStepIndex = prefs[KEY_ACTIVE_STEP] ?: 0 // Load saved index
+            activeStepIndex = prefs[KEY_ACTIVE_STEP] ?: 0,
+            hasSeenTutorial = prefs[KEY_HAS_SEEN_TUTORIAL] ?: false
         )
     }
 
@@ -37,16 +38,15 @@ class PreferenceManager @Inject constructor(
         }
     }
 
-    // ARCHITECT'S FIX: Save progress instantly
     suspend fun updateStepIndex(index: Int) {
-        dataStore.edit { prefs ->
-            prefs[KEY_ACTIVE_STEP] = index
-        }
+        dataStore.edit { it[KEY_ACTIVE_STEP] = index }
+    }
+
+    suspend fun setHasSeenTutorial(seen: Boolean) {
+        dataStore.edit { it[KEY_HAS_SEEN_TUTORIAL] = seen }
     }
 
     suspend fun setProStatus(isPro: Boolean) {
-        dataStore.edit { prefs ->
-            prefs[KEY_IS_PRO] = isPro
-        }
+        dataStore.edit { it[KEY_IS_PRO] = isPro }
     }
 }

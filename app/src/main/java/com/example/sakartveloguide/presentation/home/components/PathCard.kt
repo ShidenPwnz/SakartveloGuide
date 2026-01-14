@@ -10,12 +10,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext // FIX: Added Import
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import coil.request.ImageRequest // FIX: Added Import
+import coil.request.ImageRequest
 import com.example.sakartveloguide.domain.model.TripPath
 import com.example.sakartveloguide.presentation.theme.*
 
@@ -25,7 +25,8 @@ fun PathCard(
     showButton: Boolean = true,
     onCardClick: (String) -> Unit,
     onLockClick: () -> Unit,
-    onPaywallClick: () -> Unit
+    onPaywallClick: () -> Unit,
+    onHideTutorial: () -> Unit
 ) {
     Card(
         onClick = { onCardClick(trip.id) },
@@ -34,61 +35,43 @@ fun PathCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // 1. IMAGE: 40% height with Safe Fallbacks
             AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
-                    .data(trip.imageUrl)
-                    .crossfade(true)
-                    .build(),
+                model = ImageRequest.Builder(LocalContext.current).data(trip.imageUrl).crossfade(true).build(),
                 contentDescription = null,
-                modifier = Modifier
-                    .weight(0.4f)
-                    .fillMaxWidth(),
+                modifier = Modifier.weight(0.4f).fillMaxWidth(),
                 contentScale = ContentScale.Crop,
-                // ARCHITECT'S FIX: Use built-in Vectors instead of missing Drawables
                 placeholder = rememberVectorPainter(Icons.Default.Image),
                 error = rememberVectorPainter(Icons.Default.BrokenImage)
             )
 
-            // 2. CONTENT: 60% height
-            Column(
-                modifier = Modifier
-                    .weight(0.6f)
-                    .padding(24.dp)
-            ) {
-                Text(
-                    text = trip.title,
-                    style = MaterialTheme.typography.headlineMedium.copy(lineHeight = 32.sp),
-                    fontWeight = FontWeight.Black,
-                    maxLines = 2
-                )
-
+            Column(modifier = Modifier.weight(0.6f).padding(24.dp)) {
+                Text(text = trip.title, style = MaterialTheme.typography.headlineMedium.copy(lineHeight = 32.sp), fontWeight = FontWeight.Black, maxLines = 2)
                 Spacer(Modifier.height(8.dp))
-
-                Text(
-                    text = trip.description,
-                    style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp),
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                    maxLines = 3
-                )
+                Text(text = trip.description, style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp), color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f), maxLines = 4)
 
                 Spacer(Modifier.weight(1f))
 
-                PathIntelligenceRow(path = trip)
-
-                if (showButton) {
-                    Spacer(Modifier.height(16.dp))
+                if (trip.id == "meta_tutorial") {
                     Button(
-                        onClick = {
-                            if (trip.isPremium) onPaywallClick() else onLockClick()
-                        },
+                        onClick = onHideTutorial,
                         modifier = Modifier.fillMaxWidth().height(56.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (trip.isPremium) WineDark else SakartveloRed
-                        ),
+                        colors = ButtonDefaults.buttonColors(containerColor = SakartveloRed.copy(alpha = 0.1f)),
                         shape = RoundedCornerShape(16.dp)
                     ) {
-                        Text("TRIP LOGISTICS", fontWeight = FontWeight.Bold)
+                        Text("DISMISS TUTORIAL", color = SakartveloRed, fontWeight = FontWeight.Bold)
+                    }
+                } else {
+                    PathIntelligenceRow(path = trip)
+                    if (showButton && trip.durationDays > 0) {
+                        Spacer(Modifier.height(16.dp))
+                        Button(
+                            onClick = { if (trip.isPremium) onPaywallClick() else onLockClick() },
+                            modifier = Modifier.fillMaxWidth().height(56.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = if (trip.isPremium) WineDark else SakartveloRed),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Text("TRIP LOGISTICS", fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
