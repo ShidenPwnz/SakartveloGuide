@@ -12,10 +12,16 @@ import com.example.sakartveloguide.domain.model.*
 import com.example.sakartveloguide.domain.repository.TripRepository
 import com.example.sakartveloguide.domain.usecase.AddPassportStampUseCase
 import com.example.sakartveloguide.ui.manager.HapticManager
+import com.example.sakartveloguide.ui.manager.SoundManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.math.abs
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
 import kotlin.time.Duration.Companion.milliseconds
 
 data class Category(val name: String)
@@ -26,6 +32,7 @@ class HomeViewModel @Inject constructor(
     private val repository: TripRepository,
     private val addPassportStampUseCase: AddPassportStampUseCase,
     private val hapticManager: HapticManager,
+    private val soundManager: SoundManager,
     private val preferenceManager: PreferenceManager,
     private val logisticsProfileManager: LogisticsProfileManager,
     private val assetCacheManager: AssetCacheManager,
@@ -65,6 +72,10 @@ class HomeViewModel @Inject constructor(
     private val _activeStepIndex = MutableStateFlow(0)
     val activeStepIndex = _activeStepIndex.asStateFlow()
 
+    // Anti-Cheat State
+    private val _showOutOfRangeDialog = MutableStateFlow(false)
+    val showOutOfRangeDialog = _showOutOfRangeDialog.asStateFlow()
+
     val previewThread: StateFlow<List<MissionStep>> = _logisticsProfile
         .combine(_pendingLogisticsTripId) { profile, tripId ->
             val trips = _uiState.value.groupedPaths.values.flatten()
@@ -80,7 +91,10 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 repository.refreshTrips()
-                val savedProfile = logisticsProfileManager.logisticsProfile.timeout(2000.milliseconds).catch { emit(LogisticsProfile()) }.first()
+                val savedProfile = logisticsProfileManager.logisticsProfile
+                    .timeout(2000.milliseconds)
+                    .catch { emit(LogisticsProfile()) }
+                    .first()
                 _logisticsProfile.value = savedProfile
 
                 val session = preferenceManager.userSession.first()
@@ -110,12 +124,15 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    fun dismissOutOfRangeDialog() { _showOutOfRangeDialog.value = false }
+
     fun onHideTutorialPermanent() {
         viewModelScope.launch { preferenceManager.setHasSeenTutorial(true) }
     }
 
     fun initiateLogistics(tripId: String) {
         _pendingLogisticsTripId.value = tripId
+        _logisticsProfile.update { it.copy(needsAccommodation = false, needsEsim = false, needsFlight = false, needsTransport = false) }
     }
 
     fun onConfirmLogistics(profile: LogisticsProfile) {
@@ -143,14 +160,13 @@ class HomeViewModel @Inject constructor(
             preferenceManager.updateState(UserJourneyState.ON_THE_ROAD, trip.id)
             preferenceManager.updateStepIndex(0)
             hapticManager.tick()
+            soundManager.playTick()
             assetCacheManager.cacheMissionAssets(trip)
         }
     }
 
     private fun generateThread(trip: TripPath, profile: LogisticsProfile, includeDebriefing: Boolean): List<MissionStep> {
         val thread = mutableListOf<MissionStep>()
-
-        // 1. Infiltration (Logistics)
         val arrivalTitle = when (profile.entryPoint) {
             EntryPoint.AIRPORT_TBS -> "TBS: INFILTRATION"
             EntryPoint.AIRPORT_KUT -> "KUT: INFILTRATION"
@@ -164,113 +180,66 @@ class HomeViewModel @Inject constructor(
             thread.add(MissionStep.LogisticsAnchor("SECURE TRANSPORT", "Order ride.", affiliateManager.getTaxiLink(trip.category), "BOLT"))
         }
 
-        // 2. The "Common Sense" Itinerary
         trip.itinerary.forEachIndexed { index, node ->
             thread.add(MissionStep.Activity(node))
-
             if (index < trip.itinerary.size - 1) {
                 val nextNode = trip.itinerary[index + 1]
                 if (node.location != null && nextNode.location != null) {
-                    val distance = calculateDistanceKm(node.location, nextNode.location)
-                    val hasCar = profile.transportType == TransportType.RENTAL_4X4 || profile.transportType == TransportType.OWN_CAR
-
-                    // BASE MAPS URL
-                    val baseMaps = "https://www.google.com/maps/dir/?api=1&origin=${node.location.latitude},${node.location.longitude}&destination=${nextNode.location.latitude},${nextNode.location.longitude}"
-
-                    val walkUrl = "$baseMaps&travelmode=walking"
-                    val driveUrl = "$baseMaps&travelmode=driving"
-                    val busUrl = "$baseMaps&travelmode=transit"
-                    val boltUrl = "bolt://ride?destination_lat=${nextNode.location.latitude}&destination_lng=${nextNode.location.longitude}"
-
-                    // --- LOGIC GATES ---
-
-                    val bridge: MissionStep.TacticalBridge = when {
-                        // GATE 1: MICRO-RANGE (< 400m) -> FORCE WALK
-                        // (Ignores rental car because parking 300m away is stupid)
-                        distance < 0.4 -> {
-                            MissionStep.TacticalBridge(
-                                title = "IMMEDIATE VICINITY",
-                                description = "Target is ${String.format("%.0f", distance * 1000)}m away. Proceed on foot.",
-                                walkUrl = walkUrl, // Primary is Walk
-                                driveUrl = null,   // Hide Drive
-                                boltUrl = null,    // Hide Bolt
-                                distanceKm = distance,
-                                primaryMode = "WALK"
-                            )
-                        }
-
-                        // GATE 2: SHORT-RANGE (400m - 2.5km) -> HYBRID
-                        distance < 2.5 -> {
-                            if (hasCar) {
-                                // Have Car? Offer Drive OR Walk
-                                MissionStep.TacticalBridge(
-                                    title = "SHORT RANGE TRANSIT",
-                                    description = "Walkable distance, or reposition vehicle.",
-                                    walkUrl = walkUrl,
-                                    driveUrl = driveUrl,
-                                    distanceKm = distance,
-                                    primaryMode = "HYBRID_CAR" // Custom mode for UI
-                                )
-                            } else {
-                                // No Car? Offer Walk OR Taxi/Bus
-                                MissionStep.TacticalBridge(
-                                    title = "URBAN TRANSIT",
-                                    description = "Proceed on foot or secure transport.",
-                                    walkUrl = walkUrl,
-                                    boltUrl = boltUrl,
-                                    busUrl = busUrl,
-                                    distanceKm = distance,
-                                    primaryMode = "HYBRID_FOOT" // Custom mode for UI
-                                )
-                            }
-                        }
-
-                        // GATE 3: MID-RANGE (2.5km - 30km) -> VEHICLE
-                        distance < 30.0 -> {
-                            if (hasCar) {
-                                MissionStep.TacticalBridge(
-                                    title = "DRIVE PROTOCOL",
-                                    description = "Navigate vehicle to ${nextNode.title}.",
-                                    driveUrl = driveUrl,
-                                    distanceKm = distance,
-                                    primaryMode = "DRIVE"
-                                )
-                            } else {
-                                MissionStep.TacticalBridge(
-                                    title = "RAPID EXTRACTION",
-                                    description = "Distance exceeds walk limit. Request transport.",
-                                    boltUrl = boltUrl,
-                                    busUrl = busUrl,
-                                    distanceKm = distance,
-                                    primaryMode = "TAXI"
-                                )
-                            }
-                        }
-
-                        // GATE 4: LONG-RANGE (> 30km) -> FLEET
-                        else -> {
-                            MissionStep.TacticalBridge(
-                                title = "FLEET NAVIGATION",
-                                description = "Long range transit. Vehicle required.",
-                                driveUrl = driveUrl,
-                                distanceKm = distance,
-                                primaryMode = "DRIVE"
-                            )
-                        }
-                    }
-
+                    val bridge = calculateTacticalBridge(node, nextNode, profile, trip.category)
                     thread.add(bridge)
                 }
             }
         }
 
-        // 3. Extraction
         thread.add(MissionStep.Extraction("MISSION EXTRACTION", "Return to departure point."))
         if (includeDebriefing) {
-            thread.add(MissionStep.PremiumExperience("DEBRIEFING", "Mission success. Support the guide.", "https://play.google.com"))
+            thread.add(MissionStep.PremiumExperience("SUCCESS DEBRIEFING", "Mission success. Support the guide.", "https://play.google.com/store/apps/details?id=com.example.sakartveloguide"))
         }
         return thread
+    }
 
+    private fun calculateTacticalBridge(startNode: BattleNode, endNode: BattleNode, profile: LogisticsProfile, tripCategory: RouteCategory): MissionStep.TacticalBridge {
+        val distance = calculateDistanceKm(startNode.location!!, endNode.location!!)
+        val hasOwnVehicle = profile.transportType == TransportType.RENTAL_4X4 || profile.transportType == TransportType.OWN_CAR
+        val elevationDelta = abs(endNode.elevationMeters - startNode.elevationMeters)
+        val isSteep = elevationDelta > 50
+
+        // ARCHITECT'S FIX: Pre-format the distance to prevent string template syntax errors
+        val distStr = "%.1f".format(distance)
+
+        val baseMaps = "https://www.google.com/maps/dir/?api=1&origin=${startNode.location.latitude},${startNode.location.longitude}&destination=${endNode.location.latitude},${endNode.location.longitude}"
+        val walkUrl = "$baseMaps&travelmode=walking"
+        val driveUrl = "$baseMaps&travelmode=driving"
+        val busUrl = "$baseMaps&travelmode=transit"
+        val boltUrl = "bolt://ride?destination_lat=${endNode.location.latitude}&destination_lng=${endNode.location.longitude}"
+
+        return when {
+            distance < 0.2 && (endNode.zoneType == ZoneType.URBAN_CORE || endNode.zoneType == ZoneType.RURAL_HUB) -> {
+                MissionStep.TacticalBridge("IMMEDIATE VICINITY", if (hasOwnVehicle) "Park vehicle nearby. Target is pedestrian-only." else "Target is steps away.", walkUrl = walkUrl, distanceKm = distance, primaryMode = "WALK", specialNote = endNode.specialLogisticsNote)
+            }
+            distance < 2.5 -> {
+                if (isSteep && !hasOwnVehicle) {
+                    MissionStep.TacticalBridge("ELEVATION ALERT", "Short distance (${distStr}km) but steep ascent (${elevationDelta}m). Taxi advised.", walkUrl = walkUrl, boltUrl = boltUrl, distanceKm = distance, primaryMode = "HYBRID_FOOT", warningTag = "STEEP CLIMB")
+                } else if (hasOwnVehicle) {
+                    MissionStep.TacticalBridge("SHORT RANGE", "Walkable distance, or reposition vehicle.", walkUrl = walkUrl, driveUrl = driveUrl, distanceKm = distance, primaryMode = "HYBRID_CAR", specialNote = endNode.specialLogisticsNote)
+                } else {
+                    MissionStep.TacticalBridge("URBAN TRANSIT", "Proceed on foot.", walkUrl = walkUrl, boltUrl = boltUrl, busUrl = busUrl, distanceKm = distance, primaryMode = "WALK", specialNote = endNode.specialLogisticsNote)
+                }
+            }
+            distance < 35.0 -> {
+                val isDeadZone = endNode.zoneType == ZoneType.REMOTE_WILDERNESS || endNode.zoneType == ZoneType.ALPINE_PASS
+                if (!hasOwnVehicle && isDeadZone) {
+                    MissionStep.TacticalBridge("LOGISTICS WARNING", "Destination is in a service dead-zone. Charter a driver.", actionUrl = "https://gotrip.ge", distanceKm = distance, primaryMode = "CHARTER", warningTag = "NO RETURN TAXI")
+                } else if (hasOwnVehicle) {
+                    MissionStep.TacticalBridge("DRIVE PROTOCOL", "Navigate to ${endNode.title}.", driveUrl = driveUrl, distanceKm = distance, primaryMode = "DRIVE")
+                } else {
+                    MissionStep.TacticalBridge("RAPID DEPLOYMENT", "Request transport.", busUrl = busUrl, boltUrl = boltUrl, distanceKm = distance, primaryMode = "TAXI")
+                }
+            }
+            else -> {
+                MissionStep.TacticalBridge("FLEET NAVIGATION", if(hasOwnVehicle) "Long range transit." else "Fleet required.", driveUrl = if(hasOwnVehicle) driveUrl else null, actionUrl = if(!hasOwnVehicle) "https://gotrip.ge" else null, distanceKm = distance, primaryMode = if(hasOwnVehicle) "DRIVE" else "CHARTER")
+            }
+        }
     }
 
     fun onObjectiveSecured() {
@@ -279,6 +248,7 @@ class HomeViewModel @Inject constructor(
                 val newIndex = _activeStepIndex.value + 1
                 _activeStepIndex.value = newIndex
                 hapticManager.tick()
+                soundManager.playTick()
                 preferenceManager.updateStepIndex(newIndex)
             }
         }
@@ -286,27 +256,38 @@ class HomeViewModel @Inject constructor(
 
     fun onCompleteTrip(trip: TripPath) {
         viewModelScope.launch {
-            val loc = try { locationManager.getCurrentLocation() } catch (e: Exception) { null }
-            // ARCHITECT'S FIX: 500km anti-cheat gate
-            val dist = if (loc != null) calculateDistanceKm(loc, GeoPoint(41.7, 44.8)) else 999.0
-            if (dist > 500.0) {
-                _navigationEvent.emit("error_out_of_range")
+            val loc = try {
+                locationManager.getCurrentLocation()
+            } catch (e: Exception) { null }
+
+            // USE THE LAST NODE LOCATION AS THE TARGET
+            val lastNodeLocation = trip.itinerary.lastOrNull { it.location != null }?.location
+                ?: GeoPoint(41.7128, 44.8271) // Tbilisi Fallback
+
+            if (loc == null) {
+                Log.e("TACTICAL_ERROR", "Could not acquire GPS lock.")
+                _showOutOfRangeDialog.value = true
                 return@launch
             }
+
+            val dist = calculateDistanceKm(loc, lastNodeLocation)
+            Log.d("ANTI_CHEAT", "Distance to extraction point: ${dist}km")
+
+            // LOGIC: If distance is ridiculously high (>1000km) or
+            // if you're actually in-country (radius 500km), allow it.
+            if (dist > 500.0) {
+                _showOutOfRangeDialog.value = true
+                return@launch
+            }
+
+            // SUCCESS PROTOCOL
             _stampingTrip.value = trip
             hapticManager.missionCompleteSlam()
+            soundManager.playStampSlam()
             addPassportStampUseCase(trip)
             preferenceManager.updateState(UserJourneyState.BROWSING, null)
             preferenceManager.updateStepIndex(0)
         }
-    }
-
-    private fun calculateDistanceKm(p1: GeoPoint, p2: GeoPoint): Double {
-        val r = 6371.0
-        val dLat = Math.toRadians(p2.latitude - p1.latitude)
-        val dLon = Math.toRadians(p2.longitude - p1.longitude)
-        val a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(Math.toRadians(p1.latitude)) * Math.cos(Math.toRadians(p2.latitude)) * Math.sin(dLon/2) * Math.sin(dLon/2)
-        return r * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
     }
 
     fun onSlamAnimationFinished() {
@@ -319,21 +300,50 @@ class HomeViewModel @Inject constructor(
     fun wipeAllUserData() {
         viewModelScope.launch {
             preferenceManager.updateState(UserJourneyState.BROWSING, null)
+            preferenceManager.updateStepIndex(0)
             preferenceManager.setHasSeenTutorial(false)
+            logisticsProfileManager.saveFullProfile(LogisticsProfile())
             repository.nukeAllData()
             repository.refreshTrips()
+            _activeStepIndex.value = 0
+            _missionThread.value = emptyList()
             _navigationEvent.emit("home")
+            hapticManager.missionCompleteSlam()
         }
     }
 
     fun onAbortTrip() {
         viewModelScope.launch {
             preferenceManager.updateState(UserJourneyState.BROWSING, null)
+            preferenceManager.updateStepIndex(0)
+            _pendingLogisticsTripId.value = null
+            _initialDestination.value = "home"
             _navigationEvent.emit("home")
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        soundManager.release()
     }
 
     fun onCallFleet(title: String) {}
     fun onOpenBolt() {}
     fun onBookAccommodation(city: String) {}
+
+    fun triggerHapticTick() {
+        hapticManager.tick()
+    }
+
+    // ARCHITECT'S FIX: Refined Haversine for Anti-Cheat accuracy
+    private fun calculateDistanceKm(p1: GeoPoint, p2: GeoPoint): Double {
+        val r = 6371.0 // Radius of Earth in KM
+        val dLat = Math.toRadians(p2.latitude - p1.latitude)
+        val dLon = Math.toRadians(p2.longitude - p1.longitude)
+        val a = sin(dLat / 2) * sin(dLat / 2) +
+                cos(Math.toRadians(p1.latitude)) * cos(Math.toRadians(p2.latitude)) *
+                sin(dLon / 2) * sin(dLon / 2)
+        val c = 2 * atan2(sqrt(a), sqrt(1 - a))
+        return r * c
+    }
 }

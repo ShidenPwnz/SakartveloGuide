@@ -65,17 +65,23 @@ fun MissionControlScreen(
     ) { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState())) {
 
-
+            // 1. VISUAL INTEL (Locked Map)
             Box(modifier = Modifier.fillMaxWidth().height(250.dp)) {
-                MapViewContainer(
-                    modifier = Modifier.fillMaxSize(),
-                    isInteractable = false // ARCHITECT'S FIX: Laptops and tactical maps don't move
-                ) { map ->
+                MapViewContainer(modifier = Modifier.fillMaxSize(), isInteractable = false) { map ->
                     val points = trip.itinerary.filter { it.location != null }.map {
                         LatLng(it.location!!.latitude, it.location!!.longitude)
                     }
-                    // ... rest of map logic ...
+                    if (points.isNotEmpty()) {
+                        points.forEach { map.addMarker(MarkerOptions().position(it)) }
+                        val bounds = LatLngBounds.Builder().includes(points).build()
+                        try {
+                            map.easeCamera(CameraUpdateFactory.newLatLngBounds(bounds, 150), 1000)
+                        } catch (e: Exception) {
+                            map.moveCamera(CameraUpdateFactory.newLatLngZoom(points.first(), 13.0))
+                        }
+                    }
                 }
+                Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(Color.Transparent, MatteCharcoal))))
             }
 
             Column(Modifier.padding(24.dp)) {
@@ -84,6 +90,8 @@ fun MissionControlScreen(
                 Text(dateString, color = SakartveloRed, fontWeight = FontWeight.Bold)
 
                 Spacer(Modifier.height(32.dp))
+
+                // 2. LOGISTICS PARAMETERS
                 Text("INFILTRATION & EXTRACTION", color = SnowWhite.copy(0.5f), style = MaterialTheme.typography.labelSmall)
                 Spacer(Modifier.height(12.dp))
                 ProtocolPointCard("ARRIVE VIA", profile.entryPoint, profile.isByAir, viewModel::updateEntryPoint)
@@ -91,12 +99,20 @@ fun MissionControlScreen(
                 ProtocolPointCard("DEPART VIA", profile.exitPoint, profile.isByAir, viewModel::updateExitPoint)
 
                 Spacer(Modifier.height(32.dp))
-                Text("ITINERARY SUMMARY", color = SnowWhite.copy(0.5f), style = MaterialTheme.typography.labelSmall)
+
+                // 3. THE THREAD (The "Disconnected" Section)
+                Text("TACTICAL THREAD", color = SnowWhite.copy(0.5f), style = MaterialTheme.typography.labelSmall)
                 Spacer(Modifier.height(12.dp))
 
-                previewSteps.forEachIndexed { index, step ->
-                    InteractivePreviewRow(index + 1, step, context)
+                if (previewSteps.isEmpty()) {
+                    // Fallback in case thread is generating
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = SakartveloRed)
+                } else {
+                    previewSteps.forEachIndexed { index, step ->
+                        InteractivePreviewRow(index + 1, step, context)
+                    }
                 }
+
                 Spacer(Modifier.height(100.dp))
             }
         }
@@ -106,39 +122,118 @@ fun MissionControlScreen(
 @Composable
 fun InteractivePreviewRow(index: Int, step: MissionStep, context: android.content.Context) {
     var isExpanded by remember { mutableStateOf(false) }
-    val hasTool = step.actionUrl != null
 
-    Column(modifier = Modifier.fillMaxWidth().clickable(enabled = hasTool) { isExpanded = !isExpanded }.padding(vertical = 10.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+    // 1. Logic Check: Does it have external links?
+    val hasTool = when(step) {
+        is MissionStep.TacticalBridge -> true
+        else -> step.actionUrl != null
+    }
+
+    // 2. Logic Check: Is the text long enough to require expansion?
+    val isTextLong = step.description.length > 60
+
+    // 3. Final Decision: Should this row be interactable?
+    val canExpand = hasTool || isTextLong
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize() // Smooth transition for height changes
+            .clickable(enabled = canExpand) { isExpanded = !isExpanded }
+            .padding(vertical = 12.dp)
+    ) {
+        Row(verticalAlignment = Alignment.Top) {
+            // STEP INDICATOR
             Surface(
-                color = if (step is MissionStep.PremiumExperience) Color(0xFFFFD700).copy(alpha = 0.2f) else SakartveloRed.copy(alpha = 0.1f),
+                color = SakartveloRed.copy(alpha = 0.1f),
                 shape = RoundedCornerShape(4.dp),
                 modifier = Modifier.size(28.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Text(text = index.toString(), color = if (step is MissionStep.PremiumExperience) Color(0xFFFFD700) else SakartveloRed, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = index.toString(),
+                        color = SakartveloRed,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
+
             Spacer(Modifier.width(16.dp))
+
+            // CONTENT BLOCK
             Column(Modifier.weight(1f)) {
-                Text(text = step.title, color = if (step is MissionStep.PremiumExperience) Color(0xFFFFD700) else SnowWhite, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                Text(text = step.description.take(50) + "...", color = SnowWhite.copy(alpha = 0.4f), style = MaterialTheme.typography.labelSmall)
+                Text(
+                    text = step.title,
+                    color = SnowWhite,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold
+                )
+
+                // ARCHITECT'S DYNAMIC TEXT:
+                // We only truncate if it's long AND not expanded.
+                val displayText = if (isExpanded || !isTextLong) {
+                    step.description
+                } else {
+                    step.description.take(57) + "..."
+                }
+
+                Text(
+                    text = displayText,
+                    color = SnowWhite.copy(alpha = 0.6f),
+                    style = MaterialTheme.typography.bodySmall,
+                    lineHeight = 18.sp
+                )
+
+                // Bridge Specific Intelligence (Always show when expanded)
+                if (isExpanded && step is MissionStep.TacticalBridge) {
+                    step.warningTag?.let {
+                        Spacer(Modifier.height(8.dp))
+                        Text("⚠ $it", color = SakartveloRed, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                    }
+                    step.specialNote?.let {
+                        Spacer(Modifier.height(4.dp))
+                        Text("ℹ $it", color = Color(0xFFFFD700), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                    }
+                }
             }
-            if (hasTool) {
-                Icon(imageVector = Icons.Default.ChevronRight, contentDescription = null, tint = SnowWhite.copy(alpha = 0.2f), modifier = Modifier.size(16.dp).rotate(if (isExpanded) 90f else 0f))
+
+            // DYNAMIC CHEVRON: Only show if the user can actually expand the card
+            if (canExpand) {
+                Icon(
+                    imageVector = Icons.Default.ChevronRight,
+                    contentDescription = null,
+                    tint = if (isExpanded) SakartveloRed else SnowWhite.copy(alpha = 0.2f),
+                    modifier = Modifier
+                        .rotate(if (isExpanded) 90f else 0f)
+                        .padding(top = 4.dp)
+                        .size(20.dp)
+                )
             }
         }
-        AnimatedVisibility(visible = isExpanded, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
-            Column(Modifier.padding(top = 12.dp, start = 44.dp)) {
-                step.actionUrl?.let { url ->
+
+        // EXECUTABLE ASSETS (Buttons)
+        AnimatedVisibility(
+            visible = isExpanded && hasTool,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut()
+        ) {
+            Column(Modifier.padding(top = 16.dp, start = 44.dp)) {
+                val targetUrl = when(step) {
+                    is MissionStep.TacticalBridge -> step.walkUrl ?: step.driveUrl ?: step.busUrl ?: step.boltUrl
+                    else -> step.actionUrl
+                }
+
+                targetUrl?.let { url ->
                     ReferralLinkBox(
-                        title = "Deploy Asset",
-                        description = "Secure this step immediately.",
+                        title = "Deploy Protocol",
+                        description = "Launch external asset",
                         buttonText = "EXECUTE",
                         icon = Icons.Default.Launch,
-                        color = if (step is MissionStep.PremiumExperience) Color(0xFFFFD700) else SakartveloRed,
-                        onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
-                    )
+                        color = SakartveloRed
+                    ) {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                    }
                 }
             }
         }

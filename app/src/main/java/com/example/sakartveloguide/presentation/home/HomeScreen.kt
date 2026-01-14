@@ -40,6 +40,9 @@ fun HomeScreen(
     if (categories.isNotEmpty()) {
         val hPagerState = rememberPagerState(pageCount = { categories.size })
 
+        // HAPTIC 1: Horizontal
+        LaunchedEffect(hPagerState.currentPage) { viewModel.triggerHapticTick() }
+
         Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
             HeaderSection(categories[hPagerState.currentPage].name, onPassportClick, onSettingsClick)
 
@@ -49,49 +52,31 @@ fun HomeScreen(
                 pageSpacing = 16.dp,
                 contentPadding = PaddingValues(horizontal = 25.dp)
             ) { hPage ->
-                val category = categories[hPage]
-                val paths = state.groupedPaths[category] ?: emptyList()
-
-                // ARCHITECT'S FIX: Use the 'key' block to force the pager to re-initialize
-                // when the tutorial is dismissed. This solves the "Dismiss does nothing" bug.
+                val paths = state.groupedPaths[categories[hPage]] ?: emptyList()
                 key(session.hasSeenTutorial) {
-                    val initialTripIndex = if (category.name == "GUIDE" && session.hasSeenTutorial) 1 else 0
-                    val vPagerState = rememberPagerState(
-                        initialPage = initialTripIndex,
-                        pageCount = { paths.size }
-                    )
+                    val initialTripIndex = if (categories[hPage].name == "GUIDE" && session.hasSeenTutorial) 1 else 0
+                    val vPagerState = rememberPagerState(initialPage = initialTripIndex, pageCount = { paths.size })
 
-                    VerticalPager(
-                        state = vPagerState,
-                        modifier = Modifier.fillMaxSize(),
-                        pageSpacing = (-350).dp
-                    ) { vPage ->
+                    // HAPTIC 2: Vertical
+                    LaunchedEffect(vPagerState.currentPage) { viewModel.triggerHapticTick() }
+
+                    VerticalPager(state = vPagerState, modifier = Modifier.fillMaxSize(), pageSpacing = (-350).dp) { vPage ->
                         val path = paths[vPage]
                         val pageOffset = (vPagerState.currentPage - vPage).toFloat() + vPagerState.currentPageOffsetFraction
-
-                        Box(modifier = Modifier
-                            .fillMaxWidth().height(520.dp).zIndex(1f - pageOffset.absoluteValue)
-                            .graphicsLayer {
-                                val scale = lerp(0.85f, 1f, 1f - pageOffset.absoluteValue.coerceIn(0f, 1f))
-                                scaleX = scale; scaleY = scale
-                            }
+                        Box(modifier = Modifier.fillMaxWidth().height(520.dp).graphicsLayer {
+                            val scale = lerp(0.85f, 1f, 1f - pageOffset.absoluteValue.coerceIn(0f, 1f))
+                            scaleX = scale; scaleY = scale
+                        }
                         ) {
                             PathCard(
                                 trip = path,
-                                showButton = true,
                                 onCardClick = { onPathClick(path.id) },
-                                onLockClick = {},
-                                onPaywallClick = onPaywallClick,
                                 onHideTutorial = { viewModel.onHideTutorialPermanent() }
                             )
                         }
                     }
                 }
             }
-        }
-    } else {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
         }
     }
 }

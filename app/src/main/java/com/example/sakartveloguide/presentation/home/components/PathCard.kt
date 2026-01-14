@@ -1,14 +1,17 @@
 package com.example.sakartveloguide.presentation.home.components
 
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BrokenImage
-import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -22,57 +25,45 @@ import com.example.sakartveloguide.presentation.theme.*
 @Composable
 fun PathCard(
     trip: TripPath,
-    showButton: Boolean = true,
     onCardClick: (String) -> Unit,
-    onLockClick: () -> Unit,
-    onPaywallClick: () -> Unit,
-    onHideTutorial: () -> Unit
+    onHideTutorial: () -> Unit // Kept for meta-tutorial dismissal
 ) {
+    val infiniteTransition = rememberInfiniteTransition(label = "Breathe")
+    val imageScale by infiniteTransition.animateFloat(
+        initialValue = 1.0f, targetValue = 1.12f,
+        animationSpec = infiniteRepeatable(tween(15000, easing = LinearEasing), RepeatMode.Reverse), label = "Zoom"
+    )
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.4f, targetValue = 0.9f,
+        animationSpec = infiniteRepeatable(tween(2000, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "Pulse"
+    )
+
     Card(
-        onClick = { onCardClick(trip.id) },
-        modifier = Modifier.fillMaxSize(),
+        onClick = { if (trip.id == "meta_tutorial") onHideTutorial() else onCardClick(trip.id) },
+        modifier = Modifier.fillMaxSize().border(1.dp, Brush.radialGradient(listOf(SakartveloRed.copy(alpha = pulseAlpha), Color.Transparent)), RoundedCornerShape(24.dp)),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current).data(trip.imageUrl).crossfade(true).build(),
-                contentDescription = null,
-                modifier = Modifier.weight(0.4f).fillMaxWidth(),
-                contentScale = ContentScale.Crop,
-                placeholder = rememberVectorPainter(Icons.Default.Image),
-                error = rememberVectorPainter(Icons.Default.BrokenImage)
-            )
-
-            Column(modifier = Modifier.weight(0.6f).padding(24.dp)) {
-                Text(text = trip.title, style = MaterialTheme.typography.headlineMedium.copy(lineHeight = 32.sp), fontWeight = FontWeight.Black, maxLines = 2)
+            Box(modifier = Modifier.weight(0.5f).fillMaxWidth().clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current).data(trip.imageUrl).crossfade(true).build(),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize().graphicsLayer { scaleX = imageScale; scaleY = imageScale },
+                    contentScale = ContentScale.Crop
+                )
+            }
+            Column(modifier = Modifier.weight(0.5f).padding(24.dp)) {
+                Text(text = trip.title.uppercase(), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black)
                 Spacer(Modifier.height(8.dp))
-                Text(text = trip.description, style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp), color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f), maxLines = 4)
-
+                Text(text = trip.description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f), maxLines = 4)
                 Spacer(Modifier.weight(1f))
-
-                if (trip.id == "meta_tutorial") {
-                    Button(
-                        onClick = onHideTutorial,
-                        modifier = Modifier.fillMaxWidth().height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = SakartveloRed.copy(alpha = 0.1f)),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        Text("DISMISS TUTORIAL", color = SakartveloRed, fontWeight = FontWeight.Bold)
-                    }
-                } else {
+                if (trip.id != "meta_tutorial") {
                     PathIntelligenceRow(path = trip)
-                    if (showButton && trip.durationDays > 0) {
-                        Spacer(Modifier.height(16.dp))
-                        Button(
-                            onClick = { if (trip.isPremium) onPaywallClick() else onLockClick() },
-                            modifier = Modifier.fillMaxWidth().height(56.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = if (trip.isPremium) WineDark else SakartveloRed),
-                            shape = RoundedCornerShape(16.dp)
-                        ) {
-                            Text("TRIP LOGISTICS", fontWeight = FontWeight.Bold)
-                        }
-                    }
+                    Spacer(Modifier.height(16.dp))
+                    Text("TAP TO INITIALIZE", color = SakartveloRed, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.graphicsLayer { alpha = pulseAlpha })
+                } else {
+                    Text("TAP TO DISMISS", color = SakartveloRed, fontWeight = FontWeight.Bold)
                 }
             }
         }
