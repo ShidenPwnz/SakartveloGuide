@@ -1,0 +1,394 @@
+
+# 2026-01-12 23:57:10.691160
++y
+
+# 2026-01-13 00:02:33.213725
++/git init
+
+# 2026-01-13 00:03:09.681695
++/add PassportSlamOverlay.kt
+
+# 2026-01-13 00:03:33.580291
++n
+
+# 2026-01-13 00:03:47.723340
++/add PassportSlamOverlay.kt
++Location: app/src/main/java/com/example/sakartveloguide/presentation/passport/components/PassportSlamOverlay.kt
+
+# 2026-01-13 00:03:59.191946
++n
+
+# 2026-01-13 00:05:26.144262
++Create a new file at app/src/main/java/com/example/sakartveloguide/presentation/passport/components/PassportSlamOverlay.kt
+
+# 2026-01-13 00:06:54.049851
++create PassportSlamOverlay.kt Location: app/src/main/java/com/example/sakartveloguide/presentation/passport/components/PassportSlamOverlay.kt
+
+# 2026-01-13 00:07:10.284983
++y
+
+# 2026-01-13 00:07:36.169408
++/add PassportSlamOverlay.kt
+
+# 2026-01-13 00:07:46.171178
++n
+
+# 2026-01-13 00:07:53.691021
++add package com.example.sakartveloguide.presentation.passport.components
++
++import androidx.compose.animation.core.*
++import androidx.compose.foundation.background
++import androidx.compose.foundation.layout.*
++import androidx.compose.material3.MaterialTheme
++import androidx.compose.material3.Text
++import androidx.compose.runtime.*
++import androidx.compose.ui.Alignment
++import androidx.compose.ui.Modifier
++import androidx.compose.ui.draw.drawBehind
++import androidx.compose.ui.graphics.Color
++import androidx.compose.ui.graphics.PathEffect
++import androidx.compose.ui.graphics.drawscope.Stroke
++import androidx.compose.ui.graphics.graphicsLayer
++import androidx.compose.ui.text.font.FontWeight
++import androidx.compose.ui.unit.dp
++import androidx.compose.ui.unit.sp
++import androidx.compose.ui.zIndex
++import com.example.sakartveloguide.domain.model.TripPath
++import com.example.sakartveloguide.presentation.theme.SakartveloRed
++import kotlinx.coroutines.delay
++import kotlinx.coroutines.launch
++
++@Composable
++fun PassportSlamOverlay(
++    trip: TripPath,
++    onAnimationFinished: () -> Unit
++) {
++    // ARCHITECT'S NOTE: Starting at 5x scale creates the "falling from sky" effect
++    val scale = remember { Animatable(5f) } 
++    val alpha = remember { Animatable(0f) }
++    val rotation = remember { Animatable(-10f) } // Tactical tilt
++
++    LaunchedEffect(Unit) {
++        launch {
++            // The "Thud": Low stiffness creates the heavy impact
++            scale.animateTo(
++                targetValue = 1f,
++                animationSpec = spring(
++                    dampingRatio = Spring.DampingRatioMediumBouncy,
++                    stiffness = Spring.StiffnessLow 
++                )
++            )
++        }
++        launch {
++            alpha.animateTo(1f, tween(100))
++        }
++        launch {
++            rotation.animateTo(0f, spring(stiffness = Spring.StiffnessLow))
++        }
++
++        // Hold for the "Collector's Gaze"
++        delay(2500)
++        onAnimationFinished()
++    }
++
++    Box(
++        modifier = Modifier
++            .fillMaxSize()
++            .background(Color.Black.copy(alpha = 0.85f))
++            .zIndex(100f), // Force top layer
++        contentAlignment = Alignment.Center
++    ) {
++        Column(
++            horizontalAlignment = Alignment.CenterHorizontally,
++            modifier = Modifier
++                .graphicsLayer(
++                    scaleX = scale.value,
++                    scaleY = scale.value,
++                    alpha = alpha.value,
++                    rotationZ = rotation.value
++                )
++                .drawBehind {
++                    // Visual: Tactical dashed circle (Ink-stamp aesthetic)
++                    drawCircle(
++                        color = SakartveloRed,
++                        style = Stroke(
++                            width = 4.dp.toPx(),
++                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(30f, 20f), 0f)
++                        )
++                    )
++                }
++                .padding(60.dp)
++        ) {
++            Text(
++                text = trip.category.name,
++                color = SakartveloRed,
++                style = MaterialTheme.typography.headlineMedium,
++                fontWeight = FontWeight.Black,
++                letterSpacing = 2.sp
++            )
++            Text(
++                text = "APPROVED PROTOCOL",
++                color = SakartveloRed.copy(alpha = 0.8f),
++                style = MaterialTheme.typography.labelSmall,
++                fontWeight = FontWeight.Bold
++            )
++            Spacer(Modifier.height(8.dp))
++            Text(
++                text = "SAKARTVELO",
++                color = SakartveloRed,
++                style = MaterialTheme.typography.titleLarge,
++                fontWeight = FontWeight.ExtraBold
++            )
++        }
++    }
++}
+
+# 2026-01-13 00:08:35.116059
++/cd
+
+# 2026-01-13 00:09:10.880949
++update HomeViewModel with this code // Inside HomeViewModel.kt
++
++// ... existing states
++
++private val _stampingTrip = MutableStateFlow<TripPath?>(null)
++val stampingTrip = _stampingTrip.asStateFlow()
++
++fun onCompleteTrip(trip: TripPath) {
++    viewModelScope.launch {
++        // 1. Trigger Overlay
++        _stampingTrip.value = trip
++        
++        // 2. Tactical Thud (Haptic)
++        hapticManager.missionCompleteSlam()
++        
++        // 3. Clean Architecture: Record the achievement
++        addPassportStampUseCase(trip)
++        
++        // 4. Update State to COMPLETED
++        preferenceManager.updateState(UserJourneyState.COMPLETED, null)
++        
++        // 5. Unlock the next path logic (optional)
++        repository.lockTrip(trip.id) 
++    }
++}
++
++fun onSlamAnimationFinished() {
++    _stampingTrip.value = null
++    // Reset tactical state
++    _dynamicBattlePlan.value = emptyList()
++}
+
+# 2026-01-13 00:10:41.781816
++/add HomeViewModel.kt
+
+# 2026-01-13 00:10:46.077941
++n
+
+# 2026-01-13 00:11:04.907295
++/load HomeViewModel.kt
+
+# 2026-01-13 00:11:39.284153
++n
+
+# 2026-01-13 00:12:02.623987
++update HomeViewModel.kt
++We trigger the Haptic Manager at the exact microsecond the state updates.
++code
++Kotlin
++// Inside HomeViewModel.kt
++
++// ... existing states
++
++private val _stampingTrip = MutableStateFlow<TripPath?>(null)
++val stampingTrip = _stampingTrip.asStateFlow()
++
++fun onCompleteTrip(trip: TripPath) {
++    viewModelScope.launch {
++        // 1. Trigger Overlay
++        _stampingTrip.value = trip
++        
++        // 2. Tactical Thud (Haptic)
++        hapticManager.missionCompleteSlam()
++        
++        // 3. Clean Architecture: Record the achievement
++        addPassportStampUseCase(trip)
++        
++        // 4. Update State to COMPLETED
++        preferenceManager.updateState(UserJourneyState.COMPLETED, null)
++        
++        // 5. Unlock the next path logic (optional)
++        repository.lockTrip(trip.id) 
++    }
++}
++
++fun onSlamAnimationFinished() {
++    _stampingTrip.value = null
++    // Reset tactical state
++    _dynamicBattlePlan.value = emptyList()
++}
++3. The Switchboard: MainActivity.kt
++We wrap the NavGraph in a Box to allow the Slam to overlay the entire application.
++code
++Kotlin
++// Inside MainActivity.kt -> setContent
++
++val stampingTrip by viewModel.stampingTrip.collectAsState()
++
++SakartveloTheme {
++    Box(modifier = androidx.compose.ui.Modifier.fillMaxSize()) {
++        
++        // Layer 0: Main Navigation
++        SakartveloNavGraph(
++            homeViewModel = viewModel,
++            onCompleteTrip = { trip -> viewModel.onCompleteTrip(trip) },
++            // ... other callbacks
++        )
++
++        // Layer 1: The Slam Animation (Appears above everything)
++        stampingTrip?.let { trip ->
++            PassportSlamOverlay(
++                trip = trip,
++                onAnimationFinished = {
++                    viewModel.onSlamAnimationFinished()
++                    // ARCHITECT'S MOVE: Deep-link to the Passport view
++                    // navController.navigate("passport") // If you expose navController
++                }
++            )
++        }
++        
++        // ... LogisticsWizard logic
++    }
++}
+
+# 2026-01-13 00:21:38.940239
++Replace your current MainActivity.kt with this code. I have added the required fillMaxSize import and mapped every missing parameter to the HomeViewModel.
++code
++Kotlin
++package com.example.sakartveloguide
++
++import android.os.Bundle
++import androidx.activity.ComponentActivity
++import androidx.activity.compose.setContent
++import androidx.activity.viewModels
++import androidx.compose.foundation.layout.Box
++import androidx.compose.foundation.layout.fillMaxSize // FIXED: Missing import
++import androidx.compose.runtime.collectAsState
++import androidx.compose.runtime.getValue
++import androidx.compose.ui.Modifier
++import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
++import com.example.sakartveloguide.presentation.home.HomeViewModel
++import com.example.sakartveloguide.presentation.mission.LogisticsWizard
++import com.example.sakartveloguide.presentation.navigation.SakartveloNavGraph
++import com.example.sakartveloguide.presentation.passport.components.PassportSlamOverlay
++import com.example.sakartveloguide.presentation.theme.SakartveloTheme
++import dagger.hilt.android.AndroidEntryPoint
++
++@AndroidEntryPoint
++class MainActivity : ComponentActivity() {
++
++    private val viewModel: HomeViewModel by viewModels()
++
++    override fun onCreate(savedInstanceState: Bundle?) {
++        val splashScreen = installSplashScreen()
++        super.onCreate(savedInstanceState)
++
++        // Keep splash screen on until the Sakartvelo Engine is ready
++        splashScreen.setKeepOnScreenCondition { !viewModel.isSplashReady.value }
++
++        setContent {
++            val pendingLogisticsId by viewModel.pendingLogisticsTripId.collectAsState()
++            val stampingTrip by viewModel.stampingTrip.collectAsState()
++
++            SakartveloTheme {
++                // ARCHITECT'S NOTE: The Box acts as a Tactical Stack. 
++                // Navigation at the bottom, Overlays on top.
++                Box(modifier = Modifier.fillMaxSize()) {
++                    
++                    // 1. LAYER: MAIN CONTENT & NAVIGATION
++                    SakartveloNavGraph(
++                        homeViewModel = viewModel,
++                        onCompleteTrip = { trip -> viewModel.onCompleteTrip(trip) },
++                        onAbortTrip = { viewModel.onAbortTrip() },
++                        onCallFleet = { title -> viewModel.onCallFleet(title) },
++                        onOpenBolt = { viewModel.onOpenBolt() },
++                        onBookAccommodation = { city -> viewModel.onBookAccommodation(city) }
++                    )
++
++                    // 2. LAYER: LOGISTICS WIZARD (Bottom Sheet Overlay)
++                    pendingLogisticsId?.let { _ ->
++                        LogisticsWizard(
++                            onDismiss = { viewModel.dismissWizard() },
++                            onConfirm = { profile ->
++                                viewModel.onConfirmLogistics(profile)
++                                viewModel.dismissWizard()
++                            }
++                        )
++                    }
++
++                    // 3. LAYER: PASSPORT SLAM (Full Screen Achievement Overlay)
++                    stampingTrip?.let { trip ->
++                        PassportSlamOverlay(
++                            trip = trip,
++                            onAnimationFinished = {
++                                viewModel.onSlamAnimationFinished()
++                                // The system will now naturally return to the discovery state
++                            }
++                        )
++                    }
++                }
++            }
++        }
++    }
++}
+
+# 2026-01-13 00:28:19.363690
++Update app/src/main/java/com/example/sakartveloguide/presentation/navigation/NavGraph.kt
++code
++Kt
++// Inside NavHost
++composable("passport") {
++    val passportViewModel: PassportViewModel = hiltViewModel()
++    val stamps by passportViewModel.stamps.collectAsState()
++    
++    PassportScreen(
++        stamps = stamps,
++        onBack = { navController.popBackStack() }
++    )
++}
+
+# 2026-01-13 00:29:34.784811
++n
+
+# 2026-01-13 00:30:06.343633
++Update app/src/main/java/com/example/sakartveloguide/presentation/navigation/NavGraph.kt
++code
++Kt
++// Inside NavHost
++composable("passport") {
++    val passportViewModel: PassportViewModel = hiltViewModel()
++    val stamps by passportViewModel.stamps.collectAsState()
++    
++    PassportScreen(
++        stamps = stamps,
++        onBack = { navController.popBackStack() }
++    )
++}
+
+# 2026-01-13 00:36:59.381233
++/add navgraph
+
+# 2026-01-13 00:37:04.136392
++n
+
+# 2026-01-13 00:38:26.890367
++/add NavGraph.kt
+
+# 2026-01-13 00:38:32.288498
++n
+
+# 2026-01-13 00:40:22.363919
++/add NavGraph
+
+# 2026-01-13 00:40:46.879499
++n

@@ -1,0 +1,6 @@
+<resources>
+    <!-- Change this to the display name -->
+    <string name="app_name">Sakartvelo Guide</string>
+
+    <!-- Add other static strings here if needed -->
+</resources>

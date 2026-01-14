@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 1. The Startup Theme (Splash) -->
+    <style name="Theme.SakartveloGuide.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/sakartvelo_red</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="windowSplashScreenAnimationDuration">0</item>
+        <item name="postSplashScreenTheme">@style/Theme.SakartveloGuide</item>
+    </style>
+
+    <!-- 2. The App Theme -->
+    <style name="Theme.SakartveloGuide" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/snow_white</item>
+        <item name="android:statusBarColor">@color/sakartvelo_red</item>
+    </style>
+</resources>

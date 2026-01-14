@@ -1,0 +1,8 @@
+package com.example.sakartveloguide.domain.model
+
+data class UserSession(
+    val state: UserJourneyState = UserJourneyState.BROWSING,
+    val activePathId: String? = null,
+    val isProUser: Boolean = false,
+    val activeStepIndex: Int = 0 // ARCHITECT'S FIX: Track progress
+)
