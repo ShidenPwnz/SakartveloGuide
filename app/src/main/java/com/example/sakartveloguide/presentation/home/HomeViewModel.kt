@@ -15,7 +15,6 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-// --- TOP LEVEL CLASSES ---
 data class Category(val name: String)
 
 data class HomeUiState(
@@ -34,14 +33,12 @@ class HomeViewModel @Inject constructor(
     private val affiliateManager: AffiliateManager
 ) : ViewModel() {
 
-    // --- UI STATES ---
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     private val _isSplashReady = MutableStateFlow(false)
     val isSplashReady: StateFlow<Boolean> = _isSplashReady.asStateFlow()
 
-    // --- MISSION STATES ---
     private val _initialDestination = MutableStateFlow<String?>(null)
     val initialDestination: StateFlow<String?> = _initialDestination.asStateFlow()
 
@@ -66,166 +63,112 @@ class HomeViewModel @Inject constructor(
     private val _activeStepIndex = MutableStateFlow(0)
     val activeStepIndex = _activeStepIndex.asStateFlow()
 
+    val previewThread: StateFlow<List<MissionStep>> = _logisticsProfile
+        .combine(_pendingLogisticsTripId) { profile, tripId ->
+            val trips = _uiState.value.groupedPaths.values.flatten()
+            val trip = trips.find { it.id == tripId }
+            if (trip != null) generateThread(trip, profile) else emptyList()
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     init {
         initSakartveloEngine()
     }
 
     private fun initSakartveloEngine() {
         viewModelScope.launch {
-            // 1. Refresh Data
-            repository.refreshTrips()
+            try {
+                repository.refreshTrips()
 
-            // 2. Hydrate Profile
-            val savedProfile = logisticsProfileManager.logisticsProfile.first()
-            _logisticsProfile.value = savedProfile
+                val savedProfile = logisticsProfileManager.logisticsProfile.first()
+                _logisticsProfile.value = savedProfile
 
-            // 3. Session Recovery
-            val session = preferenceManager.userSession.first()
-            if (session.state == UserJourneyState.ON_THE_ROAD && session.activePathId != null) {
-                val activeTrip = repository.getTripById(session.activePathId)
-                if (activeTrip != null) {
-                    _dynamicBattlePlan.value = activeTrip.itinerary
-                    // Restore Thread & Index
-                    _missionThread.value = generateThread(activeTrip, savedProfile)
-                    _activeStepIndex.value = session.activeStepIndex
+                val session = preferenceManager.userSession.first()
+                if (session.state == UserJourneyState.ON_THE_ROAD && session.activePathId != null) {
+                    val activeTrip = repository.getTripById(session.activePathId)
+                    if (activeTrip != null) {
+                        _dynamicBattlePlan.value = activeTrip.itinerary
+                        _missionThread.value = generateThread(activeTrip, savedProfile)
+                        _activeStepIndex.value = session.activeStepIndex
+                        _initialDestination.value = "battle/${activeTrip.id}"
+                        assetCacheManager.cacheMissionAssets(activeTrip)
+                    } else { _initialDestination.value = "home" }
+                } else { _initialDestination.value = "home" }
 
-                    _initialDestination.value = "battle/${activeTrip.id}"
-                    assetCacheManager.cacheMissionAssets(activeTrip)
-                } else {
-                    _initialDestination.value = "home"
-                }
-            } else {
-                _initialDestination.value = "home"
-            }
-
-            // 4. Load Matrix
-            repository.getAvailableTrips().collectLatest { trips ->
-                if (trips.isNotEmpty()) {
-                    // ARCHITECT'S FIX: Explicitly convert Enum to String for UI Category
-                    val grouped = trips.groupBy { Category(it.category.name) }
-                    _uiState.update { it.copy(groupedPaths = grouped, isLoading = false) }
-                    _isSplashReady.value = true
-                }
+                repository.getAvailableTrips()
+                    .catch { _isSplashReady.value = true }
+                    .collectLatest { trips ->
+                        if (trips.isNotEmpty()) {
+                            val grouped = trips.groupBy { Category(it.category.name) }
+                            _uiState.update { it.copy(groupedPaths = grouped, isLoading = false) }
+                        }
+                        _isSplashReady.value = true
+                    }
+            } catch (e: Exception) {
+                _isSplashReady.value = true
             }
         }
     }
 
-    // --- WIZARD LOGIC ---
-    fun initiateLogistics(tripId: String) { _pendingLogisticsTripId.value = tripId }
-    fun dismissWizard() { _pendingLogisticsTripId.value = null }
+    fun initiateLogistics(tripId: String) {
+        _pendingLogisticsTripId.value = tripId
+        _logisticsProfile.update { it.copy(needsAccommodation = false, needsEsim = false, needsFlight = false) }
+    }
 
     fun onConfirmLogistics(profile: LogisticsProfile) {
         _logisticsProfile.value = profile
         viewModelScope.launch {
             logisticsProfileManager.saveFullProfile(profile)
-
             val id = _pendingLogisticsTripId.value
-            if (id != null) {
-                _navigationEvent.emit("logistics/$id")
-            }
-            _pendingLogisticsTripId.value = null
+            if (id != null) { _navigationEvent.emit("mission_protocol/$id") }
         }
     }
 
-    // --- MISSION EXECUTION ---
+    fun updateEntryPoint(point: EntryPoint) { _logisticsProfile.update { it.copy(entryPoint = point) } }
+    fun updateExitPoint(point: EntryPoint) { _logisticsProfile.update { it.copy(exitPoint = point) } }
+    fun toggleEsim(enabled: Boolean) { _logisticsProfile.update { it.copy(needsEsim = enabled) } }
+    fun toggleLodging(enabled: Boolean) { _logisticsProfile.update { it.copy(needsAccommodation = enabled) } }
+    fun toggleFlight(enabled: Boolean) { _logisticsProfile.update { it.copy(needsFlight = enabled) } }
+    fun updateTransport(type: TransportType) { _logisticsProfile.update { it.copy(transportType = type) } }
+
     fun startMission(trip: TripPath) {
         viewModelScope.launch {
             val profile = _logisticsProfile.value
-
-            // Generate Thread
-            val thread = generateThread(trip, profile)
-            _missionThread.value = thread
+            _missionThread.value = generateThread(trip, profile)
             _activeStepIndex.value = 0
-            _dynamicBattlePlan.value = trip.itinerary
-
-            // Persistence
             preferenceManager.updateState(UserJourneyState.ON_THE_ROAD, trip.id)
             preferenceManager.updateStepIndex(0)
-
             hapticManager.tick()
             assetCacheManager.cacheMissionAssets(trip)
         }
     }
 
-    // --- THREAD GENERATOR (AFFILIATE NEXUS) ---
     private fun generateThread(trip: TripPath, profile: LogisticsProfile): List<MissionStep> {
         val thread = mutableListOf<MissionStep>()
-
-        // 1. Insertion
         val arrivalTitle = when (profile.entryPoint) {
-            EntryPoint.AIRPORT_TBS -> "TBS: AIRPORT INFILTRATION"
-            EntryPoint.AIRPORT_KUT -> "KUT: FLIGHT LANDING"
-            EntryPoint.CITY_CENTER -> "DEPLOYMENT: CITY CENTER"
+            EntryPoint.AIRPORT_TBS -> "TBS: INFILTRATION"
+            EntryPoint.AIRPORT_KUT -> "KUT: INFILTRATION"
+            EntryPoint.AIRPORT_BUS -> "BUS: INFILTRATION"
+            else -> "BORDER: INFILTRATION"
         }
-        val arrivalDesc = when (profile.entryPoint) {
-            EntryPoint.AIRPORT_TBS -> "Locate Departure Level (2nd Floor) for pickup."
-            EntryPoint.AIRPORT_KUT -> "Locate Georgian Bus counter."
-            EntryPoint.CITY_CENTER -> "Proceed to start point."
-        }
-
-        thread.add(MissionStep.AirportProtocol(
-            title = arrivalTitle,
-            description = arrivalDesc,
-            entryPoint = profile.entryPoint
-        ))
-
-        if (profile.needsEsim) {
-            thread.add(MissionStep.AcquireEsim(
-                actionUrl = affiliateManager.getEsimLink()
-            ))
-        }
-
-        // Smart Transport Logic
-        // ARCHITECT'S FIX: trip.category is ALREADY an Enum (RouteCategory). No conversion needed.
-        val categoryEnum = trip.category
-
+        thread.add(MissionStep.AirportProtocol(arrivalTitle, "Secure arrival assets.", profile.entryPoint))
+        if (profile.needsEsim) thread.add(MissionStep.AcquireEsim(actionUrl = affiliateManager.getEsimLink()))
+        if (profile.needsAccommodation) thread.add(MissionStep.LogisticsAnchor("SECURE LODGING", "Booking.com check-in.", affiliateManager.getBookingLink(trip.title), "HOTEL"))
         if (profile.transportType == TransportType.TAXI) {
-            val taxiUrl = affiliateManager.getTaxiLink(categoryEnum)
-            val isGoTrip = taxiUrl.contains("gotrip")
-
-            thread.add(MissionStep.LogisticsAnchor(
-                title = if (isGoTrip) "SECURE TRANSFER" else "INITIAL DEPLOYMENT",
-                description = if (isGoTrip) "Book private driver (GoTrip)." else "Call Bolt.",
-                actionUrl = taxiUrl,
-                iconType = "BOLT"
-            ))
+            thread.add(MissionStep.LogisticsAnchor("SECURE TRANSPORT", "Order ride.", affiliateManager.getTaxiLink(trip.category), "BOLT"))
         } else if (profile.transportType == TransportType.RENTAL_4X4) {
-            thread.add(MissionStep.LogisticsAnchor(
-                "ACQUIRE FLEET", "Pick up 4x4 vehicle.", affiliateManager.getRentalLink(), "RENTAL"
-            ))
+            thread.add(MissionStep.LogisticsAnchor("ACQUIRE FLEET", "Pick up vehicle.", affiliateManager.getRentalLink(), "RENTAL"))
         }
-
-        if (profile.needsAccommodation) {
-            thread.add(MissionStep.LogisticsAnchor(
-                "SECURE BASE CAMP", "Check-in via Booking.com", affiliateManager.getBookingLink(trip.title), "HOTEL"
-            ))
+        trip.itinerary.forEach { thread.add(MissionStep.Activity(it)) }
+        val exitTitle = when (profile.exitPoint) {
+            EntryPoint.AIRPORT_TBS -> "TBS: EXTRACTION"
+            EntryPoint.AIRPORT_KUT -> "KUT: EXTRACTION"
+            EntryPoint.AIRPORT_BUS -> "BUS: EXTRACTION"
+            else -> "BORDER: EXTRACTION"
         }
-
-        // 2. Campaign
-        if (categoryEnum == RouteCategory.WINE_CELLAR) {
-            thread.add(MissionStep.PremiumExperience(
-                actionUrl = affiliateManager.getWineTourLink()
-            ))
-        }
-
-        trip.itinerary.forEach { node ->
-            thread.add(MissionStep.Activity(
-                node = node,
-                taxiBridgeUrl = if (profile.transportType == TransportType.TAXI)
-                    affiliateManager.getTaxiLink(categoryEnum) else null
-            ))
-        }
-
-        // 3. Extraction
-        thread.add(MissionStep.Extraction(
-            actionUrl = if (profile.transportType == TransportType.TAXI)
-                affiliateManager.getTaxiLink(categoryEnum) else null
-        ))
-
+        thread.add(MissionStep.Extraction(exitTitle, "Return to departure point.", actionUrl = if(profile.transportType == TransportType.TAXI) "https://bolt.eu" else null))
         return thread
     }
 
-    // --- PROGRESSION ---
     fun onObjectiveSecured() {
         viewModelScope.launch {
             if (_activeStepIndex.value < _missionThread.value.size - 1) {
@@ -237,7 +180,6 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    // --- COMPLETION ---
     fun onCompleteTrip(trip: TripPath) {
         viewModelScope.launch {
             _stampingTrip.value = trip
@@ -250,8 +192,6 @@ class HomeViewModel @Inject constructor(
     fun onSlamAnimationFinished() {
         viewModelScope.launch {
             _stampingTrip.value = null
-            _dynamicBattlePlan.value = emptyList()
-            _missionThread.value = emptyList()
             _navigationEvent.emit("passport")
         }
     }
@@ -260,15 +200,11 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             preferenceManager.updateState(UserJourneyState.BROWSING, null)
             preferenceManager.updateStepIndex(0)
-            _pendingLogisticsTripId.value = null
-            _dynamicBattlePlan.value = emptyList()
-            _missionThread.value = emptyList()
             _initialDestination.value = "home"
             _navigationEvent.emit("home")
         }
     }
 
-    // Legacy Stubs
     fun onCallFleet(title: String) {}
     fun onOpenBolt() {}
     fun onBookAccommodation(city: String) {}

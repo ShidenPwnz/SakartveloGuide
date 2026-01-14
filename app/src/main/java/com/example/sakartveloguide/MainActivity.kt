@@ -11,10 +11,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.example.sakartveloguide.presentation.home.HomeViewModel
-import com.example.sakartveloguide.presentation.mission.LogisticsWizard
 import com.example.sakartveloguide.presentation.navigation.SakartveloNavGraph
-import com.example.sakartveloguide.presentation.passport.components.PassportSlamOverlay
 import com.example.sakartveloguide.presentation.theme.SakartveloTheme
+import com.example.sakartveloguide.presentation.passport.components.PassportSlamOverlay
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -29,15 +28,12 @@ class MainActivity : ComponentActivity() {
         splashScreen.setKeepOnScreenCondition { !viewModel.isSplashReady.value }
 
         setContent {
-            // Observe the states from the ViewModel
-            val pendingLogisticsId by viewModel.pendingLogisticsTripId.collectAsState()
             val stampingTrip by viewModel.stampingTrip.collectAsState()
-            val uiState by viewModel.uiState.collectAsState()
 
             SakartveloTheme {
                 Box(modifier = Modifier.fillMaxSize()) {
 
-                    // LAYER 1: NAVIGATION HUB
+                    // Main Content Layer
                     SakartveloNavGraph(
                         homeViewModel = viewModel,
                         onCompleteTrip = { trip -> viewModel.onCompleteTrip(trip) },
@@ -47,31 +43,11 @@ class MainActivity : ComponentActivity() {
                         onBookAccommodation = { city -> viewModel.onBookAccommodation(city) }
                     )
 
-                    // LAYER 2: LOGISTICS WIZARD OVERLAY
-                    // ARCHITECT'S FIX: Find the trip in the UI state to pass it to the wizard
-                    pendingLogisticsId?.let { tripId ->
-                        val selectedTrip = uiState.groupedPaths.values
-                            .flatten()
-                            .find { it.id == tripId }
-
-                        selectedTrip?.let { trip ->
-                            LogisticsWizard(
-                                trip = trip, // PASSING THE REQUIRED PARAMETER
-                                onDismiss = { viewModel.dismissWizard() },
-                                onConfirm = { profile ->
-                                    viewModel.onConfirmLogistics(profile)
-                                }
-                            )
-                        }
-                    }
-
-                    // LAYER 3: PASSPORT SLAM (ACHIEVEMENT)
+                    // Achievement Overlay
                     stampingTrip?.let { trip ->
                         PassportSlamOverlay(
                             trip = trip,
-                            onAnimationFinished = {
-                                viewModel.onSlamAnimationFinished()
-                            }
+                            onAnimationFinished = { viewModel.onSlamAnimationFinished() }
                         )
                     }
                 }

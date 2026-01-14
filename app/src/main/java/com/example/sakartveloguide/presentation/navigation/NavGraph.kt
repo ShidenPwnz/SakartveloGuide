@@ -1,18 +1,17 @@
 package com.example.sakartveloguide.presentation.navigation
 
+import androidx.compose.animation.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.getValue
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.sakartveloguide.presentation.home.HomeScreen
-import com.example.sakartveloguide.presentation.home.HomeViewModel
-import com.example.sakartveloguide.presentation.home.HomeUiState
+import com.example.sakartveloguide.presentation.home.*
 import com.example.sakartveloguide.presentation.detail.PathDetailsScreen
 import com.example.sakartveloguide.presentation.detail.PathDetailsViewModel
 import com.example.sakartveloguide.presentation.mission.MissionControlScreen
 import com.example.sakartveloguide.presentation.battle.BattlePlanScreen
+import com.example.sakartveloguide.presentation.mission.LogisticsWizard
 import com.example.sakartveloguide.presentation.passport.PassportScreen
 import com.example.sakartveloguide.presentation.passport.PassportViewModel
 import com.example.sakartveloguide.domain.model.TripPath
@@ -31,10 +30,13 @@ fun SakartveloNavGraph(
     val startDestination by homeViewModel.initialDestination.collectAsState()
 
     LaunchedEffect(Unit) {
-        homeViewModel.navigationEvent.collectLatest { route ->
+        homeViewModel.navigationEvent.collectLatest { route: String ->
             navController.navigate(route) {
-                if (route == "home") popUpTo(0)
-                else popUpTo("home") { saveState = true }
+                if (route.contains("mission_protocol")) {
+                    popUpTo("logistics_setup/{tripId}") { inclusive = true }
+                } else if (route == "home") {
+                    popUpTo(0)
+                }
                 launchSingleTop = true
             }
         }
@@ -49,60 +51,85 @@ fun SakartveloNavGraph(
                 HomeScreen(
                     viewModel = homeViewModel,
                     onPathClick = { id -> navController.navigate("pitch/$id") },
-                    onPaywallClick = { /* TODO */ },
+                    onPaywallClick = {},
                     onPassportClick = { navController.navigate("passport") }
                 )
             }
 
-            composable(
-                route = "pitch/{tripId}",
-                arguments = listOf(navArgument("tripId") { type = NavType.StringType })
-            ) {
+            composable("pitch/{tripId}") { backStackEntry ->
                 val detailsViewModel: PathDetailsViewModel = hiltViewModel()
                 val state by detailsViewModel.uiState.collectAsState()
-
                 PathDetailsScreen(
                     state = state,
-                    onLockPath = { tripId ->
-                        homeViewModel.initiateLogistics(tripId)
-                        navController.navigate("logistics/$tripId")
+                    onLockPath = { id ->
+                        homeViewModel.initiateLogistics(id)
+                        navController.navigate("logistics_setup/$id")
                     }
                 )
             }
 
             composable(
-                route = "logistics/{tripId}",
-                arguments = listOf(navArgument("tripId") { type = NavType.StringType })
+                route = "logistics_setup/{tripId}",
+                enterTransition = { slideInHorizontally { it } },
+                exitTransition = { slideOutHorizontally { -it } },
+                popEnterTransition = { slideInHorizontally { -it } },
+                popExitTransition = { slideOutHorizontally { it } }
             ) { backStackEntry ->
                 val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
                 val state: HomeUiState by homeViewModel.uiState.collectAsState()
                 val trip = state.groupedPaths.values.flatten().find { it.id == tripId }
                 val profile by homeViewModel.logisticsProfile.collectAsState()
 
+                trip?.let {
+                    LogisticsWizard(
+                        trip = it,
+                        currentProfile = profile,
+                        onDismiss = { navController.popBackStack() },
+                        onConfirm = { newProfile ->
+                            homeViewModel.onConfirmLogistics(newProfile)
+                        }
+                    )
+                }
+            }
+
+            composable(
+                route = "mission_protocol/{tripId}",
+                enterTransition = { slideInHorizontally { it } },
+                exitTransition = { slideOutHorizontally { -it } },
+                popEnterTransition = { slideInHorizontally { -it } },
+                popExitTransition = { slideOutHorizontally { it } }
+            ) { backStackEntry ->
+                val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
+                val state: HomeUiState by homeViewModel.uiState.collectAsState()
+                val trip = state.groupedPaths.values.flatten().find { it.id == tripId }
+
                 trip?.let { activeTrip ->
                     MissionControlScreen(
                         trip = activeTrip,
-                        profile = profile,
+                        viewModel = homeViewModel,
                         onStartTrip = {
                             homeViewModel.startMission(activeTrip)
-                            navController.navigate("battle/${activeTrip.id}")
+                            navController.navigate("battle/${activeTrip.id}") {
+                                popUpTo("home")
+                            }
                         },
-                        onReconfigure = { homeViewModel.initiateLogistics(tripId) }
+                        onReconfigure = {
+                            navController.navigate("logistics_setup/$tripId") {
+                                popUpTo("mission_protocol/$tripId") { inclusive = true }
+                            }
+                        }
                     )
                 }
             }
 
             composable("battle/{tripId}") { backStackEntry ->
-                val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
-                val state: HomeUiState by homeViewModel.uiState.collectAsState()
-                val trip = state.groupedPaths.values.flatten().find { it.id == tripId }
-
-                trip?.let { activePath ->
-                    // ARCHITECT'S FIX: Clean call with only 4 parameters
+                val state by homeViewModel.uiState.collectAsState()
+                val trip = state.groupedPaths.values.flatten().find { it.id == backStackEntry.arguments?.getString("tripId") }
+                trip?.let {
                     BattlePlanScreen(
-                        path = activePath,
+                        path = it,
                         viewModel = homeViewModel,
-                        onFinish = { onCompleteTrip(activePath) },
+                        onFinish = { onCompleteTrip(it) },
                         onAbort = { onAbortTrip() }
                     )
                 }

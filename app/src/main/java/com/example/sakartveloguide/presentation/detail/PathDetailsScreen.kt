@@ -50,7 +50,7 @@ fun PathDetailsScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = SakartveloRed),
                     shape = RoundedCornerShape(16.dp)
                 ) {
-                    Text("LOCK MISSION PROTOCOL", fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+                    Text("Logistics Information", fontWeight = FontWeight.Black, letterSpacing = 1.sp)
                 }
             }
         }
