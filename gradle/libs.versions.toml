@@ -19,6 +19,8 @@ navigationCompose = "2.8.3"
 gson = "2.10.1"
 playServicesLocation = "21.3.0"
 splashscreen = "1.0.1"
+mockk = "1.13.10"
+coroutines = "1.7.3"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -41,6 +43,8 @@ play-services-location = { group = "com.google.android.gms", name = "play-servic
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 hilt-android-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt" }
 androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "splashscreen" }
+mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
+kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
 
 # Added libraries
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
