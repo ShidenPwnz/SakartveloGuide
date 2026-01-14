@@ -1,7 +1,9 @@
 package com.example.sakartveloguide.presentation.navigation
 
+import android.widget.Toast
 import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
@@ -46,10 +48,13 @@ fun SakartveloNavGraph(
             startDestination = startDestination!!
         ) {
             composable("home") {
+                val context = LocalContext.current
                 HomeScreen(
                     viewModel = homeViewModel,
                     onPathClick = { id -> navController.navigate("pitch/$id") },
-                    onPaywallClick = { /* TODO */ },
+                    onPaywallClick = {
+                        Toast.makeText(context, "Premium features coming soon!", Toast.LENGTH_SHORT).show()
+                    },
                     onPassportClick = { navController.navigate("passport") }
                 )
             }
