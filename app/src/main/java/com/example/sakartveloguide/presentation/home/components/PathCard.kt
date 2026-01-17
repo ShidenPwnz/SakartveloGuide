@@ -25,45 +25,90 @@ import com.example.sakartveloguide.presentation.theme.*
 @Composable
 fun PathCard(
     trip: TripPath,
+    languageCode: String,
     onCardClick: (String) -> Unit,
-    onHideTutorial: () -> Unit // Kept for meta-tutorial dismissal
+    onHideTutorial: () -> Unit
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "Breathe")
+
     val imageScale by infiniteTransition.animateFloat(
-        initialValue = 1.0f, targetValue = 1.12f,
-        animationSpec = infiniteRepeatable(tween(15000, easing = LinearEasing), RepeatMode.Reverse), label = "Zoom"
+        initialValue = 1.0f,
+        targetValue = 1.12f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(15000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ), label = "Zoom"
     )
+
     val pulseAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.4f, targetValue = 0.9f,
-        animationSpec = infiniteRepeatable(tween(2000, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "Pulse"
+        initialValue = 0.4f,
+        targetValue = 0.9f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ), label = "Pulse"
     )
 
     Card(
         onClick = { if (trip.id == "meta_tutorial") onHideTutorial() else onCardClick(trip.id) },
-        modifier = Modifier.fillMaxSize().border(1.dp, Brush.radialGradient(listOf(SakartveloRed.copy(alpha = pulseAlpha), Color.Transparent)), RoundedCornerShape(24.dp)),
+        modifier = Modifier
+            .fillMaxSize()
+            .border(
+                width = 1.dp,
+                brush = Brush.radialGradient(
+                    colors = listOf(SakartveloRed.copy(alpha = pulseAlpha), Color.Transparent)
+                ),
+                shape = RoundedCornerShape(24.dp)
+            ),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             Box(modifier = Modifier.weight(0.5f).fillMaxWidth().clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))) {
                 AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current).data(trip.imageUrl).crossfade(true).build(),
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(trip.imageUrl)
+                        .crossfade(true)
+                        .build(),
                     contentDescription = null,
-                    modifier = Modifier.fillMaxSize().graphicsLayer { scaleX = imageScale; scaleY = imageScale },
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            scaleX = imageScale
+                            scaleY = imageScale
+                        },
                     contentScale = ContentScale.Crop
                 )
             }
+
             Column(modifier = Modifier.weight(0.5f).padding(24.dp)) {
-                Text(text = trip.title.uppercase(), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black)
+                Text(
+                    text = trip.title.get(languageCode).uppercase(),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Black
+                )
                 Spacer(Modifier.height(8.dp))
-                Text(text = trip.description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f), maxLines = 4)
+                Text(
+                    text = trip.description.get(languageCode),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                    maxLines = 4
+                )
+
                 Spacer(Modifier.weight(1f))
+
                 if (trip.id != "meta_tutorial") {
                     PathIntelligenceRow(path = trip)
                     Spacer(Modifier.height(16.dp))
-                    Text("TAP TO INITIALIZE", color = SakartveloRed, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.graphicsLayer { alpha = pulseAlpha })
+                    Text(
+                        text = "TAP TO INITIALIZE",
+                        color = SakartveloRed,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.graphicsLayer { alpha = pulseAlpha }
+                    )
                 } else {
-                    Text("TAP TO DISMISS", color = SakartveloRed, fontWeight = FontWeight.Bold)
+                    Text("TAP TO DISMISS TUTORIAL", color = SakartveloRed, fontWeight = FontWeight.Bold)
                 }
             }
         }

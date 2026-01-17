@@ -16,13 +16,9 @@ object MediaModule {
 
     @Provides
     @Singleton
-    fun provideSoundManager(@ApplicationContext context: Context): SoundManager {
-        return SoundManager(context)
-    }
+    fun provideSoundManager(@ApplicationContext context: Context): SoundManager = SoundManager(context)
 
     @Provides
     @Singleton
-    fun provideHapticManager(@ApplicationContext context: Context): HapticManager {
-        return HapticManager(context)
-    }
+    fun provideHapticManager(@ApplicationContext context: Context): HapticManager = HapticManager(context)
 }

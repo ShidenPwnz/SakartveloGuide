@@ -6,7 +6,7 @@ sealed class MissionStep {
     abstract val actionUrl: String?
 
     data class TacticalBridge(
-        override val title: String = "TRANSIT PROTOCOL",
+        override val title: String,
         override val description: String,
         override val actionUrl: String? = null,
         val walkUrl: String? = null,
@@ -14,18 +14,49 @@ sealed class MissionStep {
         val busUrl: String? = null,
         val boltUrl: String? = null,
         val distanceKm: Double,
-        val primaryMode: String, // WALK, DRIVE, TAXI, HYBRID_CAR, HYBRID_FOOT, CHARTER
-        val warningTag: String? = null, // e.g., "NO RETURN BOLT", "STEEP CLIMB"
-        val specialNote: String? = null // e.g., "20 Tetri Coin Required"
+        val primaryMode: String,
+        val warningTag: String? = null,
+        val specialNote: String? = null
     ) : MissionStep()
 
-    // ... (Keep existing Activity, AirportProtocol, etc. unchanged) ...
-    data class AirportProtocol(override val title: String, override val description: String, val entryPoint: EntryPoint, override val actionUrl: String? = null) : MissionStep()
-    data class AcquireEsim(override val title: String, override val description: String, override val actionUrl: String) : MissionStep()
-    data class LogisticsAnchor(override val title: String, override val description: String, override val actionUrl: String, val iconType: String) : MissionStep()
-    data class PremiumExperience(override val title: String, override val description: String, override val actionUrl: String) : MissionStep()
-    data class Activity(val node: BattleNode, override val title: String = node.title, override val description: String = node.description, override val actionUrl: String? = null) : MissionStep()
-    data class Extraction(override val title: String, override val description: String, override val actionUrl: String? = null) : MissionStep()
+    data class AirportProtocol(
+        override val title: String,
+        override val description: String,
+        val entryPoint: EntryPoint,
+        override val actionUrl: String? = null
+    ) : MissionStep()
+
+    data class AcquireEsim(
+        override val title: String,
+        override val description: String,
+        override val actionUrl: String
+    ) : MissionStep()
+
+    data class LogisticsAnchor(
+        override val title: String,
+        override val description: String,
+        override val actionUrl: String,
+        val iconType: String
+    ) : MissionStep()
+
+    data class PremiumExperience(
+        override val title: String,
+        override val description: String,
+        override val actionUrl: String
+    ) : MissionStep()
+
+    data class Activity(
+        override val title: String,
+        override val description: String,
+        val node: BattleNode,
+        override val actionUrl: String? = null
+    ) : MissionStep()
+
+    data class Extraction(
+        override val title: String,
+        override val description: String,
+        override val actionUrl: String? = null
+    ) : MissionStep()
 }
 
 enum class StepStatus { SECURED, ACTIVE, PLANNED }

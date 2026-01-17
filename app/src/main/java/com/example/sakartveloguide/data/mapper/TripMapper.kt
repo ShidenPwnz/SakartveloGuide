@@ -9,17 +9,8 @@ fun TripEntity.toDomain(): TripPath {
         title = title,
         description = description,
         imageUrl = imageUrl,
-        // ARCHITECT'S FIX: Safe Enum Mapping
-        category = try { 
-            RouteCategory.valueOf(category) 
-        } catch (e: Exception) { 
-            RouteCategory.CULTURE // Fallback to a default if DB is out of sync
-        },
-        difficulty = try { 
-            Difficulty.valueOf(difficulty) 
-        } catch (e: Exception) { 
-            Difficulty.NORMAL 
-        },
+        category = try { RouteCategory.valueOf(category) } catch (e: Exception) { RouteCategory.CULTURE },
+        difficulty = try { Difficulty.valueOf(difficulty) } catch (e: Exception) { Difficulty.NORMAL },
         totalRideTimeMinutes = totalRideTimeMinutes,
         durationDays = durationDays,
         hasSnowWarning = hasSnowWarning,

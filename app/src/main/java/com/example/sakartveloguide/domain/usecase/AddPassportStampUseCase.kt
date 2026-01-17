@@ -17,12 +17,15 @@ class AddPassportStampUseCase @Inject constructor(
             .lowercase()
             .replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
 
+        // ...
         val stamp = PassportEntity(
             regionId = regionId,
             regionName = regionName,
             dateUnlocked = System.currentTimeMillis(),
-            tripTitle = trip.title
+            tripTitle = trip.title.get("en") // EXTRACT PLAIN STRING
         )
+// ...
+
         
         // Now this reference will be resolved!
         repository.addStamp(stamp)

@@ -8,9 +8,12 @@
         <item name="postSplashScreenTheme">@style/Theme.SakartveloGuide</item>
     </style>
 
-    <!-- 2. The App Theme -->
-    <style name="Theme.SakartveloGuide" parent="android:Theme.Material.Light.NoActionBar">
+    <!-- 2. The App Theme (ARCHITECT'S FIX: Use AppCompat Parent) -->
+    <style name="Theme.SakartveloGuide" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="android:windowBackground">@color/snow_white</item>
         <item name="android:statusBarColor">@color/sakartvelo_red</item>
+
+        <!-- Enable full screen content for Compose -->
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
     </style>
 </resources>

@@ -15,11 +15,17 @@ class NavigationBridge @Inject constructor() {
     /**
      * Calculates distance in meters between two domain points.
      */
-    fun calculateDistance(start: GeoPoint, end: GeoPoint): Float {
-        val results = FloatArray(1)
-        Location.distanceBetween(start.latitude, start.longitude, end.latitude, end.longitude, results)
-        return results[0]
+    // Replace the calculateDistanceKm function inside HomeViewModel with this verified syntax:
+    private fun calculateDistanceKm(p1: GeoPoint, p2: GeoPoint): Double {
+        val r = 6371.0
+        val dLat = Math.toRadians(p2.latitude - p1.latitude)
+        val dLon = Math.toRadians(p2.longitude - p1.longitude)
+        val a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(Math.toRadians(p1.latitude)) * Math.cos(Math.toRadians(p2.latitude)) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2)
+        return r * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
     }
+
 
     /**
      * Generates a Google Maps Directions URL (Free/Universal)

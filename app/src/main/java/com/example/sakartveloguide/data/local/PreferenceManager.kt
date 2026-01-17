@@ -18,7 +18,8 @@ class PreferenceManager @Inject constructor(
         private val KEY_ACTIVE_TRIP = stringPreferencesKey("active_trip_id")
         private val KEY_IS_PRO = booleanPreferencesKey("is_pro_user")
         private val KEY_ACTIVE_STEP = intPreferencesKey("active_step_index")
-        private val KEY_HAS_SEEN_TUTORIAL = booleanPreferencesKey("has_seen_tutorial") // NEW
+        private val KEY_HAS_SEEN_TUTORIAL = booleanPreferencesKey("has_seen_tutorial")
+        private val KEY_LANGUAGE = stringPreferencesKey("user_language")
     }
 
     val userSession: Flow<UserSession> = dataStore.data.map { prefs ->
@@ -27,8 +28,13 @@ class PreferenceManager @Inject constructor(
             state = UserJourneyState.valueOf(prefs[KEY_STATE] ?: UserJourneyState.BROWSING.name),
             isProUser = prefs[KEY_IS_PRO] ?: false,
             activeStepIndex = prefs[KEY_ACTIVE_STEP] ?: 0,
-            hasSeenTutorial = prefs[KEY_HAS_SEEN_TUTORIAL] ?: false
+            hasSeenTutorial = prefs[KEY_HAS_SEEN_TUTORIAL] ?: false,
+            language = prefs[KEY_LANGUAGE] ?: "en" // ARCHITECT'S FIX: Passed to constructor
         )
+    }
+
+    suspend fun updateLanguage(langCode: String) {
+        dataStore.edit { it[KEY_LANGUAGE] = langCode }
     }
 
     suspend fun updateState(state: UserJourneyState, pathId: String? = null) {
@@ -44,9 +50,5 @@ class PreferenceManager @Inject constructor(
 
     suspend fun setHasSeenTutorial(seen: Boolean) {
         dataStore.edit { it[KEY_HAS_SEEN_TUTORIAL] = seen }
-    }
-
-    suspend fun setProStatus(isPro: Boolean) {
-        dataStore.edit { it[KEY_IS_PRO] = isPro }
     }
 }

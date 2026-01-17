@@ -59,6 +59,7 @@ dependencies {
     implementation(libs.gson)
     implementation(libs.play.services.location)
     implementation(libs.androidx.core.splashscreen)
+    implementation("androidx.appcompat:appcompat:1.7.0")
 
     // Hilt
     implementation(libs.androidx.hilt.navigation.compose)

@@ -4,12 +4,15 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.core.os.LocaleListCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.example.sakartveloguide.domain.model.UserSession
 import com.example.sakartveloguide.presentation.home.HomeViewModel
 import com.example.sakartveloguide.presentation.navigation.SakartveloNavGraph
 import com.example.sakartveloguide.presentation.theme.SakartveloTheme
@@ -17,33 +20,36 @@ import com.example.sakartveloguide.presentation.passport.components.PassportSlam
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
 
     private val viewModel: HomeViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
-
         splashScreen.setKeepOnScreenCondition { !viewModel.isSplashReady.value }
 
         setContent {
+            val session by viewModel.userSession.collectAsState(initial = UserSession())
             val stampingTrip by viewModel.stampingTrip.collectAsState()
+
+            // ARCHITECT'S FIX: Only update system locale if we have a valid user preference
+            LaunchedEffect(session.language) {
+                if (session.language.isNotEmpty()) {
+                    val appLocale = LocaleListCompat.forLanguageTags(session.language)
+                    if (AppCompatDelegate.getApplicationLocales() != appLocale) {
+                        AppCompatDelegate.setApplicationLocales(appLocale)
+                    }
+                }
+            }
 
             SakartveloTheme {
                 Box(modifier = Modifier.fillMaxSize()) {
-
-                    // Main Content Layer
                     SakartveloNavGraph(
                         homeViewModel = viewModel,
-                        onCompleteTrip = { trip -> viewModel.onCompleteTrip(trip) },
-                        onAbortTrip = { viewModel.onAbortTrip() },
-                        onCallFleet = { title -> viewModel.onCallFleet(title) },
-                        onOpenBolt = { viewModel.onOpenBolt() },
-                        onBookAccommodation = { city -> viewModel.onBookAccommodation(city) }
+                        onCompleteTrip = { trip -> viewModel.onCompleteTrip(trip) }
                     )
 
-                    // Achievement Overlay
                     stampingTrip?.let { trip ->
                         PassportSlamOverlay(
                             trip = trip,

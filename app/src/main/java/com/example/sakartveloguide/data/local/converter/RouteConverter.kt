@@ -3,13 +3,20 @@ package com.example.sakartveloguide.data.local.converter
 import androidx.room.TypeConverter
 import com.example.sakartveloguide.domain.model.BattleNode
 import com.example.sakartveloguide.domain.model.GeoPoint
+import com.example.sakartveloguide.domain.model.LocalizedString
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 
 class RouteConverter {
     private val gson = Gson()
 
-    // 1. Convert List<GeoPoint> to String and back
+    @TypeConverter
+    fun fromLocalizedString(value: LocalizedString?): String = gson.toJson(value)
+
+    @TypeConverter
+    fun toLocalizedString(value: String?): LocalizedString =
+        gson.fromJson(value ?: "{}", LocalizedString::class.java)
+
     @TypeConverter
     fun fromGeoList(value: List<GeoPoint>?): String = gson.toJson(value ?: emptyList<GeoPoint>())
 
@@ -19,7 +26,6 @@ class RouteConverter {
         return gson.fromJson(value ?: "[]", type)
     }
 
-    // 2. Convert List<BattleNode> to String and back
     @TypeConverter
     fun fromItinerary(value: List<BattleNode>?): String = gson.toJson(value ?: emptyList<BattleNode>())
 
