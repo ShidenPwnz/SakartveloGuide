@@ -5,6 +5,14 @@ sealed class MissionStep {
     abstract val description: String
     abstract val actionUrl: String?
 
+    // NEW: The Accommodation Step
+    data class SecureBase(
+        override val title: String,
+        override val description: String,
+        val location: GeoPoint,
+        override val actionUrl: String? = null
+    ) : MissionStep()
+
     data class TacticalBridge(
         override val title: String,
         override val description: String,
@@ -26,25 +34,6 @@ sealed class MissionStep {
         override val actionUrl: String? = null
     ) : MissionStep()
 
-    data class AcquireEsim(
-        override val title: String,
-        override val description: String,
-        override val actionUrl: String
-    ) : MissionStep()
-
-    data class LogisticsAnchor(
-        override val title: String,
-        override val description: String,
-        override val actionUrl: String,
-        val iconType: String
-    ) : MissionStep()
-
-    data class PremiumExperience(
-        override val title: String,
-        override val description: String,
-        override val actionUrl: String
-    ) : MissionStep()
-
     data class Activity(
         override val title: String,
         override val description: String,
@@ -57,6 +46,11 @@ sealed class MissionStep {
         override val description: String,
         override val actionUrl: String? = null
     ) : MissionStep()
+
+    // Keep legacy types for safety
+    data class AcquireEsim(override val title: String, override val description: String, override val actionUrl: String) : MissionStep()
+    data class LogisticsAnchor(override val title: String, override val description: String, override val actionUrl: String, val iconType: String) : MissionStep()
+    data class PremiumExperience(override val title: String, override val description: String, override val actionUrl: String) : MissionStep()
 }
 
 enum class StepStatus { SECURED, ACTIVE, PLANNED }

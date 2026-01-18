@@ -14,6 +14,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import org.maplibre.android.camera.CameraUpdateFactory
+import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.location.LocationComponentActivationOptions
 import org.maplibre.android.location.modes.CameraMode
 import org.maplibre.android.maps.MapLibreMap
@@ -22,7 +24,7 @@ import org.maplibre.android.maps.MapView
 @Composable
 fun MapViewContainer(
     modifier: Modifier = Modifier,
-    isInteractable: Boolean = true, // NEW PARAMETER
+    isInteractable: Boolean = true,
     onMapReady: (MapLibreMap) -> Unit
 ) {
     val context = LocalContext.current
@@ -52,13 +54,9 @@ fun MapViewContainer(
     LaunchedEffect(mapView) {
         mapView.getMapAsync { map ->
             map.setStyle(styleUrl) { style ->
-
-                // ARCHITECT'S FIX: Disable Gestures if not interactable
                 if (!isInteractable) {
                     map.uiSettings.isScrollGesturesEnabled = false
                     map.uiSettings.isZoomGesturesEnabled = false
-                    map.uiSettings.isTiltGesturesEnabled = false
-                    map.uiSettings.isRotateGesturesEnabled = false
                 }
 
                 if (ContextCompat.checkSelfPermission(
@@ -70,7 +68,11 @@ fun MapViewContainer(
                             LocationComponentActivationOptions.builder(context, style).build()
                         )
                         locationComponent.isLocationComponentEnabled = true
-                        locationComponent.cameraMode = CameraMode.TRACKING
+
+                        // ARCHITECT'S FIX: Do not auto-track if map is being used for Recon
+                        if (isInteractable) {
+                            locationComponent.cameraMode = CameraMode.NONE
+                        }
                     } catch (e: Exception) {
                         Log.e("SAKARTVELO", "Location activation failed: ${e.message}")
                     }

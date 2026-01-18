@@ -12,8 +12,9 @@ import com.example.sakartveloguide.presentation.passport.PassportScreen
 import com.example.sakartveloguide.presentation.passport.PassportViewModel
 import com.example.sakartveloguide.presentation.settings.SettingsScreen
 import com.example.sakartveloguide.presentation.battle.BattlePlanScreen
-import com.example.sakartveloguide.domain.model.TripPath
-import com.example.sakartveloguide.domain.model.UserSession
+import com.example.sakartveloguide.presentation.battle.BattleViewModel
+import com.example.sakartveloguide.presentation.battle.components.FobSetupView // IMPORT ADDED
+import com.example.sakartveloguide.domain.model.*
 import kotlinx.coroutines.flow.collectLatest
 
 @Composable
@@ -22,7 +23,6 @@ fun SakartveloNavGraph(
     onCompleteTrip: (TripPath) -> Unit
 ) {
     val navController = rememberNavController()
-    // Explicit state collection to avoid delegate ambiguity errors
     val startDestinationState = homeViewModel.initialDestination.collectAsState()
     val startDestination = startDestinationState.value
 
@@ -38,49 +38,25 @@ fun SakartveloNavGraph(
     if (startDestination != null) {
         NavHost(navController = navController, startDestination = startDestination) {
 
-            // 1. HOME SECTOR
             composable("home") {
-                HomeScreen(
-                    viewModel = homeViewModel,
-                    onPathClick = { id -> navController.navigate("pitch/$id") },
-                    // ARCHITECT'S FIX: Removed onPaywallClick to match HomeScreen signature
-                    onPassportClick = { navController.navigate("passport") },
-                    onSettingsClick = { navController.navigate("settings") }
-                )
+                HomeScreen(viewModel = homeViewModel, onPathClick = { id -> navController.navigate("pitch/$id") }, onPassportClick = { navController.navigate("passport") }, onSettingsClick = { navController.navigate("settings") })
             }
 
-            // 2. SETTINGS
             composable("settings") {
                 val sessionState = homeViewModel.userSession.collectAsState(initial = UserSession())
-                SettingsScreen(
-                    session = sessionState.value,
-                    onBack = { navController.popBackStack() },
-                    onWipeData = { homeViewModel.wipeAllUserData() },
-                    onLanguageChange = { code -> homeViewModel.onLanguageChange(code) }
-                )
+                SettingsScreen(session = sessionState.value, onBack = { navController.popBackStack() }, onWipeData = { homeViewModel.wipeAllUserData() }, onLanguageChange = { code -> homeViewModel.onLanguageChange(code) })
             }
 
-            // 3. INTEL REPORT (Pitch)
             composable("pitch/{tripId}") {
                 val detailsViewModel: PathDetailsViewModel = hiltViewModel()
                 val detailsState = detailsViewModel.uiState.collectAsState()
-
-                PathDetailsScreen(
-                    state = detailsState.value,
-                    onLockPath = { id ->
-                        homeViewModel.initiateLogistics(id)
-                        navController.navigate("logistics_setup/$id")
-                    }
-                )
+                PathDetailsScreen(state = detailsState.value, onLockPath = { id -> homeViewModel.initiateLogistics(id); navController.navigate("logistics_setup/$id") })
             }
 
-            // 4. LOGISTICS WIZARD
             composable("logistics_setup/{tripId}") { backStackEntry ->
                 val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
                 val profileState = homeViewModel.logisticsProfile.collectAsState()
                 val homeState = homeViewModel.uiState.collectAsState()
-
-                // Explicit type-safe finding
                 val allTrips = homeState.value.groupedPaths.values.flatten()
                 val trip = allTrips.find { it.id == tripId }
 
@@ -89,17 +65,33 @@ fun SakartveloNavGraph(
                         trip = it,
                         currentProfile = profileState.value,
                         onDismiss = { navController.popBackStack() },
-                        onConfirm = { newProfile -> homeViewModel.onConfirmLogistics(newProfile) }
+                        onConfirm = { newProfile ->
+                            homeViewModel.onConfirmLogistics(newProfile)
+                            // PROCEED TO RECON
+                            navController.navigate("fob_recon/$tripId")
+                        }
                     )
                 }
             }
 
-            // 5. MISSION CONTROL
+            // --- RECONNAISSANCE STEP ---
+            composable("fob_recon/{tripId}") { backStackEntry ->
+                val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
+                val battleViewModel: BattleViewModel = hiltViewModel()
+
+                FobSetupView(
+                    viewModel = battleViewModel,
+                    onSetBase = { geoPoint: GeoPoint ->
+                        battleViewModel.setFob(geoPoint)
+                        navController.navigate("mission_protocol/$tripId")
+                    }
+                )
+            }
+
             composable("mission_protocol/{tripId}") { backStackEntry ->
                 val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
                 val homeState = homeViewModel.uiState.collectAsState()
-                val allTrips = homeState.value.groupedPaths.values.flatten()
-                val trip = allTrips.find { it.id == tripId }
+                val trip = homeState.value.groupedPaths.values.flatten().find { it.id == tripId }
 
                 trip?.let {
                     MissionControlScreen(
@@ -114,24 +106,17 @@ fun SakartveloNavGraph(
                 }
             }
 
-            // 6. BATTLE PLAN
-            composable("battle/{tripId}") { backStackEntry ->
-                val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
-                val homeState = homeViewModel.uiState.collectAsState()
-                val allTrips = homeState.value.groupedPaths.values.flatten()
-                val trip = allTrips.find { it.id == tripId }
-
-                trip?.let {
-                    BattlePlanScreen(
-                        path = it,
-                        viewModel = homeViewModel,
-                        onFinish = { onCompleteTrip(it) },
-                        onAbort = { homeViewModel.onAbortTrip() }
-                    )
-                }
+            composable("battle/{tripId}") {
+                val battleViewModel: BattleViewModel = hiltViewModel()
+                BattlePlanScreen(
+                    viewModel = battleViewModel,
+                    onAbort = {
+                        battleViewModel.abortMission()
+                        navController.navigate("home") { popUpTo(0) }
+                    }
+                )
             }
 
-            // 7. PASSPORT
             composable("passport") {
                 val passportViewModel: PassportViewModel = hiltViewModel()
                 val stampsState = passportViewModel.stamps.collectAsState()

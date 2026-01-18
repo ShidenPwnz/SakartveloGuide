@@ -10,6 +10,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Launch
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -33,6 +34,7 @@ import org.maplibre.android.geometry.LatLngBounds
 import java.text.SimpleDateFormat
 import java.util.*
 
+@Suppress("DEPRECATION")
 @Composable
 fun MissionControlScreen(
     trip: TripPath,
@@ -100,13 +102,6 @@ fun MissionControlScreen(
                 Text(dateString, color = SakartveloRed, fontWeight = FontWeight.Bold)
 
                 Spacer(Modifier.height(32.dp))
-                Text("INFILTRATION & EXTRACTION", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f), style = MaterialTheme.typography.labelSmall)
-                Spacer(Modifier.height(12.dp))
-                ProtocolPointCard("ARRIVE VIA", profile.entryPoint, profile.isByAir, viewModel::updateEntryPoint)
-                Spacer(Modifier.height(8.dp))
-                ProtocolPointCard("DEPART VIA", profile.exitPoint, profile.isByAir, viewModel::updateExitPoint)
-
-                Spacer(Modifier.height(32.dp))
                 Text("ITINERARY SUMMARY", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f), style = MaterialTheme.typography.labelSmall)
                 Spacer(Modifier.height(12.dp))
 
@@ -126,11 +121,21 @@ fun InteractivePreviewRow(index: Int, step: MissionStep, context: android.conten
     val hasLink = step.actionUrl != null || step is MissionStep.TacticalBridge
     val canExpand = isLong || hasLink
 
+    val icon = when(step) {
+        is MissionStep.AirportProtocol -> Icons.Default.FlightLand
+        is MissionStep.SecureBase -> Icons.Default.HomeWork
+        else -> Icons.Default.LocationOn
+    }
+
     Column(modifier = Modifier.fillMaxWidth().animateContentSize().clickable(enabled = canExpand) { isExpanded = !isExpanded }.padding(vertical = 12.dp)) {
         Row(verticalAlignment = Alignment.Top) {
-            Surface(color = SakartveloRed.copy(0.1f), shape = RoundedCornerShape(4.dp), modifier = Modifier.size(28.dp)) {
+            Surface(
+                color = if (step is MissionStep.SecureBase) Color(0xFF4A90E2).copy(0.1f) else SakartveloRed.copy(0.1f),
+                shape = RoundedCornerShape(4.dp),
+                modifier = Modifier.size(28.dp)
+            ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Text(text = index.toString(), color = SakartveloRed, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                    Icon(icon, null, tint = if (step is MissionStep.SecureBase) Color(0xFF4A90E2) else SakartveloRed, modifier = Modifier.size(16.dp))
                 }
             }
             Spacer(Modifier.width(16.dp))
@@ -139,7 +144,13 @@ fun InteractivePreviewRow(index: Int, step: MissionStep, context: android.conten
                 Text(if (isExpanded || !isLong) step.description else (step.description.take(57) + "..."), color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f), style = MaterialTheme.typography.bodySmall)
             }
             if (canExpand) {
-                Icon(Icons.Default.ChevronRight, null, tint = if (isExpanded) SakartveloRed else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f), modifier = Modifier.rotate(if (isExpanded) 90f else 0f).padding(top = 4.dp).size(20.dp))
+                // ARCHITECT'S FIX: Reverted to Icons.Default.ChevronRight
+                Icon(
+                    Icons.Default.ChevronRight,
+                    null,
+                    tint = if (isExpanded) SakartveloRed else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f),
+                    modifier = Modifier.rotate(if (isExpanded) 90f else 0f).padding(top = 4.dp).size(20.dp)
+                )
             }
         }
         AnimatedVisibility(visible = isExpanded && hasLink) {
@@ -149,7 +160,7 @@ fun InteractivePreviewRow(index: Int, step: MissionStep, context: android.conten
                     else -> step.actionUrl
                 }
                 url?.let {
-                    ReferralLinkBox("Deploy Protocol", "Launch external asset", "OPEN", Icons.Default.Launch, SakartveloRed) {
+                    ReferralLinkBox("Deploy Protocol", "Launch external asset", "OPEN", Icons.AutoMirrored.Filled.Launch, SakartveloRed) {
                         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(it)))
                     }
                 }
