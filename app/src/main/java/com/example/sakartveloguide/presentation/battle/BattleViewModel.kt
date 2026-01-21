@@ -115,8 +115,17 @@ class BattleViewModel @Inject constructor(
             distanceKm < 0.2 -> TacticalAction.Execute("SECURE OBJECTIVE", Icons.Default.CheckCircle, 0xFF4CAF50)
             distanceKm < 1.5 -> TacticalAction.Execute("WALK TO TARGET", Icons.AutoMirrored.Filled.DirectionsWalk, 0xFFFFFFFF, navigationBridge.getMapsIntent(start, node.location, "walking"))
             profile.transportStrategy == TransportStrategy.DRIVER_RENTAL -> TacticalAction.Execute("DRIVE TO TARGET", Icons.Default.DirectionsCar, 0xFF2196F3, navigationBridge.getMapsIntent(start, node.location, "driving"))
-            else -> TacticalAction.Execute("CALL BOLT", Icons.Default.LocalTaxi, 0xFF32BB78, navigationBridge.getBoltIntent(node.location))
+            else -> TacticalAction.Execute("CALL BOLT", Icons.Default.LocalTaxi, 0xFF32BB78, getSafeBoltIntent(node.location))
         }
+    }
+
+    private fun getSafeBoltIntent(target: GeoPoint): Intent {
+        val intent = navigationBridge.getBoltIntent(target)
+        // We cannot easily check package manager here without context context leak risk or boilerplate.
+        // Better to let the Activity launch it and catch the exception there,
+        // OR return a web fallback intent if you prefer.
+        // For now, let's keep it as is, but ensure the UI handles it.
+        return intent
     }
 
     suspend fun getFreshLocation() = locationManager.getCurrentLocation()

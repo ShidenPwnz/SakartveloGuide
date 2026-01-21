@@ -31,6 +31,8 @@ class PreferenceManager @Inject constructor(
         private val KEY_ACTIVE_TARGET_IDX = intPreferencesKey("mission_active_target_idx")
         private val KEY_ACTIVE_LOADOUT = stringPreferencesKey("mission_active_loadout")
         private val KEY_EXTRACTION_TYPE = stringPreferencesKey("mission_extraction_type")
+        private val KEY_DRAFT_IDS = stringPreferencesKey("draft_mission_ids")
+        private val KEY_DRAFT_TITLE = stringPreferencesKey("draft_mission_title")
     }
 
     val userSession: Flow<UserSession> = dataStore.data.map { prefs ->
@@ -69,6 +71,31 @@ class PreferenceManager @Inject constructor(
 
     val activeLoadout: Flow<List<Int>> = dataStore.data.map { prefs ->
         prefs[KEY_ACTIVE_LOADOUT]?.split(",")?.filter { it.isNotEmpty() }?.map { it.toInt() } ?: emptyList()
+    }
+
+    // 1. GET DRAFT
+    val draftMission: Flow<List<Int>> = dataStore.data.map { prefs ->
+        prefs[KEY_DRAFT_IDS]?.split(",")?.mapNotNull { it.toIntOrNull() } ?: emptyList()
+    }
+
+    // 2. SAVE DRAFT (Auto-Save)
+    suspend fun saveDraftMission(ids: List<Int>, title: String) {
+        withContext(NonCancellable) {
+            dataStore.edit {
+                it[KEY_DRAFT_IDS] = ids.joinToString(",")
+                it[KEY_DRAFT_TITLE] = title
+            }
+        }
+    }
+
+    // 3. CLEAR DRAFT (On success)
+    suspend fun clearDraft() {
+        withContext(NonCancellable) {
+            dataStore.edit {
+                it.remove(KEY_DRAFT_IDS)
+                it.remove(KEY_DRAFT_TITLE)
+            }
+        }
     }
 
     // --- ACTIONS ---
