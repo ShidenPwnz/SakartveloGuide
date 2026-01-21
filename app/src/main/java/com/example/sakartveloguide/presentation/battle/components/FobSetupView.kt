@@ -49,8 +49,8 @@ fun FobSetupView(
     val focusManager = LocalFocusManager.current
     val scope = rememberCoroutineScope()
 
-    // ARCHITECT'S FIX: Initialize map at the mission theatre location
-    val initialCenter = remember { viewModel.getInitialMapCenter() }
+    // ARCHITECT'S FIX: Explicitly typed initial center to clear inference errors
+    val initialCenter: GeoPoint = remember { viewModel.getInitialMapCenter() }
     var mapCenter by remember { mutableStateOf(initialCenter) }
 
     var searchQuery by remember { mutableStateOf("") }
@@ -66,9 +66,10 @@ fun FobSetupView(
             modifier = Modifier.fillMaxSize(),
             onMapReady = { map ->
                 mapRef = map
-                // Fly to initial center on first load
+                // Center the map on the mission area immediately
                 map.moveCamera(CameraUpdateFactory.newLatLngZoom(
-                    LatLng(initialCenter.latitude, initialCenter.longitude), 13.0
+                    LatLng(initialCenter.latitude, initialCenter.longitude),
+                    13.0
                 ))
 
                 map.addOnCameraIdleListener {
@@ -78,7 +79,6 @@ fun FobSetupView(
                 }
             }
         )
-// ... rest of the file
 
         Icon(Icons.Default.Add, null, tint = SakartveloRed, modifier = Modifier.size(40.dp).align(Alignment.Center))
 
@@ -170,7 +170,6 @@ fun FobSetupView(
     }
 }
 
-// ARCHITECT'S FIX: This function was missing in your last file
 suspend fun performGeocoding(context: Context, query: String): LatLng? = withContext(Dispatchers.IO) {
     try {
         val geocoder = Geocoder(context, Locale.getDefault())

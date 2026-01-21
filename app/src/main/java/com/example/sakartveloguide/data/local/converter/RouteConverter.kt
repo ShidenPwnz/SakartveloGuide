@@ -1,9 +1,6 @@
 package com.example.sakartveloguide.data.local.converter
 
 import androidx.room.TypeConverter
-import com.example.sakartveloguide.domain.model.BattleNode
-import com.example.sakartveloguide.domain.model.GeoPoint
-import com.example.sakartveloguide.domain.model.LocalizedString
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 
@@ -11,27 +8,11 @@ class RouteConverter {
     private val gson = Gson()
 
     @TypeConverter
-    fun fromLocalizedString(value: LocalizedString?): String = gson.toJson(value)
+    fun fromIdList(value: List<Int>?): String = gson.toJson(value ?: emptyList<Int>())
 
     @TypeConverter
-    fun toLocalizedString(value: String?): LocalizedString =
-        gson.fromJson(value ?: "{}", LocalizedString::class.java)
-
-    @TypeConverter
-    fun fromGeoList(value: List<GeoPoint>?): String = gson.toJson(value ?: emptyList<GeoPoint>())
-
-    @TypeConverter
-    fun toGeoList(value: String?): List<GeoPoint> {
-        val type = object : TypeToken<List<GeoPoint>>() {}.type
-        return gson.fromJson(value ?: "[]", type)
-    }
-
-    @TypeConverter
-    fun fromItinerary(value: List<BattleNode>?): String = gson.toJson(value ?: emptyList<BattleNode>())
-
-    @TypeConverter
-    fun toItinerary(value: String?): List<BattleNode> {
-        val type = object : TypeToken<List<BattleNode>>() {}.type
+    fun toIdList(value: String?): List<Int> {
+        val type = object : TypeToken<List<Int>>() {}.type
         return gson.fromJson(value ?: "[]", type)
     }
 }

@@ -18,7 +18,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -42,11 +41,14 @@ fun PathDetailsScreen(
             ) {
                 Button(
                     onClick = { onLockPath(state.tripId) },
-                    modifier = Modifier.fillMaxWidth().padding(24.dp).height(64.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp)
+                        .height(64.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = SakartveloRed),
                     shape = RoundedCornerShape(16.dp)
                 ) {
-                    Text("LOGISTICS INFORMATION", fontWeight = FontWeight.Black, color = Color.White)
+                    Text("CONFIGURE MISSION", fontWeight = FontWeight.Black, color = Color.White)
                 }
             }
         }
@@ -84,7 +86,9 @@ fun PathDetailsScreen(
                             color = Color(0xFFFF9800).copy(alpha = 0.15f),
                             shape = RoundedCornerShape(8.dp),
                             border = BorderStroke(1.dp, Color(0xFFFF9800).copy(alpha = 0.5f)),
-                            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 12.dp)
                         ) {
                             Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.AcUnit, null, tint = Color(0xFFFF9800), modifier = Modifier.size(20.dp))
@@ -127,11 +131,18 @@ private fun TimelineNode(item: TimelineUiModel, isLast: Boolean) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Box(Modifier.size(12.dp).background(SakartveloRed, CircleShape))
             if (!isLast) {
-                Box(Modifier.width(1.dp).weight(1f).background(MaterialTheme.colorScheme.onBackground.copy(0.15f)))
+                Box(
+                    Modifier
+                        .width(1.dp)
+                        .weight(1f)
+                        .background(MaterialTheme.colorScheme.onBackground.copy(0.15f))
+                )
             }
         }
         Spacer(Modifier.width(20.dp))
-        Column(modifier = Modifier.padding(bottom = 32.dp).animateContentSize()) {
+        Column(modifier = Modifier
+            .padding(bottom = 32.dp)
+            .animateContentSize()) {
             Text(
                 text = item.title,
                 color = MaterialTheme.colorScheme.onBackground,
@@ -149,7 +160,11 @@ private fun TimelineNode(item: TimelineUiModel, isLast: Boolean) {
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current).data(item.imageUrl).crossfade(true).build(),
                     contentDescription = null,
-                    modifier = Modifier.padding(top = 16.dp).fillMaxWidth().height(200.dp).clip(RoundedCornerShape(12.dp)),
+                    modifier = Modifier
+                        .padding(top = 16.dp)
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .clip(RoundedCornerShape(12.dp)),
                     contentScale = ContentScale.Crop
                 )
             }

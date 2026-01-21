@@ -1,0 +1,96 @@
+[
+  {
+    "id": "tbilisi_old_new",
+    "title": "Tbilisi: Old & New",
+    "description": "Explore the ancient baths, Narikala fortress, and modern bridges of Georgia's capital.",
+    "category": "URBAN_EXPLORER",
+    "difficulty": "RELAXED",
+    "durationDays": 3,
+    "image": "https://cdn.georgiantravelguide.com/storage/thumbnails/narikala-fortress-tbilisi-georgia-34.jpg",
+    "targets": [
+      1002,
+      1457,
+      1502,
+      1236,
+      1529
+    ]
+  },
+  {
+    "id": "batumi_coast",
+    "title": "Batumi: Black Sea Gem",
+    "description": "Relax on the boulevard, visit the botanical garden, and see the moving statues.",
+    "category": "RELAXED",
+    "difficulty": "RELAXED",
+    "durationDays": 2,
+    "image": "https://cdn.georgiantravelguide.com/storage/thumbnails/img-0070-4.jpg",
+    "targets": [
+      1057,
+      1690,
+      1655,
+      1056,
+      1221
+    ]
+  },
+  {
+    "id": "kazbegi_mountain",
+    "title": "Kazbegi: Mountain Majesty",
+    "description": "Journey to the foot of Mount Kazbek and the iconic Gergeti Trinity Church.",
+    "category": "MOUNTAIN",
+    "difficulty": "NORMAL",
+    "durationDays": 2,
+    "image": "https://cdn.georgiantravelguide.com/storage/thumbnails/dji-0570-14.jpg",
+    "targets": [
+      1207,
+      1233,
+      1431,
+      1706
+    ]
+  },
+  {
+    "id": "kakheti_wine",
+    "title": "Kakheti: Cradle of Wine",
+    "description": "Discover the city of love Sighnaghi, ancient monasteries, and wineries.",
+    "category": "CULTURE",
+    "difficulty": "RELAXED",
+    "durationDays": 3,
+    "image": "https://cdn.georgiantravelguide.com/storage/thumbnails/dji-0102-14.jpg",
+    "targets": [
+      1584,
+      1087,
+      1022,
+      1225,
+      1716
+    ]
+  },
+  {
+    "id": "svaneti_highlands",
+    "title": "Legends of Svaneti",
+    "description": "Medieval towers, glaciers, and the highest settlements in Europe.",
+    "category": "ACTIVITY",
+    "difficulty": "HARD",
+    "durationDays": 4,
+    "image": "https://cdn.georgiantravelguide.com/storage/thumbnails/img-9406-4.jpg",
+    "targets": [
+      1364,
+      1625,
+      1740,
+      1111,
+      1742
+    ]
+  },
+  {
+    "id": "western_canyons",
+    "title": "Canyons of Colchis",
+    "description": "Explore the stunning canyons and caves of Western Georgia.",
+    "category": "NATURE",
+    "difficulty": "NORMAL",
+    "durationDays": 2,
+    "image": "https://cdn.georgiantravelguide.com/storage/thumbnails/dsc-440300-10-4.jpg",
+    "targets": [
+      1401,
+      1481,
+      1516,
+      1312
+    ]
+  }
+]

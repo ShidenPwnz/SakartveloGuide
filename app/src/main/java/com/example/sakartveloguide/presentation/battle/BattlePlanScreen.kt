@@ -1,12 +1,16 @@
 package com.example.sakartveloguide.presentation.battle
 
+import android.Manifest
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -15,7 +19,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -23,7 +27,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.sakartveloguide.domain.model.*
 import com.example.sakartveloguide.presentation.battle.components.*
+import com.example.sakartveloguide.presentation.mission.components.MapViewContainer
+import com.example.sakartveloguide.presentation.theme.MatteCharcoal
 import com.example.sakartveloguide.presentation.theme.SakartveloRed
+import org.maplibre.android.annotations.MarkerOptions
+import org.maplibre.android.camera.CameraUpdateFactory
+import org.maplibre.android.geometry.LatLng
+import org.maplibre.android.geometry.LatLngBounds
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -31,7 +41,6 @@ fun BattlePlanScreen(
     viewModel: BattleViewModel,
     onAbort: () -> Unit
 ) {
-    // 1. Collect Data
     val missionState by viewModel.missionState.collectAsState()
     val trip by viewModel.currentTrip.collectAsState()
     val session by viewModel.userSession.collectAsState(initial = UserSession())
@@ -40,151 +49,139 @@ fun BattlePlanScreen(
     val context = LocalContext.current
     val listState = rememberLazyListState()
 
-    // 2. Abort/Cancel Dialog
+    // Request high-accuracy GPS exactly once upon entering battle mode
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { _ -> }
+
+    LaunchedEffect(Unit) {
+        permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+    }
+
     var showAbortDialog by remember { mutableStateOf(false) }
     BackHandler { showAbortDialog = true }
 
     if (showAbortDialog) {
         AlertDialog(
             onDismissRequest = { showAbortDialog = false },
-            title = { Text("END TRIP?", fontWeight = FontWeight.Black, color = SakartveloRed) },
-            text = { Text("You will lose your current progress on this route. Are you sure?") },
+            title = { Text("ABORT MISSION?", fontWeight = FontWeight.Black, color = SakartveloRed) },
+            text = { Text("Current tactical progress and FOB coordinates will be purged from the dashboard.") },
             confirmButton = {
-                Button(
-                    onClick = {
-                        showAbortDialog = false
-                        viewModel.abortMission()
-                        onAbort()
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = SakartveloRed)
-                ) { Text("END TRIP") }
+                Button(onClick = {
+                    showAbortDialog = false
+                    viewModel.abortMission()
+                    onAbort()
+                }, colors = ButtonDefaults.buttonColors(containerColor = SakartveloRed)) {
+                    Text("CONFIRM ABORT")
+                }
             },
             dismissButton = {
-                TextButton(onClick = { showAbortDialog = false }) { Text("CONTINUE") }
+                TextButton(onClick = { showAbortDialog = false }) { Text("CANCEL") }
             }
         )
     }
 
-    // 3. Main Interface Logic
     if (missionState.fobLocation == null) {
-        // Step A: "Where are you staying?"
-        FobSetupView(
-            viewModel = viewModel,
-            onSetBase = { geo ->
-                // ARCHITECT'S FIX: Provide the required onSuccess lambda
-                viewModel.setFob(geo) {
-                    // No navigation needed here; the state change (fobLocation != null)
-                    // will automatically trigger the UI recomposition to the 'else' block below.
-                }
-            }
-        )
+        FobSetupView(viewModel = viewModel, onSetBase = { geo -> viewModel.setFob(geo) {} })
     } else {
-        // Step B: The Active Itinerary
         Scaffold(
-            containerColor = MaterialTheme.colorScheme.background,
+            containerColor = MatteCharcoal,
             floatingActionButton = {
                 FloatingActionButton(
                     onClick = { viewModel.getExfilIntent()?.let { context.startActivity(it) } },
                     containerColor = SakartveloRed,
                     contentColor = Color.White
-                ) { Icon(Icons.Default.Home, contentDescription = "Go Home") }
-            },
-            topBar = {
-                CenterAlignedTopAppBar(
-                    title = {
-                        Text(
-                            "YOUR ITINERARY",
-                            fontWeight = FontWeight.Black,
-                            style = MaterialTheme.typography.labelLarge
-                        )
-                    },
-                    actions = {
-                        IconButton(onClick = { showAbortDialog = true }) {
-                            Icon(Icons.Default.Close, null, tint = SakartveloRed)
-                        }
-                    },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background,
-                        titleContentColor = MaterialTheme.colorScheme.onBackground
-                    )
-                )
+                ) { Icon(Icons.Default.Home, null) }
             }
         ) { padding ->
             Column(modifier = Modifier.padding(padding).fillMaxSize()) {
 
-                // Current Activity Header
+                // 1. HEADER: TACTICAL MAP
+                Box(modifier = Modifier.fillMaxWidth().height(260.dp)) {
+                    MapViewContainer(modifier = Modifier.fillMaxSize(), isInteractable = true) { map ->
+                        trip?.let { activeTrip ->
+                            val points = activeTrip.itinerary.mapNotNull { it.location }
+                                .map { LatLng(it.latitude, it.longitude) }
+
+                            if (points.isNotEmpty()) {
+                                @Suppress("DEPRECATION")
+                                points.forEach { map.addMarker(MarkerOptions().position(it)) }
+
+                                val bounds = LatLngBounds.Builder().includes(points).build()
+                                map.easeCamera(CameraUpdateFactory.newLatLngBounds(bounds, 100), 1500)
+                            }
+                        }
+                    }
+
+                    // Gradient overlay to blend map into list
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(Color.Transparent, MatteCharcoal)
+                                )
+                            )
+                    )
+
+                    // Close/Abort Mission Action
+                    IconButton(
+                        onClick = { showAbortDialog = true },
+                        modifier = Modifier.align(Alignment.TopEnd).padding(16.dp).background(Color.Black.copy(0.4f), CircleShape)
+                    ) {
+                        Icon(Icons.Default.Close, null, tint = Color.White)
+                    }
+                }
+
+                // 2. HEADER: SORTIE STATUS
                 SortieHeader(
-                    tripTitle = trip?.title?.get(session.language) ?: "JOURNEY",
-                    activeTargetTitle = missionState.activeNodeIndex?.let { idx ->
-                        trip?.itinerary?.getOrNull(idx)?.title?.get(session.language)
+                    tripTitle = trip?.title?.get(session.language) ?: "MISSION",
+                    activeTargetTitle = missionState.activeNodeIndex?.let {
+                        trip?.itinerary?.getOrNull(it)?.title?.get(session.language)
                     }
                 )
 
-                // The Day-by-Day List
+                // 3. ITINERARY LIST
                 LazyColumn(
                     state = listState,
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 100.dp)
+                    modifier = Modifier.fillMaxSize()
                 ) {
                     trip?.let { activeTrip ->
-                        // Group items by "D1", "D2", etc.
+                        // Grouping Logic: START/END nodes go to Logistics, D1/D2 go to Days
                         val groupedNodes = activeTrip.itinerary.groupBy { node ->
-                            node.timeLabel.take(2) // Assumes format "D1 10:00"
+                            when (node.timeLabel) {
+                                "START", "END" -> "LOG"
+                                else -> node.timeLabel.take(2)
+                            }
                         }
 
                         groupedNodes.forEach { (dayCode, nodes) ->
-
-                            // Sticky Day Header
-                            stickyHeader {
-                                DayHeader(dayCode = dayCode)
+                            if (dayCode != "LOG") {
+                                stickyHeader { BattleDayHeader(dayCode) }
                             }
 
-                            // Items for that day
                             itemsIndexed(nodes) { _, node ->
-                                // Find the REAL index in the full list for logic
                                 val realIndex = activeTrip.itinerary.indexOf(node)
-
                                 val status = when {
                                     missionState.completedNodeIndices.contains(realIndex) -> TargetStatus.NEUTRALIZED
                                     missionState.activeNodeIndex == realIndex -> TargetStatus.ENGAGED
                                     else -> TargetStatus.AVAILABLE
                                 }
 
-                                val tacticalAction = viewModel.determineAction(
-                                    node = node,
-                                    status = status,
-                                    distanceKm = viewModel.calculateDistance(node.location),
-                                    profile = profile
-                                )
-
                                 TargetCard(
                                     node = node,
                                     status = status,
-                                    action = tacticalAction,
+                                    action = viewModel.determineAction(node, status, viewModel.calculateDistance(node.location), profile),
                                     language = session.language,
                                     distanceKm = viewModel.calculateDistance(node.location),
-                                    onEngage = {
-                                        viewModel.engageTarget(realIndex)
-                                    },
+                                    onEngage = { viewModel.engageTarget(realIndex) },
                                     onExecuteAction = { action ->
                                         if (action is TacticalAction.Execute) {
-                                            if (action.intent != null) {
-                                                context.startActivity(action.intent)
-                                            } else {
-                                                // Local action (e.g. Check In)
-                                                viewModel.neutralizeTarget(realIndex)
-                                            }
+                                            if (action.intent != null) context.startActivity(action.intent)
+                                            else viewModel.neutralizeTarget(realIndex)
                                         }
                                     }
                                 )
-
-                                // Auto-scroll to active item
-                                LaunchedEffect(status) {
-                                    if (status == TargetStatus.ENGAGED) {
-                                        // Small delay ensures layout is ready
-                                        listState.animateScrollToItem(realIndex)
-                                    }
-                                }
                             }
                         }
                     }
@@ -194,42 +191,36 @@ fun BattlePlanScreen(
     }
 }
 
-// --- HELPER COMPONENT ---
-
+// ARCHITECT'S FIX: Restored missing component for sticky headers
 @Composable
-fun DayHeader(dayCode: String) {
-    // Friendly Day Names
-    val dayTitle = when(dayCode) {
-        "D1" -> "DAY 1: ARRIVAL & CITY"
-        "D2" -> "DAY 2: EXPLORING DEEPER"
-        "D3" -> "DAY 3: THE FINAL STRETCH"
-        "D4" -> "DAY 4: BONUS LOCATIONS"
-        "ST" -> "LOGISTICS" // For START node
-        "EN" -> "EXTRACTION" // For END node
-        else -> "ITINERARY"
+fun BattleDayHeader(dayCode: String) {
+    val title = when (dayCode) {
+        "D1" -> "DAY 1: INITIAL STRIKE"
+        "D2" -> "DAY 2: CORE OPERATIONS"
+        "D3" -> "DAY 3: FINAL OBJECTIVES"
+        else -> "OPERATIONAL THEATRE"
     }
 
     Surface(
-        color = MaterialTheme.colorScheme.background.copy(alpha = 0.95f),
+        color = MatteCharcoal.copy(alpha = 0.95f),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
         ) {
-            // Visual accent line
             Box(
                 modifier = Modifier
                     .width(4.dp)
-                    .height(24.dp)
+                    .height(20.dp)
                     .background(SakartveloRed, RoundedCornerShape(2.dp))
             )
             Spacer(Modifier.width(12.dp))
             Text(
-                text = dayTitle,
-                style = MaterialTheme.typography.titleMedium,
+                text = title,
                 color = SakartveloRed,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Black,
                 letterSpacing = 1.sp
             )
         }

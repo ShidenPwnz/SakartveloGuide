@@ -6,17 +6,23 @@ import com.example.sakartveloguide.domain.model.*
 fun TripEntity.toDomain(): TripPath {
     return TripPath(
         id = id,
-        title = title,
-        description = description,
+        // FIX 1: Convert simple Strings to LocalizedString (English default)
+        title = LocalizedString(en = title),
+        description = LocalizedString(en = description),
         imageUrl = imageUrl,
         category = try { RouteCategory.valueOf(category) } catch (e: Exception) { RouteCategory.CULTURE },
         difficulty = try { Difficulty.valueOf(difficulty) } catch (e: Exception) { Difficulty.NORMAL },
-        totalRideTimeMinutes = totalRideTimeMinutes,
+
+        // FIX 2: Estimate missing fields or set defaults
+        totalRideTimeMinutes = durationDays * 60, // Rough estimate based on days
         durationDays = durationDays,
         hasSnowWarning = hasSnowWarning,
         isLocked = isLocked,
         isPremium = isPremium,
-        route = route,
-        itinerary = itinerary
+
+        // FIX 3: Return empty lists.
+        // The Repository fills these in using the IDs when 'loadFullDetails' is true.
+        route = emptyList(),
+        itinerary = emptyList()
     )
 }

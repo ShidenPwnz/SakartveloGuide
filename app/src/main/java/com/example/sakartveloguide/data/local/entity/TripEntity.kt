@@ -2,23 +2,25 @@ package com.example.sakartveloguide.data.local.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.example.sakartveloguide.domain.model.BattleNode
-import com.example.sakartveloguide.domain.model.GeoPoint
-import com.example.sakartveloguide.domain.model.LocalizedString
+import androidx.room.TypeConverters
+import com.example.sakartveloguide.data.local.converter.RouteConverter
 
 @Entity(tableName = "trips")
 data class TripEntity(
     @PrimaryKey val id: String,
-    val title: LocalizedString, // Object handled by TypeConverter
-    val description: LocalizedString,
+    val title: String,
+    val description: String,
     val imageUrl: String,
     val category: String,
     val difficulty: String,
-    val totalRideTimeMinutes: Int,
     val durationDays: Int,
-    val hasSnowWarning: Boolean = false,
+
+    // --- RESTORED FIELDS (Required by TripDao) ---
     val isLocked: Boolean = false,
     val isPremium: Boolean = false,
-    val route: List<GeoPoint> = emptyList(),
-    val itinerary: List<BattleNode> = emptyList()
+    val hasSnowWarning: Boolean = false,
+
+    // The new ID sequence from JSON
+    @TypeConverters(RouteConverter::class)
+    val targetIds: List<Int>
 )

@@ -43,49 +43,74 @@ class BattleViewModel @Inject constructor(
     val userLocation = locationManager.locationFlow().filter { it.latitude != 0.0 }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
     val missionState = preferenceManager.missionState.stateIn(viewModelScope, SharingStarted.Eagerly, MissionState())
 
-    // ... inside BattleViewModel class ...
+    /**
+     * THE BATTLE ENGINE
+     * ARCHITECT'S FIX: Manual Sequence Sorting.
+     * This ensures the order you set in the Briefing is the order you see in the Battle.
+     */
     val currentTrip: StateFlow<TripPath?> = missionState.flatMapLatest { mState ->
         flow {
             val baseTrip = if (tripId == "custom_cargo") {
                 val loadoutIds = preferenceManager.activeLoadout.first()
-                val entities = locationDao.getLocationsByIds(loadoutIds)
+                val unorderedEntities = locationDao.getLocationsByIds(loadoutIds)
+
+                // FORCE SORT: Match the specific order of loadoutIds
+                val orderedEntities = loadoutIds.mapNotNull { id ->
+                    unorderedEntities.find { it.id == id }
+                }
+
                 TripPath(
-                    id = "custom_cargo", title = LocalizedString("CUSTOM MISSION"), description = LocalizedString("Personal itinerary."),
-                    imageUrl = "", category = RouteCategory.URBAN, difficulty = Difficulty.NORMAL, totalRideTimeMinutes = 0, durationDays = 1,
-                    itinerary = entities.map { BattleNode(LocalizedString(it.name), LocalizedString(it.description), "D1", location = GeoPoint(it.latitude, it.longitude)) }
+                    id = "custom_cargo", title = LocalizedString("CUSTOM MISSION"), description = LocalizedString("User defined."),
+                    imageUrl = "https://images.pexels.com/photos/1036808/pexels-photo-1036808.jpeg",
+                    category = RouteCategory.URBAN, difficulty = Difficulty.NORMAL, totalRideTimeMinutes = 0, durationDays = 1,
+                    itinerary = orderedEntities.map { BattleNode(LocalizedString(it.name), LocalizedString(it.description), "D1", location = GeoPoint(it.latitude, it.longitude)) }
                 )
             } else {
                 repository.getTripById(tripId)
             }
 
             baseTrip?.let { trip ->
-                val extended = mutableListOf<BattleNode>()
+                val extendedItinerary = mutableListOf<BattleNode>()
+                val fob = mState.fobLocation
 
-                // PREPEND HOME
-                mState.fobLocation?.let { extended.add(BattleNode(LocalizedString("BASE CAMP (FOB)"), LocalizedString("Mission start point."), "ST", location = it)) }
+                // 1. INJECT FOB START
+                fob?.let {
+                    extendedItinerary.add(BattleNode(LocalizedString("BASE CAMP (FOB)"), LocalizedString("Operation Start."), "START", location = it, imageUrl = "https://images.pexels.com/photos/271624/pexels-photo-271624.jpeg"))
+                }
 
-                extended.addAll(trip.itinerary)
+                extendedItinerary.addAll(trip.itinerary)
 
-                // APPEND EXTRACTION
-                mState.fobLocation?.let { extended.add(BattleNode(LocalizedString("MISSION EXTRACTION"), LocalizedString("Sorties complete. Returning."), "EN", location = it)) }
+                // 2. INJECT EXTRACTION (Aware of meta-choice)
+                if (mState.extractionType == ExtractionType.AIRPORT_EXTRACTION) {
+                    extendedItinerary.add(BattleNode(LocalizedString("AIRPORT EXTRACTION"), LocalizedString("Returning to terminal."), "END", location = GeoPoint(41.6693, 44.9547), imageUrl = "https://upload.wikimedia.org/wikipedia/commons/7/75/Tbilisi_Airport_Terminal.jpg"))
+                } else {
+                    fob?.let {
+                        extendedItinerary.add(BattleNode(LocalizedString("RETURN TO BASE"), LocalizedString("Mission complete."), "END", location = it, imageUrl = "https://images.pexels.com/photos/271624/pexels-photo-271624.jpeg"))
+                    }
+                }
 
-                emit(trip.copy(itinerary = extended))
+                emit(trip.copy(itinerary = extendedItinerary))
             }
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    fun onCompleteTrip(trip: TripPath) {
-        viewModelScope.launch {
-            preferenceManager.updateState(UserJourneyState.BROWSING, null)
-            preferenceManager.clearCurrentMissionData()
-        }
+    /**
+     * ARCHITECT'S FIX: Tactical Recon Initialization.
+     * Determines where the map should open based on the current mission.
+     */
+    fun getInitialMapCenter(): GeoPoint {
+        val trip = currentTrip.value
+        // 1. Try the first location in the trip itinerary
+        val firstNodeLoc = trip?.itinerary?.firstOrNull { it.location != null }?.location
+        if (firstNodeLoc != null) return firstNodeLoc
+
+        // 2. Fallback to Tbilisi Freedom Square
+        return GeoPoint(41.6930, 44.8015)
     }
-// ...
 
     fun determineAction(node: BattleNode, status: TargetStatus, distanceKm: Double, profile: LogisticsProfile): TacticalAction {
         if (status != TargetStatus.ENGAGED || node.location == null) return TacticalAction.Idle
         val start = userLocation.value ?: missionState.value.fobLocation ?: return TacticalAction.Idle
-
         return when {
             distanceKm < 0.2 -> TacticalAction.Execute("SECURE OBJECTIVE", Icons.Default.CheckCircle, 0xFF4CAF50)
             distanceKm < 1.5 -> TacticalAction.Execute("WALK TO TARGET", Icons.AutoMirrored.Filled.DirectionsWalk, 0xFFFFFFFF, navigationBridge.getMapsIntent(start, node.location, "walking"))
@@ -95,53 +120,13 @@ class BattleViewModel @Inject constructor(
     }
 
     suspend fun getFreshLocation() = locationManager.getCurrentLocation()
-
-    // ARCHITECT'S FIX: The Critical Wait-State
-    fun setFob(location: GeoPoint, onSuccess: () -> Unit) {
-        viewModelScope.launch {
-            if (location.latitude != 0.0) {
-                // Suspends until disk write is confirmed
-                preferenceManager.setFobLocation(location)
-
-                hapticManager.missionCompleteSlam()
-                soundManager.playStampSlam()
-
-                // Only NOW do we tell the UI to leave
-                onSuccess()
-            }
-        }
-    }
-
+    fun setFob(location: GeoPoint, onSuccess: () -> Unit) { viewModelScope.launch { if (location.latitude != 0.0) { preferenceManager.setFobLocation(location); hapticManager.missionCompleteSlam(); soundManager.playStampSlam(); onSuccess() } } }
     fun engageTarget(idx: Int) = viewModelScope.launch { preferenceManager.setActiveTarget(idx); hapticManager.tick() }
     fun neutralizeTarget(idx: Int) = viewModelScope.launch { preferenceManager.markTargetComplete(idx); soundManager.playTick() }
-    // ... inside BattleViewModel class ...
-
-    fun abortMission() {
-        viewModelScope.launch {
-            // 1. Reset State
-            preferenceManager.updateState(UserJourneyState.BROWSING, null)
-
-            // 2. Wipe Tactical Data
-            preferenceManager.clearCurrentMissionData()
-
-            hapticManager.missionCompleteSlam()
-        }
-    }
-
-    // ...
+    fun abortMission() = viewModelScope.launch { preferenceManager.updateState(UserJourneyState.BROWSING, null); preferenceManager.clearCurrentMissionData() }
     fun calculateDistance(target: GeoPoint?): Double = navigationBridge.calculateDistanceKm(userLocation.value ?: missionState.value.fobLocation, target)
     fun getExfilIntent() = missionState.value.fobLocation?.let { navigationBridge.getExfilIntent(it) }
     fun getBoltIntent(target: GeoPoint): Intent = navigationBridge.getBoltIntent(target)
     fun getNavigationIntent(target: GeoPoint, mode: String): Intent = navigationBridge.getMapsIntent(userLocation.value ?: missionState.value.fobLocation!!, target, mode)
     fun getRentalUrl(): String = "https://localrent.com/en/georgia/"
-
-    /**
-     * ARCHITECT'S FIX: Provide a "Best Guess" starting point for the map.
-     * If it's a premade trip, we center on the first location of that trip.
-     */
-    fun getInitialMapCenter(): GeoPoint {
-        val trip = currentTrip.value
-        return trip?.itinerary?.firstOrNull { it.location != null }?.location 
-            ?: GeoPoint(41.6930, 44.8015) // Default Tbilisi center
-    }
 }

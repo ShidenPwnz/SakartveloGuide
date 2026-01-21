@@ -88,11 +88,16 @@ fun SakartveloNavGraph(
             }
 
             // 4. INTEL REPORT
+            // ... inside NavGraph ...
             composable("pitch/{tripId}") {
                 val vm: PathDetailsViewModel = hiltViewModel()
                 val state by vm.uiState.collectAsState()
-                PathDetailsScreen(state = state) { id ->
-                    navController.navigate("briefing/$id")
+
+                PathDetailsScreen(state = state) { tripId ->
+                    // ARCHITECT'S LOGIC:
+                    // We navigate to Briefing. The BriefingViewModel will detect the ID,
+                    // load the template from Repo, and populate the loadout.
+                    navController.navigate("briefing/$tripId")
                 }
             }
 

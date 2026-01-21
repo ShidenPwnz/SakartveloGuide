@@ -3,10 +3,7 @@ package com.example.sakartveloguide.data.local
 import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.*
-import com.example.sakartveloguide.domain.model.GeoPoint
-import com.example.sakartveloguide.domain.model.MissionState
-import com.example.sakartveloguide.domain.model.UserJourneyState
-import com.example.sakartveloguide.domain.model.UserSession
+import com.example.sakartveloguide.domain.model.*
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -33,6 +30,7 @@ class PreferenceManager @Inject constructor(
         private val KEY_COMPLETED_NODES = stringSetPreferencesKey("mission_completed_nodes")
         private val KEY_ACTIVE_TARGET_IDX = intPreferencesKey("mission_active_target_idx")
         private val KEY_ACTIVE_LOADOUT = stringPreferencesKey("mission_active_loadout")
+        private val KEY_EXTRACTION_TYPE = stringPreferencesKey("mission_extraction_type")
     }
 
     val userSession: Flow<UserSession> = dataStore.data.map { prefs ->
@@ -56,11 +54,16 @@ class PreferenceManager @Inject constructor(
         val completedSet = prefs[KEY_COMPLETED_NODES]?.map { it.toInt() }?.toSet() ?: emptySet()
         val activeIdx = prefs[KEY_ACTIVE_TARGET_IDX]?.let { if (it == -1) null else it }
 
+        val exType = ExtractionType.valueOf(
+            prefs[KEY_EXTRACTION_TYPE] ?: ExtractionType.RETURN_TO_FOB.name
+        )
+
         MissionState(
             tripId = tripId,
             fobLocation = fob,
             completedNodeIndices = completedSet,
-            activeNodeIndex = activeIdx
+            activeNodeIndex = activeIdx,
+            extractionType = exType // ARCHITECT'S FIX: Now persists meta-choice
         )
     }.distinctUntilChanged()
 
@@ -73,6 +76,12 @@ class PreferenceManager @Inject constructor(
     suspend fun saveActiveLoadout(ids: List<Int>) {
         withContext(NonCancellable) {
             dataStore.edit { it[KEY_ACTIVE_LOADOUT] = ids.joinToString(",") }
+        }
+    }
+
+    suspend fun saveExtractionType(type: ExtractionType) {
+        withContext(NonCancellable) {
+            dataStore.edit { it[KEY_EXTRACTION_TYPE] = type.name }
         }
     }
 

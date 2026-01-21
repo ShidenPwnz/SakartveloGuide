@@ -21,7 +21,16 @@ data class LogisticsProfile(
     val needsEsim: Boolean = false,
     val transportType: TransportType = TransportType.TAXI
 )
+// ... inside LogisticsProfile.kt or as an extension ...
 
+fun EntryPoint.getCoordinates(): GeoPoint {
+    return when (this) {
+        EntryPoint.AIRPORT_TBS -> GeoPoint(41.6693, 44.9547)
+        EntryPoint.AIRPORT_KUT -> GeoPoint(42.1764, 42.4826)
+        EntryPoint.AIRPORT_BUS -> GeoPoint(41.5991, 41.5996)
+        else -> GeoPoint(41.7125, 44.7930) // Default Tbilisi Center
+    }
+}
 enum class TransportStrategy {
     PASSENGER_URBAN,   // Taxi/Bolt
     PASSENGER_BUDGET,  // Public Transport

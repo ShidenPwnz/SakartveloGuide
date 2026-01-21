@@ -1,6 +1,5 @@
 package com.example.sakartveloguide.presentation.builder
 
-import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -22,7 +21,8 @@ data class BriefingUiState(
     val fobLocation: GeoPoint? = null,
     val profile: LogisticsProfile = LogisticsProfile(),
     val tripTitle: String = "PREPARING MISSION",
-    val extractionType: ExtractionType = ExtractionType.RETURN_TO_FOB
+    val extractionType: ExtractionType = ExtractionType.RETURN_TO_FOB,
+    val airportLocation: GeoPoint = GeoPoint(41.6693, 44.9547)
 )
 
 @HiltViewModel
@@ -43,7 +43,6 @@ class MissionBriefingViewModel @Inject constructor(
     private val _tripTitle = MutableStateFlow("MISSION BRIEFING")
     private val _extractionType = MutableStateFlow(ExtractionType.RETURN_TO_FOB)
 
-    // Hot flow for FOB updates
     val missionState = preferenceManager.missionState
         .stateIn(viewModelScope, SharingStarted.Eagerly, MissionState())
 
@@ -54,28 +53,37 @@ class MissionBriefingViewModel @Inject constructor(
         _tripTitle,
         _extractionType
     ) { stops, mState, profile, title, exType ->
-        BriefingUiState(stops, mState.fobLocation, profile, title, exType)
+        BriefingUiState(
+            stops = stops,
+            fobLocation = mState.fobLocation,
+            profile = profile,
+            tripTitle = title,
+            extractionType = exType,
+            airportLocation = profile.entryPoint.getCoordinates()
+        )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BriefingUiState())
 
     init { loadTacticalData() }
 
-    // ... inside MissionBriefingViewModel ...
-
     private fun loadTacticalData() {
         viewModelScope.launch {
             if (tripId == "custom_cargo") {
+                // Scenario A: Custom Loadout coming from the Builder Screen
                 val ids = selectedIdString.split(",").mapNotNull { it.trim().toIntOrNull() }
                 _currentStops.value = locationDao.getLocationsByIds(ids)
                 _tripTitle.value = "CUSTOM LOADOUT"
             } else {
+                // Scenario B: Fixed Trip Configuration (Intel Migration Logic)
                 val trip = repository.getTripById(tripId)
                 _tripTitle.value = trip?.title?.get("en") ?: "FIXED MISSION"
 
-                // ARCHITECT'S FIX: Ensure these have IDs so SmartArrange can track them
+                // Map the Domain BattleNodes back to simple LocationEntities for the drag-and-drop list
                 _currentStops.value = trip?.itinerary?.mapIndexed { index, node ->
                     LocationEntity(
-                        id = index, // Assign temporary ID for sorting
-                        name = node.title.get("en"), region = "", type = "",
+                        id = index + 9000, // Temporary ID for list stability
+                        name = node.title.get("en"),
+                        region = "Objective",
+                        type = "Target",
                         description = node.description.get("en"),
                         latitude = node.location?.latitude ?: 0.0,
                         longitude = node.location?.longitude ?: 0.0,
@@ -87,11 +95,22 @@ class MissionBriefingViewModel @Inject constructor(
     }
 
     fun optimizeLoadout() {
-        val fob = uiState.value.fobLocation ?: return
+        // TACTICAL ANCHOR: Smart Arrange starts calculation from the User's Hotel (FOB)
+        val fob = uiState.value.fobLocation ?: uiState.value.airportLocation
         viewModelScope.launch {
             val optimized = smartArrangeUseCase(fob, _currentStops.value)
-            _currentStops.value = optimized.toList() // Force UI update
+            _currentStops.value = optimized.toList()
             hapticManager.missionCompleteSlam()
+        }
+    }
+
+    fun moveStop(fromIndex: Int, toIndex: Int) {
+        val list = _currentStops.value.toMutableList()
+        if (fromIndex in list.indices && toIndex in list.indices) {
+            val item = list.removeAt(fromIndex)
+            list.add(toIndex, item)
+            _currentStops.value = list
+            hapticManager.tick()
         }
     }
 
@@ -107,11 +126,22 @@ class MissionBriefingViewModel @Inject constructor(
         }
     }
 
-    fun finalizeMission(onSuccess: () -> Unit) {
+    fun finalizeMission(onLaunch: () -> Unit) {
         viewModelScope.launch {
-            preferenceManager.saveActiveLoadout(_currentStops.value.map { it.id })
+            // 1. Capture the EXACT order determined by the user (or Smart Arrange)
+            // Note: For Fixed Trips using temp IDs (9000+), this saves the temp IDs.
+            // Ideally, we map them back to real IDs if editing is fully supported,
+            // but for now, this preserves the sequence for the current session.
+            val orderedIds = _currentStops.value.map { it.id }
+            preferenceManager.saveActiveLoadout(orderedIds)
+
+            // 2. Capture the Extraction choice
+            preferenceManager.saveExtractionType(_extractionType.value)
+
+            // 3. Set Operational State -> Battle Dashboard
             preferenceManager.updateState(UserJourneyState.ON_THE_ROAD, tripId)
-            onSuccess()
+
+            onLaunch()
         }
     }
 }
