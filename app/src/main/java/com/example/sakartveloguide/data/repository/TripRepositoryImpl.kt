@@ -1,19 +1,42 @@
 package com.example.sakartveloguide.data.repository
 
+import android.content.Context
 import android.util.Log
 import com.example.sakartveloguide.data.local.dao.TripDao
+import com.example.sakartveloguide.data.local.dao.LocationDao
 import com.example.sakartveloguide.data.local.entity.TripEntity
+import com.example.sakartveloguide.data.local.entity.LocationEntity
 import com.example.sakartveloguide.data.mapper.toDomain
 import com.example.sakartveloguide.domain.model.*
 import com.example.sakartveloguide.domain.repository.TripRepository
+import com.google.gson.Gson
+import com.google.gson.annotations.SerializedName
+import com.google.gson.reflect.TypeToken
+import com.google.gson.stream.JsonReader // NEW
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
+import java.io.InputStreamReader
+
+private data class RawLocationDto(
+    @SerializedName("name") val name: String?,
+    @SerializedName("region") val region: String?,
+    @SerializedName("type") val type: String?,
+    @SerializedName("description") val description: String?,
+    @SerializedName("latitude") val latitude: Double?,
+    @SerializedName("longitude") val longitude: Double?,
+    @SerializedName("imageUrl") val imageUrl: String?
+)
 
 @Singleton
 class TripRepositoryImpl @Inject constructor(
-    private val dao: TripDao
+    private val dao: TripDao,
+    private val locationDao: LocationDao,
+    @ApplicationContext private val context: Context
 ) : TripRepository {
 
     override fun getAvailableTrips(): Flow<List<TripPath>> = dao.getAllTrips().map { entities ->
@@ -24,33 +47,95 @@ class TripRepositoryImpl @Inject constructor(
 
     override suspend fun lockTrip(tripId: String) = dao.updateLockStatus(tripId, true)
 
-    override suspend fun nukeAllData() = dao.nukeTable()
+    override suspend fun nukeAllData() = withContext(Dispatchers.IO) {
+        dao.nukeTable()
+        locationDao.nukeTable()
+    }
 
-    // HELPER: Compact Translation Wrapper
-    // Order: English, Georgian, Russian, Turkish, Armenian, Hebrew, Arabic
-    // Update the L helper in TripRepositoryImpl
     private fun L(en: String, ka: String, ru: String, tr: String, hy: String, iw: String, ar: String) =
         LocalizedString(en, ka, ru, tr, hy, iw, ar)
 
     override suspend fun refreshTrips() {
-        try {
-            val count = dao.getTripCount()
-            if (count > 0) return
+        withContext(Dispatchers.IO) {
+            try {
+                Log.d("SAKARTVELO_REPO", "TACTICAL REFRESH START")
 
-            val tripsToInsert = mutableListOf<TripEntity>()
+                // 1. Always ensure inventory is seeded
+                val count = locationDao.getCount()
+                if (count == 0) {
+                    seedLocationInventory()
+                }
+
+                // 2. Ensure fixed protocols are seeded
+                if (dao.getTripCount() == 0) {
+                    seedFixedTrips()
+                }
+                Log.d("SAKARTVELO_REPO", "TACTICAL REFRESH COMPLETE")
+            } catch (e: Exception) {
+                Log.e("SAKARTVELO_REPO", "Refresh Loop Halted: ${e.message}")
+            }
+        }
+    }
+
+    private suspend fun seedLocationInventory() {
+        try {
+            val inputStream = context.assets.open("tbilisi_places.json")
+            val reader = JsonReader(InputStreamReader(inputStream))
+            reader.isLenient = true // ARCHITECT'S FIX: Handle line 10 error in JSON
+
+            val listType = object : TypeToken<List<RawLocationDto>>() {}.type
+            val rawList: List<RawLocationDto> = Gson().fromJson(reader, listType)
+
+            val entities = rawList.mapNotNull { raw ->
+                if (raw.name != null && raw.latitude != null && raw.longitude != null) {
+                    LocationEntity(
+                        name = raw.name,
+                        region = raw.region ?: "General",
+                        type = raw.type ?: "POI",
+                        description = raw.description ?: "",
+                        latitude = raw.latitude,
+                        longitude = raw.longitude,
+                        imageUrl = raw.imageUrl ?: ""
+                    )
+                } else null
+            }
+
+            locationDao.insertLocations(entities)
+            Log.d("SAKARTVELO_REPO", "Database populated with ${entities.size} items.")
+            reader.close()
+        } catch (e: Exception) {
+            Log.e("SAKARTVELO_REPO", "MISSION FAILURE - DATA SEED: ${e.message}")
+        }
+    }
+
+    private suspend fun seedFixedTrips() {
+        val tripsToInsert = mutableListOf<TripEntity>()
+
+        tripsToInsert += TripEntity(
+            id = "meta_sandbox",
+            title = L("BUILD YOUR DREAM TRIP", "შექმენი შენი მოგზაურობა", "СОЗДАЙ СВОЙ МАРШРУТ", "Kendi Gezini Oluştur", "Ստեղծեք ձեր ճանապարհորդությունը", "בנה את טיול החלומות שלך", "اصنع رحلة أحلامك"),
+            description = L("Mission Fabrication Mode", "...", "...", "...", "...", "...", "..."),
+            imageUrl = "https://images.pexels.com/photos/32307/pexels-photo.jpg",
+            category = "GUIDE", difficulty = Difficulty.RELAXED.name, totalRideTimeMinutes = 0, durationDays = 1
+        )
+
+
+
+
+
 
             // --- META SECTOR: SYSTEM & COUNTRY ---
             tripsToInsert += TripEntity(
                 id = "meta_tutorial",
                 title = L(
-                    "SYSTEM TUTORIAL", "სისტემური სახელმძღვანელო", "Системное руководство", "Sistem Eğitimi", "Համակարգի ձեռnարկ", "מדריך מערכת", "دليل النظام"
+                    "SYSTEM TUTORIAL", "სისტემური სახელმძღვანელო", "Системное руководство", "Sistem Eğitimi", "Հამაკարգი ձեռnարկ", "מדריך מערכת", "دليل النظام"
                 ),
                 description = L(
                     "Operational briefing: How to navigate the Matrix. TACTICAL NOTE: The 2026 logistical environment requires strict adherence to '3-2-2' timing (3h transport, 2h site, 2h dining).",
                     "ოპერატიული ბრიფინგი: როგორ ვმართოთ მატრიცა. ტაქტიკური შენიშვნა: 2026 წლის ლოგისტიკა მოითხოვს '3-2-2' წესის დაცვას (3სთ გზა, 2სთ ობიექტი, 2სთ კვება).",
                     "Оперативный брифинг. ТАКТИЧЕСКОЕ ПРИМЕЧАНИЕ: Логистика 2026 года требует строгого соблюдения тайминга '3-2-2' (3ч транспорт, 2ч объект, 2ч еда).",
                     "Operasyonel brifing: Matrix'te nasıl gezinilir. TAKTİK NOT: 2026 lojistik ortamı '3-2-2' zamanlamasına (3s ulaşım, 2s saha, 2s yemek) sıkı uyum gerektirir.",
-                    "Օპერատիվ ճეպაზրույց. Ինչպես նავიարկել մատրիցայում: ՏԱԿՏԻԿԱԿԱՆ ՆՇՈՒՄ. 2026-ի լոգիստիկ միջավայրը պահանჯում է խստորեն պահպանել «3-2-2» ժամանակացույցը:",
+                    "Օპერատիվ ճეպაზრույց. Ինչպես ნავიարկელ მატრიცայում: ՏԱԿՏԻԿԱԿԱՆ ՆՇՈՒՄ. 2026-ի լոգիստիկ միջավայրը պահանջում է խստորեն պահպանել «3-2-2» ժամանակացույցը:",
                     "תדריך מבצעי: איך לנווט במטריקס. הערה טקטית: הסביבה הלוגיסטית של 2026 דורשת הקפדה על תזמון '3-2-2'.",
                     "موجز تشغيلي: كيفية التنقل في المصفوفة. ملاحظة تكتيكية: تتطلب البيئة اللوجستية لعام 2026 الالتزام الصارم بتوقيت '3-2-2'."
                 ),
@@ -66,7 +151,7 @@ class TripRepositoryImpl @Inject constructor(
             tripsToInsert += TripEntity(
                 id = "meta_about",
                 title = L(
-                    "ABOUT SAKARTVELO", "საქართველოს შესახებ", "О Грузии", "Sakartvelo Hakkında", "Սաքարթველոյի մասին", "על סקרטבלו", "حول ساكارتفيلو"
+                    "ABOUT SAKARTVELO", "საქართველოს შესახებ", "О Грузии", "Sakartvelo Hakkında", "Սաքարթվելոյի մասին", "על סקרטבלו", "حول ساكارتفيلو"
                 ),
                 description = L(
                     "Essential Intelligence: Georgia in 2026 defines a tension between 8,000-year history and hyper-modernity. WARNING: Dining is a multi-hour commitment.",
@@ -87,6 +172,110 @@ class TripRepositoryImpl @Inject constructor(
             )
 
             // ===================================================================================
+            tripsToInsert += TripEntity(
+                id = "andro_daily_test",
+                title = L(
+                    "Andro's Daily Logistics", "ანდროს ყოველდღიური ლოჯისტიკა", "Ежедневная логистика Андро", "Andro'nun Günlük Lojistiği", "Անդրոյի ամենօրյա լոգիստիկա", "הלוגიסטיקה היומית של אנדרו", "لوجستيات أندرو اليومية"
+                ),
+                description = L(
+                    "Tactical urban resupply run in Saburtalo. OBJECTIVES: Resupply pantry and acquire feline provisions. LOGISTICAL NOTE: Final leg to Fresco requires vehicle transport due to cargo weight.",
+                    "ტაქტიკური მომარაგება საბურთალოზე. მიზნები: პროდუქტების და კატის საკვების შეძენა. ლოჯისტიკა: ფრესკომდე ბოლო მონაკვეთზე საჭიროა ტრანსპორტი ტვირთის გამო.",
+                    "Тактическое пополнение запасов в Сабуртало. ЦЕЛИ: Пополнить кладовую и купить еду для кота. ЛОГИСТИКА: Для поездки во Фреско требуется транспорт.",
+                    "Saburtalo'da taktiksel ikmal koşusu. HEDEFLER: Kileri doldur ve kedi maması al. LOJİSTİK NOT: Fresco'ya giden son ayak araç gerektirir.",
+                    "Տակտիկական մթերքի համալրում Սաբուրթալոյում. ՆՊԱՏԱԿՆԵՐԸ. համալրել მառանը և ձեռք բերել კատվի սնუნդ:",
+                    "ריצת אספקה עירונית טקטית בסבורטלו. יעדים: חידוש מזווה ומזון לחתולים. הערה לוגיסטית: נדרשת מונית לפרסקו.",
+                    "تشغيل إعادة الإمداد الحضري التكتيكي في سابورتالو. الأهداف: إعادة تزويد المخزن والحصول على مؤن القطط."
+                ),
+                imageUrl = "https://lh3.googleusercontent.com/p/AF1QipN_Z-vJ_wXzX_XX_XX_XX_XX_XX_XX_XX_XX/s1600-w400", // Generic Saburtalo/Street view placeholder
+                category = "LOGISTICS",
+                difficulty = Difficulty.MODERATE.name,
+                totalRideTimeMinutes = 45,
+                durationDays = 1,
+                route = listOf(GeoPoint(41.7282, 44.741204), GeoPoint(41.72222, 44.7167)), // Start to End
+                itinerary = listOf(
+                    // DAY 1
+                    BattleNode(
+                        title = L("Starting Point: Fresh Air", "საწყისი წერტილი: სუფთა ჰაერი", "Точка старта: Свежий воздух", "Başlangıç Noktası: Temiz Hava", "Մեկնարկային կետ՝ մաքուր օդ", "נקודת התחלה: אוויר צח", "نقطة البداية: الهواء النقي"),
+                        description = L(
+                            "Initial calibration. Step out, clear head, check weather conditions before executing the route.",
+                            "საწყისი კალიბრაცია. გამოდით, გაისუფთავეთ გონება და შეამოწმეთ ამინდი მარშრუტის დაწყებამდე.",
+                            "Начальная калибровка. Выйдите, проветрите голову, проверьте погоду.",
+                            "İlk kalibrasyon. Dışarı çıkın, kafanızı boşaltın, rotayı uygulamadan önce hava durumunu kontrol edin.",
+                            "Սկզբնական չափորոշում. Դուրս եկեք, մաքրեք გլუხը, ստუգեք եղանակը:",
+                            "כיול ראשוני. צאו החוצה, נקו את הראש, בדקו את מזג האוויר.",
+                            "المعايرة الأولية. اخرج، صفِ ذهنك، تحقق من الطقس."
+                        ),
+                        timeLabel = "D1 10:00",
+                        alertType = "START_NODE",
+                        location = GeoPoint(41.7282, 44.741204),
+                        imageUrl = "https://wander-lush.org/wp-content/uploads/2020/05/Emily-Lush-Tbilisi-street-scene.jpg"
+                    ),
+                    BattleNode(
+                        title = L("Nikora Outpost", "ნიკორა", "Никора", "Nikora", "Նիկորա", "ניקורה", "نيكورا"),
+                        description = L(
+                            "Carb loading station. Priority acquisition: White bread. Quick in and out.",
+                            "ნახშირწყლების სადგური. პრიორიტეტი: თეთრი პური. სწრაფი შესვლა და გამოსვლა.",
+                            "Станция загрузки углеводами. Приоритет: белый хлеб. Быстро зайти и выйти.",
+                            "Karbonhidrat yükleme istasyonu. Öncelik: Beyaz ekmek. Hızlı giriş ve çıkış.",
+                            "Ածխաջրերի բեռնման կայան. Առաջնահերթություն՝ սպիտակ հաց։",
+                            "תחנת העמסת פחמימות. עדיפות: לחם לבן.",
+                            "محطة تحميل الكربوهيدرات. الأولوية: الخبز الأبيض."
+                        ),
+                        timeLabel = "D1 10:15",
+                        location = GeoPoint(41.7287, 44.743302),
+                        imageUrl = "https://upload.wikimedia.org/wikipedia/commons/thumb/8/86/Nikora_logo.svg/1200px-Nikora_logo.svg.png"
+                    ),
+                    BattleNode(
+                        title = L("Feline Supply Depot", "ზოომაღაზია", "Зоომაღაზია", "Kedi Maması Deposu", "Կատվի սննդի պահեստ", "מחסן אספקה לחתולים", "مستودع إمدادات القطط"),
+                        description = L(
+                            "Critical mission objective. Acquire cat food. Failure is not an option.",
+                            "კრიტიკული მისია. კატის საკვების შეძენა. მარცხი დაუშვებელია.",
+                            "Критическая цель миссии. Купить кошачий корм. Провал недопустим.",
+                            "Kritik görev hedefi. Kedi maması edinin. Başarısızlık bir seçenek değil.",
+                            "Առաքելության կարևոր նպատակ. Ձեռք բերեք կատվի սնունդ:",
+                            "מטרת משימה קריטית. רכשו אוכל לחתולים.",
+                            "هدف المهمة الحاسمة. الحصول على طعام القطط."
+                        ),
+                        timeLabel = "D1 10:30",
+                        location = GeoPoint(41.7263, 44.7440),
+                        imageUrl = "https://live.staticflickr.com/65535/49964826521_f3e5b3b1c6_b.jpg"
+                    ),
+                    BattleNode(
+                        title = L("Biblusi Intelligence", "ბიბლუსი", "Библуси", "Biblusi", "Բիբլուսի", "ביבלוסי", "بيبلوسي"),
+                        description = L(
+                            "Stationery and book scan. Check for new supplies or dev journals.",
+                            "საკანცელარიო და წიგნების სკანირება. შეამოწმეთ ახალი მარაგები ან დეველოპერული დღიურები.",
+                            "Сканирование канцелярии и книг. Проверьте наличие новых товаров.",
+                            "Kırtasiye ve kitap taraması. Yeni malzemeleri veya geliştirici günlüklerini kontrol edin.",
+                            "Գրենական պիտույքների և գրքերի սկանավորում. Ստուգեք նոր պաշարները:",
+                            "סריקת כלי כתיבה וספרים. בדוק אם יש ציוד חדש.",
+                            "مسح القرطاسية والكتب. تحقق من وجود مستلزمات جديدة."
+                        ),
+                        timeLabel = "D1 10:45",
+                        location = GeoPoint(41.7254, 44.7423),
+                        imageUrl = "https://upload.wikimedia.org/wikipedia/commons/e/e3/Biblusi_Logo.png"
+                    ),
+                    BattleNode(
+                        title = L("Fresco Qavtaradze HQ", "ფრესკო ქავთარაძე", "Фреско Кавтарадзе", "Fresco Qavtaradze Merkez", "Ֆրեսկո Քավթարաձե", "מטה פרסקו קווקרדזה", "فريسككو كافتارادزه"),
+                        description = L(
+                            "Heavy Cargo Load. Taxi required for extraction. Targets: Tofu, Granola, Frozen Veg, Protein.",
+                            "მძიმე ტვირთი. საჭიროა ტაქსი. სამიზნეები: ტოფუ, გრანოლა, გაყინული ბოსტნეული, პროტეინი.",
+                            "Тяжелый груз. Для эвакуации требуется такси. Цели: тофу, гранола, овощи, протеин.",
+                            "Ağır Kargo Yükü. Çıkarmak için taksi gerekiyor. Hedefler: Tofu, Granola, Donmuş Sebze, Protein.",
+                            "Ծანր ბեռ. Տաքსი է პահանջվում: Թիրախներ՝ Տոֆու, Գրանოლա, սառեցված բանջարեղեն:",
+                            "מטען כבד. נדרשת מונית לחילוץ. מטרות: טופו, גרנולה, ירקות קפואים, חלבון.",
+                            "حمولات ثقيلة. سيارة أجرة مطلوبة للاستخراج. الأهداف: التوفو ، الجرانولا ، الخضار المجمدة ، البروتين."
+                        ),
+                        timeLabel = "D1 11:15",
+                        alertType = "TAXI_REQUIRED",
+                        location = GeoPoint(41.72222, 44.7167),
+                        imageUrl = "https://fresco.ge/uploads/images/fresco-logo.png"
+                    )
+                )
+            )
+
+
+
             // THEME 1: CAPITAL (TBILISI) - DEEP HISTORY & ARISTOCRACY
             // ===================================================================================
             tripsToInsert += TripEntity(
@@ -128,14 +317,14 @@ class TripRepositoryImpl @Inject constructor(
                         imageUrl = "https://wander-lush.org/wp-content/uploads/2023/04/Emily-Lush-best-museums-in-Tbilisi-Georgia-David-Sarajashvili-Museum.jpg"
                     ),
                     BattleNode(
-                        title = L("Kalantarov House", "კალანტაროვის სახლი", "Дом Калантарова", "Kalantarov Evi", "Կալանտարովի տուն", "בית קלנטרוב", "منزل كالانتاروف"),
+                        title = L("Kalantarov House", "კალანტაროვის სახლი", "Дом Калантарова", "Kalantarov Evi", "Կալանտարովի տուն", "בית קלנטרוב", "منزل كالانتարով"),
                         description = L(
                             "Pseudo-Moorish gem (1908). The 'Opera House for Love.'",
                             "ფსევდო-მავრიტანული მარგალიტი (1908). 'ოპერის სახლი სიყვარულისთვის'.",
                             "Псевдомавританская жемчужина (1908). 'Оперный театр любви'.",
                             "Sözde Mağribi mücevheri (1908). 'Aşk için Opera Binası'.",
-                            "Կեղծ-մավրիտանական գոհար (1908). «Օպերային թատրոն սիրո համար».",
-                            "פנינה פסאודו-מורית (1908). 'בית האופרה לאהבה'.",
+                            "Կեղծ-մավրիտանական գոհար (1908). «Օպերային թատրոն სირო համար».",
+                            "פנינה פסאودו-מורית (1908). 'בית האופרה לאהבה'.",
                             "جوهرة مغاربية زائفة (1908). 'دار الأوبرا للحب'."
                         ),
                         timeLabel = "D1 11:30",
@@ -149,12 +338,12 @@ class TripRepositoryImpl @Inject constructor(
                             "შეფ თეკუნა გაჩეჩილაძის ფიუჟენ ლაბორატორია. ტაქტიკური კვება: არ იჩქაროთ.",
                             "Фьюжн-лаборатория шеф-повара Текуны Гачечиладзе. ТАКТИЧЕСКИЙ УЖИН: Не торопитесь.",
                             "Şef Tekuna Gachechiladze'nin füzyon laboratuvarı. TAKTİK YEMEK: Acele etmeyin.",
-                            "Շեֆ Թեկունա Գաչեչիլաձեի ֆյուժն լաբորատորիան. ՏԱԿՏԻԿԱԿԱՆ ՃԱՇՈՒՄ. Մի շտապեք:",
+                            "Շեֆ Թեկუნა Գաჩეჩილաձեի ֆյուժն լաբորատորիան. ՏԱԿՏԻԿԱԿԱՆ ՃԱՇՈՒՄ. Մի շտապեք:",
                             "מעבדת הפיוז'ן של השפית טקונה גאצ'צ'ילדזה. ארוחה טקטית: אל תמהרו.",
-                            "مختبر الاندماج للشيف تيكونا جاشيشيلادزه. تناول الطعام التكتيكي: لا تتعجل."
+                            "مختبر الاندماج للشيف تيكونا جashیشیلادזה. تناول الطعام التكتيكي: لا تتعجل."
                         ),
                         timeLabel = "D1 13:00",
-                        location = GeoPoint(41.6896, 44.8010),
+                        location = GeoPoint(41.4341, 44.4426),
                         imageUrl = "https://wander-lush.org/wp-content/uploads/2021/06/Emily-Lush-restaurants-in-Tbilisi-new-Cafe-Littera-food.jpg"
                     ),
                     BattleNode(
@@ -173,7 +362,7 @@ class TripRepositoryImpl @Inject constructor(
                         imageUrl = "https://wander-lush.org/wp-content/uploads/2023/04/Emily-Lush-52-things-to-do-in-tbilisi-georgia-Sololaki-entryway.jpg"
                     ),
                     BattleNode(
-                        title = L("Gudiashvili Square", "გუდიაშვილის მოედანი", "Площадь Гудиашвили", "Gudiashvili Meydanı", "Գուդիաշվիլու հրապարակ", "כיכר גודיאשווילי", "ساحة جودياشفيلي"),
+                        title = L("Gudiashvili Square", "გუდიაშვილის მოედანი", "Площадь Гудиашвили", "Gudiashvili Meydanı", "Գուდիաշվիլու հրապարակ", "כיכר גודיאשווילי", "ساحة جودياشفيلي"),
                         description = L(
                             "Medieval urban fabric saved by civic activism.",
                             "სამოქალაქო აქტივიზმით გადარჩენილი უბანი.",
@@ -188,7 +377,7 @@ class TripRepositoryImpl @Inject constructor(
                         imageUrl = "https://wander-lush.org/wp-content/uploads/2021/10/Emily-Lush-Tbilisi-Georgia-guide-Gudiashvili-Square.jpg"
                     ),
                     BattleNode(
-                        title = L("Ezo Restaurant", "რესტორანი ეზო", "Ресторан Эзо", "Ezo Restoran", "Ռեստորան Էզո", "מסעדת אזו", "مطعم ايزو"),
+                        title = L("Ezo Restaurant", "რესტორანი ეზო", "Ресторан Эзо", "Ezo Restoran", "Ռեստორան Էზო", "מסעדת אזו", "مطعم ايزو"),
                         description = L(
                             "Organic, farm-to-table sourcing means slow food. Allocate 2.5 hours.",
                             "ნატურალური პროდუქტები ნიშნავს ნელ მომზადებას. გამოყავით 2.5 საათი.",
@@ -237,13 +426,13 @@ class TripRepositoryImpl @Inject constructor(
                         imageUrl = "https://wander-lush.org/wp-content/uploads/2021/03/Emily-Lush-best-Tbilisi-views-Turtle-Lake-hills-view.jpg"
                     ),
                     BattleNode(
-                        title = L("Culinarium Khasheria", "კულინარიუმ ხაშერია", "Кулинариум Хашерия", "Culinarium Khasheria", "Խաշերիա", "קולינריום חאשריה", "الطهي خاشيريا"),
+                        title = L("Culinarium Khasheria", "კულინარიუმ ხაშერია", "Кулинариум Хашерия", "Culinarium Khasheria", "Խաշերիა", "קולינריום חאשריה", "الطهي خاشيريا"),
                         description = L(
                             "Famous for Khashi (tripe/garlic soup). Historically a hangover cure.",
                             "ცნობილია ხაშით. ისტორიულად, ნაბახუსევის წამალი.",
                             "Знаменит хаши (суп из рубца с чесноком). Исторически средство от похмелья.",
                             "Khashi (işkembe/sarımsak çorbası) ile ünlüdür. Tarihsel olarak akşamdan kalma tedavisi.",
-                            "Հայտնի է Խաշիով (փորոտիք/սխտորով ապուր): Պատմականորեն խումհարի բուժում:",
+                            "Հայտնի է Խաշիով (փորոտիք/სხտორով ապուր): Պատմականորեն խუმհարի ბუժუმ:",
                             "מפורסמת בזכות חאשי. תרופה היסטורית להנגאובר.",
                             "يشتهر بالخاشي (حساء الكرشة/الثوم). تاريخيا علاج مخلفات."
                         ),
@@ -348,14 +537,14 @@ class TripRepositoryImpl @Inject constructor(
                         imageUrl = "https://wander-lush.org/wp-content/uploads/2020/05/Emily-Lush-Tbilisi-restaurant-Barbarestan.jpg"
                     ),
                     BattleNode(
-                        title = L("Dry Bridge Market", "მშრალი ხიდის ბაზრობა", "Сухой мост", "Kuru Köprü Pazarı", "Չոր կամուրջի շուկա", "שוק הגשר היבש", "سوق الجسر الجاف"),
+                        title = L("Dry Bridge Market", "მშრალი ხიდის ბაზრობა", "Сухой мост", "Kuru Köprü Pazarı", "Չոր კამուրջի შուკა", "שוק הגשר היבש", "سوق الجسر الجاف"),
                         description = L(
                             "Open-air museum of the Soviet collapse. Best visited on weekends.",
                             "საბჭოთა კავშირის დაშლის ღია მუზეუმი. საუკეთესოა შაბათ-კვირას.",
                             "Музей распада СССР под открытым небом. Лучше посещать в выходные.",
                             "Sovyet çöküşünün açık hava müzesi. En iyi hafta sonları ziyaret edilir.",
-                            "Խորհրդային փլուզման բացօթյա թանգարան. Լավագույնս այցելել հանգստյան օրերին:",
-                            "מוזיאון באוויר הפתוח של ההתמוטטות הסובייטית. מומלץ לבקר בסופי שבוע.",
+                            "Խորհրդային փլուզման ბացօթյա թանգարան. Լավագույնս այցელել հանգստյան օրերին:",
+                            "מוזיאון באוויר הפתוح של ההתמוטטות הסובייטית. מומלץ לבקר בסופי שבוע.",
                             "متحف في الهواء الطلق للانهيار السوفيتي. أفضل زيارة في عطلة نهاية الأسبوع."
                         ),
                         timeLabel = "D3 16:00",
@@ -363,13 +552,13 @@ class TripRepositoryImpl @Inject constructor(
                         imageUrl = "https://wander-lush.org/wp-content/uploads/2021/10/Emily-Lush-Tbilisi-Georgia-guide-Dry-Bridge-antiques.jpg"
                     ),
                     BattleNode(
-                        title = L("Mtatsminda Funicular", "მთაწმინდის ფუნიკულიორი", "Фуникулер Мтацминда", "Mtatsminda Füniküleri", "Մթացմինդա ճոպանուղի", "פוניקולר מתאצמינדה", "قطار متاتسميندا"),
+                        title = L("Mtatsminda Funicular", "მთაწმინდის ფუნიკულიორი", "Фуникулер Мтацминда", "Mtatsminda Füniküleri", "Մթացმինդა ճოპანუղი", "פוניקולר מתאצמינדה", "قطار متاتسميندا"),
                         description = L(
                             "1905 Belgian engineering. Climbs 501 meters. Essential for sunset.",
                             "1905 წლის ბელგიური ინჟინერია. ადის 501 მეტრზე. აუცილებელია მზის ჩასვლისთვის.",
                             "Бельгийская инженерия 1905 года. Подъем на 501 метр. Обязателен для заката.",
                             "1905 Belçika mühendisliği. 501 metre tırmanıyor. Gün batımı için gerekli.",
-                            "1905 թվականի բելգիական ճարտարագիտություն. Բարձրանում է 501 մետր։",
+                            "1905 թվականի ბელგიական ճարտարագիտություն. Բարձրանում է 501 մետր։",
                             "הנדסה בלגית משנת 1905. מטפס 501 מטר.",
                             "هندسة بلجيكية عام 1905. يتسلق 501 مترا. ضروري لغروب الشمس."
                         ),
@@ -378,13 +567,13 @@ class TripRepositoryImpl @Inject constructor(
                         imageUrl = "https://wander-lush.org/wp-content/uploads/2020/10/Emily-Lush-Mtatsminda-Cable-Car-Lower-Station-building-restored.jpg"
                     ),
                     BattleNode(
-                        title = L("Funicular Restaurant", "რესტორანი ფუნიკულიორი", "Ресторан Фуникулер", "Füniküler Restoran", "Ֆունիկուլյոր ռեստորան", "מסעדת פוניקולר", "مطعم القطار الجبلي المائل"),
+                        title = L("Funicular Restaurant", "რესტორანი ფუნიკულიორი", "Ресторан Фуникулер", "Füniküler Restoran", "Ֆունიკուლյոր ռեսტორან", "מסעדת פוניקולר", "مطعم القطار الجبلي المائل"),
                         description = L(
                             "The Ritual: Ponchiki (donuts) and Lagidze water. A classic Tbilisi tradition.",
                             "რიტუალი: ფუნჩულა და ლაღიძის წყლები. კლასიკური თბილისური ტრადიცია.",
                             "Ритуал: Пончики и воды Лагидзе. Классическая тбилисская традиция.",
-                            "Ritüel: Ponchiki (çörek) ve Lagidze suyu. Klasik bir Tiflis geleneği.",
-                            "Ծես. Պոնչիկի (пончики) և Լագիձե ջուր: Թբիլիսիի դասական ավանդույթ:",
+                            "Ritüel: Ponchiki (çörek) ve Lagidze suyu. Klasಿಕ bir Tiflis geleneği.",
+                            "Ծես. Պոնჩიკი (пончики) և Լագიձե ջուր: Թბիլիսիի դասական ավանդույթ:",
                             "הריטואל: פונצ'יקי (סופגניות) ומים לג'ידזה. מסורת טביליסית קלאסית.",
                             "الطقوس: بونشيكي (الكعك) ومياه لاغيدزي. تقليد تبليسي كلاسيكي."
                         ),
@@ -408,7 +597,7 @@ class TripRepositoryImpl @Inject constructor(
                     "საბჭოთა 'კოსმოსური ქალაქის' არქიტექტურა. ლოგისტიკა: ნუცუბიძის ლიფტს სჭირდება 20 თეთრიანი. ბასიანი იხსნება 23:59-ზე.",
                     "Архитектура советского космического города. ЛОГИСТИКА: Лифт Нуцубидзе требует монеты 20 тетри. Бассиани открывается в 23:59.",
                     "Sovyet Uzay Şehri mimarisi. LOJİSTİK: Nutsubidze asansörü 20 tetri madeni para gerektirir. Bassiani kapısı 23:59'da açılır.",
-                    "Խորհրդային տիեզերական քաղաքի ճարտարապետություն. ԼՈԳԻՍՏԻԿԱ. Նուցուբիձեի վերելակի համար պահանջվում է 20 թետրի մետաղադրամ:",
+                    "Խորհրდային տիեզերական քաղաքի ճարտարապետություն. ԼՈԳԻՍՏԻԿԱ. Նուცուბიձեի վերելակի համար պահանջվում է 20 թետրի մետաղադրամ:",
                     "אדריכלות עיר החלל הסובייטית. לוגיסטיקה: מעלית נוצובידזה דורשת מטבעות של 20 טטרי. דלת בסיאני נפתחת ב-23:59.",
                     "عمارة مدينة الفضاء السوفيتية. الخدمات اللوجستية: مصعد نوتسوبيدزي يتطلب عملات 20 تيتري."
                 ),
@@ -421,7 +610,7 @@ class TripRepositoryImpl @Inject constructor(
                 itinerary = listOf(
                     // DAY 1
                     BattleNode(
-                        title = L("Bank of Georgia HQ", "საქართველოს ბანკის სათაო ოფისი", "Штаб-квартира Банка Грузии", "Gürcistan Bankası Genel Merkezi", "Վրաստանի բանկի կենտրոնակայանը", "מטה בנק גאורגיה", "مقر بنك جورجيا"),
+                        title = L("Bank of Georgia HQ", "საქართველოს ბანკის სათაო ოფისი", "Штаб-квартира Банка Грузии", "Gürcistan Bankası Genel Merkezi", "Վրաստանի ბանկի կենտրոնակայանը", "מטה בנק גאورגיה", "مقر بنك جورجيا"),
                         description = L(
                             "The 'Space City' (1975). Soviet Brutalist icon.",
                             "კოსმოსური ქალაქი (1975). საბჭოთა ბრუტალიზმის ხატი.",
@@ -436,14 +625,14 @@ class TripRepositoryImpl @Inject constructor(
                         imageUrl = "https://wander-lush.org/wp-content/uploads/2023/03/Soviet-architecture-Tbilisi-Georgia-Former-Ministry-of-Roads.jpg"
                     ),
                     BattleNode(
-                        title = L("Skybridge Plato", "ნუცუბიძის პლატოს საჰაერო ხიდები", "Воздушные мосты Нуцубидзе", "Nutsubidze Gökyüzü Köprüsü", "Նուցուբիձեի օդային կամուրջներ", "גשרי נուצובידזה", "جسر نوتسوبيدزي"),
+                        title = L("Skybridge Plato", "ნუცუბიძის პლატოს საჰაერო ხიდები", "Воздушные мосты Нуцубидзе", "Nutsubidze Gökyüzü Köprüsü", "Նուցուբիձեի օդային կամուրջներ", "גשרי נուצובידזה", "جسر נوتסوبيدزي"),
                         description = L(
                             "Carry 20 Tetri coin for elevator.",
                             "გააყოლეთ 20 თეთრიანი ლიფტისთვის.",
                             "Возьмите 20 тетри для лифта.",
                             "Asansör için 20 Tetri bozuk para bulundurun.",
                             "Վերելակի համար վերցրեք 20 թեթրի մետաղադրամ:",
-                            "קחו מטבע של 20 תטრი למעלית.",
+                            "קחו מטבע של 20 תטרי למעלית.",
                             "احمل عملة 20 تيتري للمصعد."
                         ),
                         timeLabel = "D1 11:30",
@@ -488,9 +677,9 @@ class TripRepositoryImpl @Inject constructor(
                             "'საქართველოს სტოუნჰენჯი'. იანვარში ძალიან ცივა.",
                             "'Грузинский Стоунхендж'. В январе очень холодно.",
                             "'Gürcü Stonehenge'i. Ocak ayında çok soğuk.",
-                            "«Վրացական Սթոունհենջը». Հունվարին շատ ցուրտ է:",
+                            "«Վրացական Սթոունհենջը». Հունვարին շատ ցուրտ է:",
                             "'סטונהנג' הגאורגי'. קר מאוד בינואר.",
-                            "'ستونهنج الجورجي'. بارد جدا في يناير."
+                            "'ستونهנג הגאורגי'. بارد جدا في يناير."
                         ),
                         timeLabel = "D1 17:00",
                         alertType = "WIND_CHILL",
@@ -498,7 +687,7 @@ class TripRepositoryImpl @Inject constructor(
                         imageUrl = "https://wander-lush.org/wp-content/uploads/2021/10/Emily-Lush-Tbilisi-Georgia-guide-Chronicles-of-Georgia.jpg"
                     ),
                     BattleNode(
-                        title = L("Stamba Hotel", "სტამბა", "Отель Стамба", "Stamba Otel", "Հյուրանոց Ստամբա", "מלון סטמבה", "فندق ستامبا"),
+                        title = L("Stamba Hotel", "სტამბა", "Отель Стамба", "Stamba Otel", "Հյուրანոց Ստამბა", "מלון סטמבה", "فندق סטამბა"),
                         description = L(
                             "Converted 1930s publishing house. High-end dining node.",
                             "გადაკეთებული 1930-იანი წლების გამომცემლობა. მაღალი კლასის ვახშამი.",
@@ -581,7 +770,7 @@ class TripRepositoryImpl @Inject constructor(
                             "ტექნოს ტაძარი. კარი იღება 23:59-ზე. მკაცრი ფეისკონტროლი.",
                             "Собор техно. Двери открываются в 23:59. Строгий фейс-контроль.",
                             "Tekno Katedrali. Kapı 23:59'da açılıyor. Sıkı Yüz Kontrolü.",
-                            "Տեխնո տաճար. Դուռը բացվում է 23:59-ին։ Խիստ դեմքի վերահսկում:",
+                            "Տեխնո տաճար. Դուռը ბացվում է 23:59-ին։ Խիստ դემքի վերահսკում:",
                             "קתדרלת הטכנו. דלת נפתחת ב-23:59. בקרת פנים קפדנית.",
                             "كاتدرائية التكنو. يفتح الباب 23:59. تحكم صارم في الوجه."
                         ),
@@ -608,7 +797,7 @@ class TripRepositoryImpl @Inject constructor(
                         imageUrl = "https://wander-lush.org/wp-content/uploads/2023/03/Soviet-architecture-Tbilisi-Georgia-Palace-of-Rituals-view.jpg"
                     ),
                     BattleNode(
-                        title = L("Expo Georgia", "ექსპო ჯორჯია", "Экспо Джорджия", "Expo Georgia", "Էքսպո Ջորջիա", "אקספו גאורגיה", "إكسبو جورجيا"),
+                        title = L("Expo Georgia", "ექსპო ჯორჯია", "Экспо Джорджия", "Expo Georgia", "Էքսպո Ջորջիա", "אקספו גאورגיה", "إكسبو جورجيا"),
                         description = L(
                             "Soviet Modernist pavilions. Hunt for the 1963 Cosmonaut mosaic.",
                             "საბჭოთა მოდერნისტული პავილიონები. იპოვეთ 1963 წლის კოსმონავტების მოზაიკა.",
@@ -623,7 +812,7 @@ class TripRepositoryImpl @Inject constructor(
                         imageUrl = "https://wander-lush.org/wp-content/uploads/2023/03/Soviet-architecture-Tbilisi-Georgia-Expo-Georgia-mosaic.jpg"
                     ),
                     BattleNode(
-                        title = L("Dezerter Bazaar", "დეზერტირების ბაზარი", "Дезертирский рынок", "Dezerter Pazarı", "Դեզերտեր շուկա", "שוק דזרטר", "بازار ديزيرتر"),
+                        title = L("Dezerter Bazaar", "დეზერტირების ბაზარი", "Дезертирский рынок", "Dezerter Pazarı", "Դեզերտեր շუկა", "שוק דזרטר", "بازار ديزيرتر"),
                         description = L(
                             "Central market. Chaotic and raw. Best place for photography.",
                             "ცენტრალური ბაზარი. ქაოტური და ნამდვილი. საუკეთესოა ფოტოებისთვის.",
@@ -644,7 +833,7 @@ class TripRepositoryImpl @Inject constructor(
                             "იატაკქვეშა ბუნკერი (1903-1906). ჩასასვლელი ჭიდან.",
                             "Подпольный бункер (1903-1906). Спуск через шахту колодца.",
                             "Gizli sığınak (1903-1906). Kuyu şaftından iniş.",
-                            "Գաղտնի բունկեր (1903-1906). Իջնել ջրհորի հորանով:",
+                            "Գաղտնի ბունկեր (1903-1906). Իջնել ջրհորի հորանով:",
                             "בונקר חשאי (1903-1906). ירידה דרך פיר באר.",
                             "مخبأ سري (1903-1906). النسب عبر رمح البئر."
                         ),
@@ -659,7 +848,7 @@ class TripRepositoryImpl @Inject constructor(
                             "მარანი სახურავზე. ქვევრები აივანზე. ნელი ტემპი აუცილებელია.",
                             "Винодельня на крыше. Квеври встроены в балкон. Медленный темп обязателен.",
                             "Çatı katı şaraphanesi. Balkona gömülü Qvevris. Yavaş tempo şart.",
-                            "Տանիքի գինեգործարան. Պատշգամբում ներկառուցված կարասներ: Դանդաղ տեմպը կարևոր է:",
+                            "Տանիքի გინეგործարան. Պատշგամბում ներկառուցված կարասներ: Դանդաղ տემպը կարևոր է:",
                             "יקב גג. כדים משובצים במרפסת. קצב איטי חיוני.",
                             "مخزن نبيذ على السطح. الجرار جزءا لا يتجزأ من الشرفة. الوتيرة البطيئة ضرورية."
                         ),
@@ -702,7 +891,7 @@ class TripRepositoryImpl @Inject constructor(
                             "პურის გაჩერება გზატკეცილზე. მიირთვით ცხელი შოთი გუდის ყველით.",
                             "Остановка за хлебом у дороги. Ешьте горячий хлеб шоти с сыром гуда.",
                             "Yol kenarında ekmek molası. Guda peyniri ile sıcak Shoti ekmeği yiyin.",
-                            "Ճանապարհային հացի կանգառ. Կերեք տաք Շոթի հաց Գուդա պանրով:",
+                            "Ճանապարհային հացի կანգառ. Կերեք տաք Շոթի հաց Գუդա պանրով:",
                             "עצירת לחם בצד הדרך. תאכלו לחם שוטי חם עם גבינת גודה.",
                             "توقف الخبز على جانب الطريق. تناول خبز شوتي الساخن مع جبنة جودا."
                         ),
@@ -733,7 +922,7 @@ class TripRepositoryImpl @Inject constructor(
                             "ბუნებრივი ღვინის შტაბი. 'პოლიფონიური' სამზარეულო დროს მოითხოვს.",
                             "Штаб-квартира натурального вина. 'Полифоническая' кухня требует времени.",
                             "Doğal şarap merkezi. 'Polifonik' mutfak zaman alır.",
-                            "Բնական գինու շտաբ. «Պոլիֆոնիկ» խոհանոցը ժամանակ է պահանջում:",
+                            "Բնական գինու შტაბ. «Պոլիֆոնիկ» խոհանոցը ժամանակ է պահանջում:",
                             "מטה יין טבעי. מטבח 'פוליפוני' לוקח זמן.",
                             "مقر النبيذ الطبيعي. المطبخ 'متعدد الأصوات' يستغرق وقتا."
                         ),
@@ -796,7 +985,7 @@ class TripRepositoryImpl @Inject constructor(
                             "თავად ჭავჭავაძის სასახლე. ღიაა 10:00-18:00 ყოველდღე.",
                             "Дворец князя Чавчавадзе. Открыто 10:00-18:00.",
                             "Prens Chavchavadze'nin sarayı. Her gün 10:00-18:00 arası açık.",
-                            "Իշխան Ճավճավաձեի պալատը. Բաց է ամեն օր 10:00-18:00:",
+                            "Իշխան Ճավჭավաձեի պալատը. Բաց է ամեն օր 10:00-18:00:",
                             "ארמונו של הנסיך צ'בצ'בדזה. פתוח מדי יום 10:00-18:00.",
                             "قصر الأمير تشافشافادزه. مفتوح 10:00-18:00 يوميا."
                         ),
@@ -828,20 +1017,20 @@ class TripRepositoryImpl @Inject constructor(
                             "11. yüzyıl Katedrali. '1011'den beri' manastır şarabı.",
                             "11-րդ դարի տաճար. Վանական գինի «1011 թվականից»:",
                             "קתדרלה מהמאה ה-11. יין נזירים 'מאז 1011'.",
-                            "كاتدرائية القرن الحادي عشر. النبيذ الرهباني 'منذ 1011'."
+                            "كاتدرائية القرن الحادي عشر. النبيذ הرهבاني 'منذ 1011'."
                         ),
                         timeLabel = "D2 15:00",
                         location = GeoPoint(42.0325, 45.3770),
                         imageUrl = "https://wander-lush.org/wp-content/uploads/2021/02/Emily-Lush-Alaverdi-Monastery-Kakheti-closeup.jpg"
                     ),
                     BattleNode(
-                        title = L("Khareba Tunnel", "ხარებას გვირაბი", "Тоннель Хареба", "Khareba Tüneli", "Խարեբա թունել", "מנהרת חרבה", "نفق خريبة"),
+                        title = L("Khareba Tunnel", "ხარებას გვირაბი", "Тоннель Хареба", "Khareba Tüneli", "Խարေბა թունել", "מנהרת חרבה", "نفق خريبة"),
                         description = L(
                             "Cold War bunker turned wine cellar. Internal temp is 12-14°C.",
                             "ცივი ომის ბუნკერი, რომელიც ღვინის მარნად იქცა. ტემპერატურა 12-14°C.",
                             "Бункер времен холодной войны, ставший винным погребом. Температура 12-14°C.",
                             "Soğuk Savaş sığınağı şarap mahzenine dönüştü. İç sıcaklık 12-14°C.",
-                            "Սառը պատերազմի բունկերը վերածվել է գինու մառանի: Ներքին ջերմաստիճանը 12-14°C է:",
+                            "Սառը պատերազմի ბუნკերը վերածվել է գինու მառանի: Ներքին ջերმաստիճանը 12-14°C է:",
                             "בונקר המלחמה הקרה הפך למרתף יין. הטמפרטורה הפנימית היא 12-14 מעלות צלזיוס.",
                             "تحول مخبأ الحرب الباردة إلى قبو نبيذ. درجة الحرارة الداخلية 12-14 درجة مئوية."
                         ),
@@ -851,7 +1040,7 @@ class TripRepositoryImpl @Inject constructor(
                         imageUrl = "https://wander-lush.org/wp-content/uploads/2024/04/Emily-Lush-Winery-Khareba-Wine-Tunnel-Kakheti-bottles.jpg"
                     ),
                     BattleNode(
-                        title = L("Kindzmarauli Corp", "ქინძმარაულის კორპორაცია", "Корпорация Киндзмараули", "Kindzmarauli Şirketi", "Կինձմարաուլի կորպորացիա", "תאגיד קינדזמרולי", "شركة كينبزمارولي"),
+                        title = L("Kindzmarauli Corp", "ქინძმარაულის კორპორაცია", "Корпорация Киндзмараули", "Kindzmarauli Şirketi", "Կինձմարաուլի կորպորացիա", "תאגיد קינדזמרולי", "شركة كينبزمارولي"),
                         description = L(
                             "Industrial wine tour in Kvareli center.",
                             "ინდუსტრიული ღვინის ტური ყვარლის ცენტრში.",
@@ -866,7 +1055,7 @@ class TripRepositoryImpl @Inject constructor(
                         imageUrl = "https://wander-lush.org/wp-content/uploads/2022/06/Emily-Lush-best-wineries-in-Kakheti-Georgia-Kindzmarauli-factory.jpg"
                     ),
                     BattleNode(
-                        title = L("Kapiloni", "კაპილონი", "Капилони", "Kapiloni", "Կապիլոնի", "קפילוני", "كابيلوني"),
+                        title = L("Kapiloni", "კაპილონი", "Капилони", "Kapiloni", "Կապիլონი", "קפילוני", "كابيلوني"),
                         description = L(
                             "Best Mtsvadi in Telavi. BBQ on vine clippings. 2-hour engagement.",
                             "საუკეთესო მწვადი თელავში. იწვება ვაზის ნასხლავებზე.",
@@ -895,7 +1084,7 @@ class TripRepositoryImpl @Inject constructor(
                     "Military Highway. LOGISTICAL ALERT: Jvari Pass subject to avalanche closure. Juta is INACCESSIBLE in Jan. 4x4 required for Gergeti.",
                     "სამხედრო გზა. გაფრთხილება: ჯვრის უღელტეხილი ზვავსაშიშროების გამო შეიძლება დაიკეტოს. ჯუთა იანვარში მიუწვდომელია. გერგეტისთვის საჭიროა 4x4.",
                     "Военная дорога. ВНИМАНИЕ: Перевал Джвари может быть закрыт из-за лавин. Джута НЕДОСТУПНА в январе. Для Гергети нужен 4x4.",
-                    "Askeri Otoyol. LOJİSTİK UYARI: Jvari Geçidi çığ nedeniyle kapanabilir. Juta Ocak ayında ERİŞİLEMEZ. Gergeti için 4x4 gereklidir.",
+                    "Askeri Otoyol. LOJİستிக் UYARI: Jvari Geçidi çığ nedeniyle kapanabilir. Juta Ocak ayında ERİŞİLEMEZ. Gergeti için 4x4 gereklidir.",
                     "Ռազմական մայրուղի. ԼՈԳԻՍՏԻԿԱԿԱՆ ԶԳՈՒՇԱՑՈՒՄ. Ջվարի լեռնանցքը ենթակա է ձնահյուսի փակման: Ջուտան անհասանելի է հունվարին. Գերգետիի համար անհրաժեշտ է 4x4:",
                     "הכביש הצבאי. התראה לוגיסטית: מעבר ג'ווארי נתון לסגירת מפולות שלגים. ג'וטה אינה נגישה בינואר. דרוש 4x4 לגרגטי.",
                     "الطريق السريع العسكري. تنبيه لوجستي: ممر جفاري يخضع للإغلاق بسبب الانهيار الجليدي. جوتا لا يمكن الوصول إليها في يناير. 4x4 مطلوب لغيرغيتي."
@@ -956,13 +1145,13 @@ class TripRepositoryImpl @Inject constructor(
                         imageUrl = "https://wander-lush.org/wp-content/uploads/2022/04/Best-hotels-in-Kazbegi-Georgia-Rooms-Kazbegi-small.jpg"
                     ),
                     BattleNode(
-                        title = L("Gergeti Trinity", "გერგეტის სამება", "Гергетская Троица", "Gergeti Teslis Kilisesi", "Գերգետի Երրորդություն", "גרגטי טריניטי", "كنيسة جيرجيتي"),
+                        title = L("Gergeti Trinity", "გერგეტის სამება", "Гергетская Троица", "Gergeti Teslis Kilisesi", "Գერգետի Երրորդություն", "גרגטי טריניטי", "كنيسة جيرجيتي"),
                         description = L(
                             "Iconic 14th-century church. Winter hike is dangerous. Use 4x4.",
                             "მე-14 საუკუნის ტაძარი. ფეხით ასვლა ზამთარში სახიფათოა. გამოიყენეთ 4x4.",
                             "Церковь 14 века. Зимний поход опасен. Используйте 4x4.",
                             "İkonik 14. yüzyıl kilisesi. Kış yürüyüşü tehlikelidir. 4x4 kullanın.",
-                            "14-րդ դարի խորհրդանշական եկեղեցի. Ձմեռային արշավը վտանգավոր է. Օգտագործեք 4x4:",
+                            "14-րդ դարի խորհրդանշական եկեղեցի. Ձმեռային արշավը վտանգավոր է. Օգտագործեք 4x4:",
                             "כנסייה אייקונית מהמאה ה-14. טיול חורף מסוכן. השתמשו ב-4x4.",
                             "كنيسة أيقونية من القرن الرابع عشر. المشي لمسافات طويلة في فصل الشتاء أمر خطير. استخدم 4x4."
                         ),
@@ -1012,7 +1201,7 @@ class TripRepositoryImpl @Inject constructor(
                             "Şairlerin dev granit kafaları. Juta kapalı olduğu için birincil sabah aktivitesi.",
                             "Պոետների հսկա գրանիտե գլուխներ. Հիմնական առավոտյան գործունեություն, քանի որ Ջուտան փակ է:",
                             "ראשי גרניט ענקיים של משוררים. פעילות בוקר עיקרית מכיוון שג'וטה סגורה.",
-                            "رؤوس الجرانيت العملاقة للشعراء. النشاط الصباحي الأساسي منذ إغلاق جوتا."
+                            "رؤوس الجرانيت العمлаقة للشعراء. النشاط الصباحي الأساسي منذ إغلاق جوتا."
                         ),
                         timeLabel = "D2 09:30",
                         location = GeoPoint(42.6050, 44.6350),
@@ -1035,7 +1224,7 @@ class TripRepositoryImpl @Inject constructor(
                         imageUrl = "https://wander-lush.org/wp-content/uploads/2024/07/Emily-Lush-Juta-Valley-Hike-Fifth-Season-HERO.jpg"
                     ),
                     BattleNode(
-                        title = L("Fifth Season Hut", "მეხუთე სეზონი", "Пятое время года", "Beşinci Mevsim Kulübesi", "Հինգերորդ սեզոնի խրճիթ", "בקתת העונה החמישית", "كوخ الموسم الخامس"),
+                        title = L("Fifth Season Hut", "მეხუთე სეზონი", "Пятое время года", "Beşinci Mevsim Kulübesi", "Հինգերորդ სեզոնի խրճիթ", "בקתת העונה החמישית", "كوخ الموسم الخامس"),
                         description = L(
                             "Lunch spot in Juta. LIKELY CLOSED IN JAN.",
                             "სადილის ადგილი ჯუთაში. იანვარში სავარაუდოდ დაკეტილია.",
@@ -1056,7 +1245,7 @@ class TripRepositoryImpl @Inject constructor(
                             "მასიური კომპლექსი რუსეთის საზღვარზე. სიმბოლური გუშაგი.",
                             "Массивный комплекс на российской границе. Символический страж.",
                             "Rusya sınırında devasa kompleks. Sembolik nöbetçi.",
-                            "Զանգվածային համալիր Ռուսաստանի սահմանին. Խորհրդանշական պահակ:",
+                            "Զանգվածային համալիր Ռուսաստանի սահմանին. Խորհრդանշական պահակ:",
                             "מתחם עצום על הגבול הרוסי. זקיף סמלי.",
                             "مجمع ضخم على الحدود الروسية. حارس رمزي."
                         ),
@@ -1065,7 +1254,7 @@ class TripRepositoryImpl @Inject constructor(
                         imageUrl = "https://wander-lush.org/wp-content/uploads/2021/03/Emily-Lush-visit-Kakheti-wine-region-Georgia-Ninotsminda-Cathedral.jpg"
                     ),
                     BattleNode(
-                        title = L("Tsdo Village", "სოფელი ცდო", "Деревня Цдо", "Tsdo Köyü", "Ցդո գյուղ", "כפר צדו", "قرية تسدو"),
+                        title = L("Tsdo Village", "სოფელი ცდო", "Деревня Цдо", "Tsdo Köyü", "Ցդո გյუղ", "כפר צדו", "قرية تسدو"),
                         description = L(
                             "Animist 'ghost village'. Pre-christian shrines.",
                             "ანიმისტური 'მოჩვენებების სოფელი'. წინაქრისტიანული სალოცავები.",
@@ -1080,7 +1269,7 @@ class TripRepositoryImpl @Inject constructor(
                         imageUrl = "https://wander-lush.org/wp-content/uploads/2024/07/Emily-Lush-Juta-road-walking.jpg"
                     ),
                     BattleNode(
-                        title = L("Pasanauri", "ფასანაური", "Пасанаури", "Pasanauri", "Պասանաուրի", "פסנאורי", "باسانوري"),
+                        title = L("Pasanauri", "ფასანაური", "Пасанаури", "Pasanauri", "Պասანաուրի", "פסנאורי", "باسانורי"),
                         description = L(
                             "Birthplace of Khinkali. Meat is chopped with dagger, not ground.",
                             "ხინკლის სამშობლო. ხორცი დაკეპილია ხანჯლით.",
@@ -1110,7 +1299,7 @@ class TripRepositoryImpl @Inject constructor(
                     "ოქროს საწმისი და საბჭოთა ნანგრევები. ლოგისტიკა: წყალტუბო 4-5 საათს მოითხოვს. მარტვილის ნავები წვიმაში ჩერდება. პრომეთე ორშაბათს დაკეტილია.",
                     "Золотое руно и советский распад. ЛОГИСТИКА: Цхалтубо занимает 4-5 часов. Лодки в Мартвили не работают в дождь. Пещера Прометея закрыта в понедельник.",
                     "Altın Post ve Sovyet Çürümesi. LOJİSTİK: Tskaltubo 4-5 saat sürer. Martvili tekneleri yağmurda askıya alındı. Prometheus Mağarası Pazartesi günleri kapalı.",
-                    "Ոսկե գեղմ և խորհրդային քայքայում: ԼՈԳԻՍՏԻԿԱ. Ծխալտուբոն տևում է 4-5 ժամ: Մարտվիլի նավակները կասեցվել են անձրևի տակ: Պրոմեթևսի քարանձավը փակ է երկուշաբթի օրերին:",
+                    "Ոսկե գեղմ և խորհրդային քայքայում: ԼՈԳԻՍՏԻԿԱ. Ծխալტուբոն տևում է 4-5 ժամ: Մարտվիլի ნავაკները კասեցվել են անձրևի տակ: Պրոմեթևսի քարանձավը փակ է երկուշաբթի օրերին:",
                     "גיזת הזהב וריקבון סובייטי. לוגיסטיקה: צקלטובו לוקח 4-5 שעות. סירות מרטווילי מושעות בגשם. מערת פרומתאוס סגורה בימי שני.",
                     "الصوف الذهبي والاضمحلال السوفيتي. الخدمات اللوجستية: يستغرق تسكالتوبو 4-5 ساعات. القوارب مارتفيلي معلقة في المطر. كهف بروميثيوس مغلق أيام الاثنين."
                 ),
@@ -1123,13 +1312,13 @@ class TripRepositoryImpl @Inject constructor(
                 itinerary = listOf(
                     // DAY 1
                     BattleNode(
-                        title = L("Sanatorium Medea", "სანატორიუმი მედეა", "Санаторий Медея", "Sanatoryum Medea", "Սանատորիա Մեդեա", "סנטוריום מדיאה", "مصح ميديا"),
+                        title = L("Sanatorium Medea", "სანატორიუმი მედეა", "Санаторий Медея", "Sanatoryum Medea", "Սանատորիա Մեդեա", "סנטورיום מדיאה", "مصح ميديا"),
                         description = L(
                             "Romanesque decay in Tskaltubo. Part of a 4-5 hour urban exploration.",
                             "რომანული ნანგრევები წყალტუბოში. ურბანული კვლევის ნაწილი.",
                             "Романский упадок в Цхалтубо. Часть 4-5 часового маршрута.",
                             "Tskaltubo'da Romanesk çürüme. 4-5 saatlik kentsel keşfin bir parçası.",
-                            "Ռոմանական քայքայում Ծխալտուբոյում: 4-5 ժամ տևողությամբ քաղաքային հետազոտության մաս:",
+                            "Ռոմանական քայքայում Ծխալტուբոյում: 4-5 ժամ տևողությամբ քաղաքային հետազոտության մաս:",
                             "ריקבון רומנסקי בצקלטובו. חלק מחקירה עירונית של 4-5 שעות.",
                             "الاضمحلال الرومانسكي في تسكالتوبو. جزء من استكشاف حضري لمدة 4-5 ساعات."
                         ),
@@ -1144,7 +1333,7 @@ class TripRepositoryImpl @Inject constructor(
                             "აბანო N6. აღდგენილი. ნახეთ დიქტატორის მოზაიკური აუზი.",
                             "Баня № 6. Отреставрирована. Посмотрите мозаичный бассейн диктатора.",
                             "6 Nolu Hamam. Restore edildi. Diktatörün mozaik havuzunu görün.",
-                            "Բաղնիք No 6. Վերականգնված. Տեսեք դիկտատորի խճանկարային լողավազանը:",
+                            "Բաղնիք No 6. Վերականգնված. Տեսեք დიკტატორი ხჭანკარაული ლողავაზანი:",
                             "בית מרחץ מס' 6. משוחזר. ראו את בריכת הפסיפס של הדיקטטור.",
                             "الحمام رقم 6. استعادة. شاهد بركة فسيفساء الديكتاتور."
                         ),
@@ -1159,7 +1348,7 @@ class TripRepositoryImpl @Inject constructor(
                             "სანდო კვება წყალტუბოს პარკში. იმერული ხაჭაპური.",
                             "Надежный ресторан в парке Цхалтубо. Имеретинский хачапури.",
                             "Tskaltubo parkında güvenilir yemek. Imeretian Khachapuri.",
-                            "Վստահելի ճաշ Ծխալտուբո այգում. Իմերեթական Խաչապուրի:",
+                            "Վստահելի ճաշ Ծխալტուբո այգում. Իմերեթական Խաչապուրի:",
                             "אוכל אמין בפארק צקלטובו. חצ'אפורי אימרולי.",
                             "تطعام موثوق به في حديقة تسكالتوبو. خاشابوري إيميريتي."
                         ),
@@ -1209,7 +1398,7 @@ class TripRepositoryImpl @Inject constructor(
                             "Dadiani yüzme havuzu. Su seviyesi yüksekse tekneler askıya alınır.",
                             "Դադիանի լողավազան. Նավակները կասեցվում են, եթե ջրի մակարդակը բարձր է:",
                             "בריכת רחצה דדיאני. סירות מושעות אם מפלס המים גבוה.",
-                            "حمام سباحة دادياني. يتم تعليق القوارب إذا كان مستوى الماء مرتفعا."
+                            "حمام سباحة דאדיאני. يتم تعليق القوارب إذا كان مستوى الماء مرتفعا."
                         ),
                         timeLabel = "D2 10:00",
                         alertType = "RAIN_DEPENDENT",
@@ -1268,7 +1457,7 @@ class TripRepositoryImpl @Inject constructor(
                             "საკულტო ადგილი. მხოლოდ ფეხზე დგომით. საქონლის ქაბაბი და ლიმონათი.",
                             "Культовое место. Только стоя. Говяжий кебаб и лимонад.",
                             "Kült noktası. Sadece ayakta. Dana kebap ve limonata.",
-                            "Պաշտամունքային տեղ. Միայն կանգնած: Տավարի քյաբաբ և լիմոնադ:",
+                            "Պաշտամունքային տեղ. Միայն կանգնած: Տավարի ქյაბაბ და ლიმონად:",
                             "מקום פולחן. עמידה בלבד. קבב בקר ולימונדה.",
                             "بقعة عبادة. واقفا فقط. كباب بقر وعصير ليمون."
                         ),
@@ -1288,7 +1477,7 @@ class TripRepositoryImpl @Inject constructor(
                             "11. yüzyıl ikonu. Tartışmalı cam asansörle yeniden inşa edildi.",
                             "11-րդ դարի պատկերակ. Վերակառուցվել է վիճելի ապակե վերելակով:",
                             "אייקון מהמאה ה-11. נבנה מחדש עם מעלית זכוכית שנויה במחלוקת.",
-                            "أيقونة القرن الحادي عشر. أعيد بناؤها بمصعد زجاجي مثير للجدل."
+                            "أيقونة القرن الحادي عشر. أعيد بناؤها بمصعد ججاجي مثير للجدل."
                         ),
                         timeLabel = "D3 09:00",
                         location = GeoPoint(42.2770, 42.7040),
@@ -1303,20 +1492,20 @@ class TripRepositoryImpl @Inject constructor(
                             "Mtsvane Kontskhi. Dikey iklim bölgeleri.",
                             "Մծվանե Կոնցխի. Ուղղահայաց կլիմայական գոտիներ:",
                             "מצבאנה קונצחי. אזורי אקלים אנכיים.",
-                            "متسفاني كونتسخي. المناطق المناخية العمودية."
+                            "متספاني كونتسخي. المناطق المناخية العمودية."
                         ),
                         timeLabel = "D3 14:00",
                         location = GeoPoint(41.6930, 41.7070),
                         imageUrl = "https://wander-lush.org/wp-content/uploads/2020/06/Emily-Lush-Batumi-Botanical-Garden-H-10.jpg"
                     ),
                     BattleNode(
-                        title = L("Fish Market", "თევზის ბაზარი", "Рыбный рынок", "Balık Pazarı", "Ձկան շուկա", "שוק דגים", "سوق السمك"),
+                        title = L("Fish Market", "თევზის ბაზარი", "Рыбный рынок", "Balık Pazarı", "Ձկան շուկა", "שוק דגים", "سوق السمك"),
                         description = L(
                             "The 'Blue Market'. Buy fresh fish, fry it next door.",
                             "'ლურჯი ბაზარი'. იყიდეთ ახალი თევზი და შეწვით იქვე.",
                             "'Голубой рынок'. Купите свежую рыбу и пожарьте по соседству.",
                             "'Mavi Pazar'. Taze balık alın, yan tarafta kızartın.",
-                            "«Կապույտ շուկա». Գնեք թարմ ձուկ, տապակեք այն կողքի դռան մոտ:",
+                            "«Լուրჯი ბაზარი». Գնեք թարմ ձուկ, տապակեք այն կողքի դռան մոտ:",
                             "'השוק הכחול'. קנו דג טרי, טגנו אותו בדלת ליד.",
                             "'السوق الأزرق'. اشتر السمك الطازج واقليه في المنزل المجاور."
                         ),
@@ -1346,7 +1535,7 @@ class TripRepositoryImpl @Inject constructor(
                             "'ტიტანიკის' ზომის აჭარული ხაჭაპური. კვერცხისა და კარაქის არევა სავალდებულოა.",
                             "Дом аджарского хачапури размера 'Титаник'. Перемешивание яйца и масла обязательно.",
                             "'Titanik' Adjaruli Khachapuri'nin evi. Yumurta/tereyağı karıştırmak zorunludur.",
-                            "«Տիտանիկ» Աջարուլի Խաչապուրիի տունը։ Ձու/կարագ խառնելը պարտադիր է:",
+                            "«Տիտანიկ» Աջարուլի Խաչապուրիի տունը։ Ձու/կարագ խառնելը պարտադիր է:",
                             "הבית של חצ'אפורי אג'רולי 'טיטאניק'. ערבוב ביצה/חמאה הוא חובה.",
                             "منزل 'تيتانيك' أجارولي خاشابوري. خلط البيض / الزبدة إلزامي."
                         ),
@@ -1357,11 +1546,10 @@ class TripRepositoryImpl @Inject constructor(
                 )
             )
 
-            dao.insertTrips(tripsToInsert)
-            Log.d("SAKARTVELO", "Seeding successful.")
-
-        } catch (e: Exception) {
-            Log.e("SAKARTVELO", "Seeding error: ${e.message}")
-        }
+        dao.insertTrips(tripsToInsert)
     }
 }
+
+    // NEW DOMAIN ACCESSORS
+
+

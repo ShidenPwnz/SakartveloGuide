@@ -64,7 +64,7 @@
     <string name="nuke_data">"איפוס גרעיני"</string>
     <string name="nuke_desc">"מחק את כל יומני המשימות"</string>
     <string name="error_gps_title">"הגישה נדחתה"</string>
-    <string name="error_gps_desc">"מחוץ לזירת המבצע (>500 ק"מ)."</string>
+    <string name="error_gps_desc">"מחוץ לזירת המבצע (>500 ק\"מ)."</string>
     <string name="error_gps_btn">"מאשר"</string>
     <string name="passport_title">"דרכון גאורגי"</string>
     <string name="region_visas">"ויזות אזוריות"</string>

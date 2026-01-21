@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.example.sakartveloguide.data.local.TripDatabase
 import com.example.sakartveloguide.data.local.dao.PassportDao
 import com.example.sakartveloguide.data.local.dao.TripDao
+import com.example.sakartveloguide.data.local.dao.LocationDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -16,6 +17,7 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
 
+    // ...
     @Provides
     @Singleton
     fun provideTripDatabase(@ApplicationContext context: Context): TripDatabase {
@@ -23,12 +25,19 @@ object DatabaseModule {
             context,
             TripDatabase::class.java,
             "sakartvelo_guide.db"
-        ).build()
+        )
+            .fallbackToDestructiveMigration() // <--- CRITICAL
+            .build()
     }
+// ...
 
     @Provides
     fun provideTripDao(db: TripDatabase): TripDao = db.tripDao()
 
     @Provides
-    fun providePassportDao(db: TripDatabase): PassportDao = db.passportDao() 
+    fun providePassportDao(db: TripDatabase): PassportDao = db.passportDao()
+
+    @Provides
+    @Singleton
+    fun provideLocationDao(db: TripDatabase): LocationDao = db.locationDao()
 }

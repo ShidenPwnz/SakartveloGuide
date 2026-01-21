@@ -1,18 +1,19 @@
 package com.example.sakartveloguide.presentation.battle.components
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Radar
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -20,122 +21,138 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.sakartveloguide.domain.model.BattleNode
-import com.example.sakartveloguide.domain.model.TargetStatus // IMPORTED FROM DOMAIN
+import com.example.sakartveloguide.domain.model.TargetStatus
+import com.example.sakartveloguide.presentation.battle.TacticalAction
+import com.example.sakartveloguide.presentation.theme.MatteCharcoal
 import com.example.sakartveloguide.presentation.theme.SakartveloRed
+import com.example.sakartveloguide.presentation.theme.SnowWhite
 
 @Composable
 fun TargetCard(
     node: BattleNode,
     status: TargetStatus,
+    action: TacticalAction, // <--- The single source of truth
     language: String,
     distanceKm: Double,
     onEngage: () -> Unit,
-    onSecure: () -> Unit,
-    onNavigate: (String) -> Unit,
-    onBoltClick: () -> Unit,
-    onRentalClick: () -> Unit
+    onExecuteAction: (TacticalAction) -> Unit
 ) {
-    val alpha = if (status == TargetStatus.NEUTRALIZED) 0.4f else 1f
     val isEngaged = status == TargetStatus.ENGAGED
+    val isNeutralized = status == TargetStatus.NEUTRALIZED
 
-    val borderColor = when(status) {
-        TargetStatus.ENGAGED -> SakartveloRed
-        TargetStatus.NEUTRALIZED -> Color(0xFF4CAF50)
-        else -> Color.Transparent
-    }
+    // Dim the card if it's already done
+    val cardAlpha = if (isNeutralized) 0.5f else 1f
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
-            .alpha(alpha)
+            .alpha(cardAlpha)
             .animateContentSize(),
-        border = BorderStroke(1.dp, borderColor),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(12.dp)
+        border = if (isEngaged) BorderStroke(2.dp, SakartveloRed) else BorderStroke(1.dp, Color.White.copy(0.1f)),
+        colors = CardDefaults.cardColors(containerColor = MatteCharcoal.copy(0.9f)),
+        shape = RoundedCornerShape(16.dp)
     ) {
         Column {
-            AnimatedVisibility(visible = isEngaged) {
-                AsyncImage(
-                    model = node.imageUrl,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(180.dp)
-                        .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
-                    contentScale = ContentScale.Crop
-                )
+            // 1. VISUAL INTEL (Image)
+            // Only show image if we are focused on this target or it's done
+            if (isEngaged || isNeutralized) {
+                Box(modifier = Modifier.height(160.dp).fillMaxWidth()) {
+                    AsyncImage(
+                        model = node.imageUrl,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                    // Gradient for text readability
+                    Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, MatteCharcoal))))
+
+                    if (isNeutralized) {
+                        Badge(
+                            containerColor = Color(0xFF4CAF50),
+                            modifier = Modifier.align(Alignment.TopEnd).padding(12.dp)
+                        ) {
+                            Text("SECURED", modifier = Modifier.padding(4.dp), color = MatteCharcoal, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
             }
 
+            // 2. TACTICAL DATA
             Column(Modifier.padding(16.dp)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Row(verticalAlignment = Alignment.Top) {
                     Column(Modifier.weight(1f)) {
-                        Text(node.title.get(language).uppercase(), fontWeight = FontWeight.Black, fontSize = 16.sp)
-                        Text("${"%.1f".format(distanceKm)} KM FROM CURRENT", color = SakartveloRed, style = MaterialTheme.typography.labelSmall)
+                        Text(
+                            text = node.title.get(language).uppercase(),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Black,
+                            color = SnowWhite
+                        )
+                        if (!isNeutralized) {
+                            Text(
+                                text = "${String.format("%.1f", distanceKm)} KM TO TARGET",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (isEngaged) SakartveloRed else Color.Gray,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
-                    if (status == TargetStatus.NEUTRALIZED) {
-                        Icon(Icons.Default.CheckCircle, null, tint = Color(0xFF4CAF50))
+                    if (isEngaged) {
+                        Icon(Icons.Default.Radar, null, tint = SakartveloRed, modifier = Modifier.size(24.dp))
                     }
                 }
 
                 Spacer(Modifier.height(8.dp))
-                Text(node.description.get(language), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(0.6f))
 
-                if (status == TargetStatus.AVAILABLE) {
-                    Spacer(Modifier.height(16.dp))
-                    Button(
-                        onClick = onEngage,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                    ) {
-                        Text("INITIATE SORTIE", color = SakartveloRed, fontWeight = FontWeight.Bold)
-                    }
-                }
+                // Description: Collapsed unless engaged
+                Text(
+                    text = node.description.get(language),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = SnowWhite.copy(0.7f),
+                    maxLines = if (isEngaged) Int.MAX_VALUE else 2,
+                    lineHeight = 20.sp
+                )
 
-                if (isEngaged) {
-                    Spacer(Modifier.height(16.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Spacer(Modifier.height(16.dp))
+
+                // 3. THE "MAGIC" BUTTON
+                // This replaces the complex row of buttons.
+                when {
+                    isNeutralized -> { /* No button needed */ }
+
+                    !isEngaged -> {
+                        // State: Idle. User must tap to focus.
                         Button(
-                            onClick = { onNavigate("driving") },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)
+                            onClick = onEngage,
+                            modifier = Modifier.fillMaxWidth().height(50.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                            shape = RoundedCornerShape(12.dp)
                         ) {
-                            Icon(Icons.Default.DirectionsCar, null, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("DRIVE", fontSize = 10.sp)
-                        }
-                        Button(
-                            onClick = onSecure,
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
-                        ) {
-                            Text("SECURE", fontWeight = FontWeight.Bold)
+                            Text("SELECT TARGET", fontWeight = FontWeight.Bold, color = SakartveloRed)
                         }
                     }
 
-                    Spacer(Modifier.height(8.dp))
-
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(
-                            onClick = onBoltClick,
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF32BB78)),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Icon(Icons.Default.LocalTaxi, null, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("BOLT", fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                        }
+                    action is TacticalAction.Execute -> {
+                        // State: Engaged. Show the specific calculated action.
+                        val btnColor = Color(action.colorHex)
+                        val txtColor = if (action.colorHex == 0xFFFFFFFFL) MatteCharcoal else SnowWhite
 
                         Button(
-                            onClick = onRentalClick,
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800)),
-                            shape = RoundedCornerShape(8.dp)
+                            onClick = { onExecuteAction(action) },
+                            modifier = Modifier.fillMaxWidth().height(56.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = btnColor),
+                            shape = RoundedCornerShape(12.dp),
+                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
                         ) {
-                            Icon(Icons.Default.Key, null, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("RENT 4X4", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Icon(action.icon, null, tint = txtColor)
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                text = action.label,
+                                fontWeight = FontWeight.Black,
+                                fontSize = 16.sp,
+                                color = txtColor,
+                                letterSpacing = 1.sp
+                            )
                         }
                     }
                 }

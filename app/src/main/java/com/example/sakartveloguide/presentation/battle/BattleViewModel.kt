@@ -1,11 +1,17 @@
 package com.example.sakartveloguide.presentation.battle
 
 import android.content.Intent
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.LocalTaxi
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.sakartveloguide.data.local.LogisticsProfileManager
 import com.example.sakartveloguide.data.local.PreferenceManager
+import com.example.sakartveloguide.data.local.dao.LocationDao
 import com.example.sakartveloguide.data.manager.NavigationBridge
 import com.example.sakartveloguide.domain.location.LocationManager
 import com.example.sakartveloguide.domain.model.*
@@ -20,6 +26,7 @@ import javax.inject.Inject
 @HiltViewModel
 class BattleViewModel @Inject constructor(
     private val repository: TripRepository,
+    private val locationDao: LocationDao,
     private val preferenceManager: PreferenceManager,
     private val logisticsProfileManager: LogisticsProfileManager,
     private val locationManager: LocationManager,
@@ -29,78 +36,112 @@ class BattleViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    private val tripId: String = savedStateHandle.get<String>("tripId") ?: ""
+    private val tripId: String = savedStateHandle.get<String>("tripId") ?: "custom_cargo"
 
     val userSession: Flow<UserSession> = preferenceManager.userSession
+    val logisticsProfile = logisticsProfileManager.logisticsProfile.stateIn(viewModelScope, SharingStarted.Eagerly, LogisticsProfile())
+    val userLocation = locationManager.locationFlow().filter { it.latitude != 0.0 }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    val missionState = preferenceManager.missionState.stateIn(viewModelScope, SharingStarted.Eagerly, MissionState())
 
-    val userLocation: StateFlow<GeoPoint?> = locationManager.locationFlow()
-        .filter { it.latitude != 0.0 && it.longitude != 0.0 }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    // ... inside BattleViewModel class ...
+    val currentTrip: StateFlow<TripPath?> = missionState.flatMapLatest { mState ->
+        flow {
+            val baseTrip = if (tripId == "custom_cargo") {
+                val loadoutIds = preferenceManager.activeLoadout.first()
+                val entities = locationDao.getLocationsByIds(loadoutIds)
+                TripPath(
+                    id = "custom_cargo", title = LocalizedString("CUSTOM MISSION"), description = LocalizedString("Personal itinerary."),
+                    imageUrl = "", category = RouteCategory.URBAN, difficulty = Difficulty.NORMAL, totalRideTimeMinutes = 0, durationDays = 1,
+                    itinerary = entities.map { BattleNode(LocalizedString(it.name), LocalizedString(it.description), "D1", location = GeoPoint(it.latitude, it.longitude)) }
+                )
+            } else {
+                repository.getTripById(tripId)
+            }
 
-    val missionState: StateFlow<MissionState> = preferenceManager.missionState
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), MissionState())
+            baseTrip?.let { trip ->
+                val extended = mutableListOf<BattleNode>()
 
-    val currentTrip: StateFlow<TripPath?> = flow {
-        emit(repository.getTripById(tripId))
+                // PREPEND HOME
+                mState.fobLocation?.let { extended.add(BattleNode(LocalizedString("BASE CAMP (FOB)"), LocalizedString("Mission start point."), "ST", location = it)) }
+
+                extended.addAll(trip.itinerary)
+
+                // APPEND EXTRACTION
+                mState.fobLocation?.let { extended.add(BattleNode(LocalizedString("MISSION EXTRACTION"), LocalizedString("Sorties complete. Returning."), "EN", location = it)) }
+
+                emit(trip.copy(itinerary = extended))
+            }
+        }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    // --- ACTIONS ---
+    fun onCompleteTrip(trip: TripPath) {
+        viewModelScope.launch {
+            preferenceManager.updateState(UserJourneyState.BROWSING, null)
+            preferenceManager.clearCurrentMissionData()
+        }
+    }
+// ...
 
-    suspend fun getFreshLocation(): GeoPoint? = locationManager.getCurrentLocation()
+    fun determineAction(node: BattleNode, status: TargetStatus, distanceKm: Double, profile: LogisticsProfile): TacticalAction {
+        if (status != TargetStatus.ENGAGED || node.location == null) return TacticalAction.Idle
+        val start = userLocation.value ?: missionState.value.fobLocation ?: return TacticalAction.Idle
 
-    fun setFob(location: GeoPoint) {
+        return when {
+            distanceKm < 0.2 -> TacticalAction.Execute("SECURE OBJECTIVE", Icons.Default.CheckCircle, 0xFF4CAF50)
+            distanceKm < 1.5 -> TacticalAction.Execute("WALK TO TARGET", Icons.AutoMirrored.Filled.DirectionsWalk, 0xFFFFFFFF, navigationBridge.getMapsIntent(start, node.location, "walking"))
+            profile.transportStrategy == TransportStrategy.DRIVER_RENTAL -> TacticalAction.Execute("DRIVE TO TARGET", Icons.Default.DirectionsCar, 0xFF2196F3, navigationBridge.getMapsIntent(start, node.location, "driving"))
+            else -> TacticalAction.Execute("CALL BOLT", Icons.Default.LocalTaxi, 0xFF32BB78, navigationBridge.getBoltIntent(node.location))
+        }
+    }
+
+    suspend fun getFreshLocation() = locationManager.getCurrentLocation()
+
+    // ARCHITECT'S FIX: The Critical Wait-State
+    fun setFob(location: GeoPoint, onSuccess: () -> Unit) {
         viewModelScope.launch {
             if (location.latitude != 0.0) {
+                // Suspends until disk write is confirmed
                 preferenceManager.setFobLocation(location)
+
                 hapticManager.missionCompleteSlam()
                 soundManager.playStampSlam()
+
+                // Only NOW do we tell the UI to leave
+                onSuccess()
             }
         }
     }
 
-    fun engageTarget(index: Int) {
-        viewModelScope.launch {
-            preferenceManager.setActiveTarget(index)
-            hapticManager.tick()
-        }
-    }
-
-    fun neutralizeTarget(index: Int) {
-        viewModelScope.launch {
-            preferenceManager.markTargetComplete(index)
-            hapticManager.tick()
-            soundManager.playTick()
-        }
-    }
+    fun engageTarget(idx: Int) = viewModelScope.launch { preferenceManager.setActiveTarget(idx); hapticManager.tick() }
+    fun neutralizeTarget(idx: Int) = viewModelScope.launch { preferenceManager.markTargetComplete(idx); soundManager.playTick() }
+    // ... inside BattleViewModel class ...
 
     fun abortMission() {
         viewModelScope.launch {
+            // 1. Reset State
             preferenceManager.updateState(UserJourneyState.BROWSING, null)
+
+            // 2. Wipe Tactical Data
+            preferenceManager.clearCurrentMissionData()
+
             hapticManager.missionCompleteSlam()
         }
     }
 
-    fun calculateDistance(target: GeoPoint?): Double {
-        val current = userLocation.value ?: missionState.value.fobLocation
-        return navigationBridge.calculateDistanceKm(current, target)
-    }
-
-    fun getNavigationIntent(target: GeoPoint, mode: String): Intent {
-        val start = userLocation.value ?: missionState.value.fobLocation ?: GeoPoint(41.71, 44.82)
-        return navigationBridge.getMapsIntent(start, target, mode)
-    }
-
-    fun getExfilIntent(): Intent? {
-        val fob = missionState.value.fobLocation ?: return null
-        return navigationBridge.getExfilIntent(fob)
-    }
+    // ...
+    fun calculateDistance(target: GeoPoint?): Double = navigationBridge.calculateDistanceKm(userLocation.value ?: missionState.value.fobLocation, target)
+    fun getExfilIntent() = missionState.value.fobLocation?.let { navigationBridge.getExfilIntent(it) }
+    fun getBoltIntent(target: GeoPoint): Intent = navigationBridge.getBoltIntent(target)
+    fun getNavigationIntent(target: GeoPoint, mode: String): Intent = navigationBridge.getMapsIntent(userLocation.value ?: missionState.value.fobLocation!!, target, mode)
+    fun getRentalUrl(): String = "https://localrent.com/en/georgia/"
 
     /**
-     * RESOLVED: Now points to the fixed NavigationBridge method.
+     * ARCHITECT'S FIX: Provide a "Best Guess" starting point for the map.
+     * If it's a premade trip, we center on the first location of that trip.
      */
-    fun getBoltIntent(target: GeoPoint): Intent {
-        return navigationBridge.getBoltIntent(target)
+    fun getInitialMapCenter(): GeoPoint {
+        val trip = currentTrip.value
+        return trip?.itinerary?.firstOrNull { it.location != null }?.location 
+            ?: GeoPoint(41.6930, 44.8015) // Default Tbilisi center
     }
-
-    fun getRentalUrl(): String = "https://localrent.com/en/georgia/"
 }

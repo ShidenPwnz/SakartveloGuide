@@ -62,9 +62,9 @@
     <string name="lang_protocol">"ԼԵԶՎԻ ՊՐՈՏՈԿՈԼ"</string>
     <string name="data_mgmt">"ՏՎՅԱԼՆԵՐԻ ԿԱՌԱՎԱՐՈՒՄ"</string>
     <string name="nuke_data">"Գործարանային վիճակ"</string>
-    <string name="nuke_desc">"Ջნջել բոլոր տվյալները"</string>
+    <string name="nuke_desc">"Ջնջել բոլոր տվյալները"</string>
     <string name="error_gps_title">"ՄՈՒՏՔԸ ՄԵՐԺՎԱԾ Է"</string>
-    <string name="error_gps_desc">"Գործողության գոտուց դուրս (>500կմ):"</string>
+    <string name="error_gps_desc">"Գործողության գոտուց դուրս (&gt;500կմ):"</string>
     <string name="error_gps_btn">"ԸՆԴՈՒՆՎԱԾ Է"</string>
     <string name="passport_title">"ՎՐԱՑԱԿԱՆ ԱՆՁՆԱԳԻՐ"</string>
     <string name="region_visas">"ՏԱՐԱԾԱՇՐՋԱՆԱՅԻՆ ՎԻԶԱՆԵՐ"</string>

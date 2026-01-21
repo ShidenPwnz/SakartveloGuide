@@ -64,7 +64,7 @@
     <string name="nuke_data">"Sıfırla"</string>
     <string name="nuke_desc">"Tüm görev kayıtlarını sil"</string>
     <string name="error_gps_title">"ERİŞİM REDDEDİLDİ"</string>
-    <string name="error_gps_desc">"Operasyon sahası dışında (>500km)."</string>
+    <string name="error_gps_desc">"Operasyon sahası dışında (&gt;500km)."</string>
     <string name="error_gps_btn">"ANLAŞILDI"</string>
     <string name="passport_title">"GÜRCİSTAN PASAPORTU"</string>
     <string name="region_visas">"BÖLGE VİZELERİ"</string>

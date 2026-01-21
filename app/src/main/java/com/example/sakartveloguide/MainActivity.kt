@@ -1,7 +1,6 @@
 package com.example.sakartveloguide
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -33,7 +32,6 @@ class MainActivity : AppCompatActivity() {
             val session by viewModel.userSession.collectAsState(initial = UserSession())
             val stampingTrip by viewModel.stampingTrip.collectAsState()
 
-            // ARCHITECT'S FIX: Only update system locale if we have a valid user preference
             LaunchedEffect(session.language) {
                 if (session.language.isNotEmpty()) {
                     val appLocale = LocaleListCompat.forLanguageTags(session.language)
@@ -47,6 +45,7 @@ class MainActivity : AppCompatActivity() {
                 Box(modifier = Modifier.fillMaxSize()) {
                     SakartveloNavGraph(
                         homeViewModel = viewModel,
+                        // RESOLVED: Lambda correctly calls restored method
                         onCompleteTrip = { trip -> viewModel.onCompleteTrip(trip) }
                     )
 

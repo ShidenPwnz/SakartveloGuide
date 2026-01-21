@@ -64,7 +64,7 @@
     <string name="nuke_data">"إعادة ضبط كاملة"</string>
     <string name="nuke_desc">"مسح جميع سجلات المهام"</string>
     <string name="error_gps_title">"تم رفض الوصول"</string>
-    <string name="error_gps_desc">"خارج نطاق العمليات (>500 كم)."</string>
+    <string name="error_gps_desc">"خارج نطاق العمليات (&gt;500 كم)."</string>
     <string name="error_gps_btn">"موافق"</string>
     <string name="passport_title">"جواز سفر جورجي"</string>
     <string name="region_visas">"تأشيرات المناطق"</string>

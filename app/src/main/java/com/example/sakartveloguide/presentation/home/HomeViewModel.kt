@@ -1,6 +1,7 @@
 package com.example.sakartveloguide.presentation.home
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.sakartveloguide.R
@@ -13,6 +14,7 @@ import com.example.sakartveloguide.domain.model.*
 import com.example.sakartveloguide.domain.repository.TripRepository
 import com.example.sakartveloguide.domain.usecase.AddPassportStampUseCase
 import com.example.sakartveloguide.domain.util.LocaleUtils
+import com.example.sakartveloguide.domain.util.TacticalMath
 import com.example.sakartveloguide.ui.manager.HapticManager
 import com.example.sakartveloguide.ui.manager.SoundManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,10 +22,9 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlin.math.*
-import kotlin.time.Duration.Companion.milliseconds
 
 data class Category(val name: String)
+
 data class HomeUiState(
     val groupedPaths: Map<Category, List<TripPath>> = emptyMap(),
     val isLoading: Boolean = true
@@ -61,19 +62,13 @@ class HomeViewModel @Inject constructor(
     val userSession: Flow<UserSession> = preferenceManager.userSession
     val missionState: Flow<MissionState> = preferenceManager.missionState
 
-    private val _pendingLogisticsTripId = MutableStateFlow<String?>(null)
-    val pendingLogisticsTripId: StateFlow<String?> = _pendingLogisticsTripId.asStateFlow()
-
     private val _stampingTrip = MutableStateFlow<TripPath?>(null)
     val stampingTrip: StateFlow<TripPath?> = _stampingTrip.asStateFlow()
 
     private val _showOutOfRangeDialog = MutableStateFlow(false)
     val showOutOfRangeDialog: StateFlow<Boolean> = _showOutOfRangeDialog.asStateFlow()
 
-    private val _activeStepIndex = MutableStateFlow(0)
-    val activeStepIndex: StateFlow<Int> = _activeStepIndex.asStateFlow()
-
-    // REACTIVE THREADS: Optimized with missionState
+    // --- BRIEFING THREAD GENERATION ---
     val missionThread: StateFlow<List<MissionStep>> = combine(
         userSession, _logisticsProfile, missionState
     ) { session, profile, mState ->
@@ -82,7 +77,7 @@ class HomeViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val previewThread: StateFlow<List<MissionStep>> = combine(
-        _logisticsProfile, _pendingLogisticsTripId, userSession, missionState
+        _logisticsProfile, MutableStateFlow("custom_cargo"), userSession, missionState
     ) { profile, tripId, session, mState ->
         val trip = _uiState.value.groupedPaths.values.flatten().find { it.id == tripId }
         if (trip != null) generateThread(trip, profile, false, session.language, mState) else emptyList()
@@ -94,9 +89,7 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 repository.refreshTrips()
-                _logisticsProfile.value = logisticsProfileManager.logisticsProfile.first()
-                val session = preferenceManager.userSession.first()
-
+                val session = preferenceManager.userSession.firstOrNull() ?: UserSession()
                 if (session.state == UserJourneyState.ON_THE_ROAD && session.activePathId != null) {
                     _initialDestination.value = "battle/${session.activePathId}"
                 } else {
@@ -113,55 +106,69 @@ class HomeViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 _isSplashReady.value = true
-                _initialDestination.value = "home"
             }
         }
     }
 
-    fun onConfirmLogistics(profile: LogisticsProfile) {
-        _logisticsProfile.value = profile
-        viewModelScope.launch { logisticsProfileManager.saveFullProfile(profile) }
-    }
+    // --- TACTICAL ACTIONS ---
 
-    fun startMission(trip: TripPath) {
+    /**
+     * ARCHITECT'S RESTORATION: The Final Extraction Sequence
+     * Validates GPS location (Must be within 500km of target) and triggers Passport Stamp.
+     */
+    fun onCompleteTrip(trip: TripPath) {
         viewModelScope.launch {
-            preferenceManager.updateState(UserJourneyState.ON_THE_ROAD, trip.id)
-            hapticManager.tick()
+            val loc = try { locationManager.getCurrentLocation() } catch (e: Exception) { null }
+            val target = trip.itinerary.lastOrNull { it.location != null }?.location ?: GeoPoint(41.71, 44.82)
+
+            val dist = if (loc != null) TacticalMath.calculateDistanceKm(loc, target) else 999.0
+
+            if (dist > 500.0) {
+                _showOutOfRangeDialog.value = true
+                return@launch
+            }
+
+            _stampingTrip.value = trip
+            hapticManager.missionCompleteSlam()
+            soundManager.playStampSlam()
+
+            addPassportStampUseCase(trip)
+            preferenceManager.updateState(UserJourneyState.BROWSING, null)
+            preferenceManager.clearCurrentMissionData()
         }
     }
 
-    fun onLanguageChange(code: String) = viewModelScope.launch { preferenceManager.updateLanguage(code) }
+    fun prepareForNewMission() {
+        viewModelScope.launch {
+            preferenceManager.clearCurrentMissionData()
+            preferenceManager.saveActiveLoadout(emptyList())
+        }
+    }
+
+    fun wipeAllUserData() {
+        viewModelScope.launch {
+            repository.nukeAllData()
+            preferenceManager.clearCurrentMissionData()
+            preferenceManager.updateState(UserJourneyState.BROWSING, null)
+            repository.refreshTrips()
+            _navigationEvent.emit("home")
+        }
+    }
 
     private fun generateThread(trip: TripPath, profile: LogisticsProfile, includeDebriefing: Boolean, lang: String, mState: MissionState): List<MissionStep> {
         val safeLang = lang.ifEmpty { "en" }
         val locContext = LocaleUtils.getLocalizedContext(context, safeLang)
         val thread = mutableListOf<MissionStep>()
-
-        // 1. INFILTRATION
         thread.add(MissionStep.AirportProtocol(locContext.getString(R.string.step_infiltration), locContext.getString(R.string.step_secure_assets), profile.entryPoint))
-
-        // 2. SECURE BASE (NEW)
-        mState.fobLocation?.let {
-            thread.add(MissionStep.SecureBase("BASE CAMP SECURED", "FOB established at accommodation location.", it))
-        }
-
-        // 3. ACTIVITIES
-        trip.itinerary.forEach { node ->
-            thread.add(MissionStep.Activity(node.title.get(safeLang), node.description.get(safeLang), node))
-        }
-
+        mState.fobLocation?.let { thread.add(MissionStep.SecureBase("BASE CAMP SECURED", "FOB established.", it)) }
+        trip.itinerary.forEach { node -> thread.add(MissionStep.Activity(node.title.get(safeLang), node.description.get(safeLang), node)) }
         thread.add(MissionStep.Extraction(locContext.getString(R.string.step_extraction), locContext.getString(R.string.step_return_base)))
         return thread
     }
-// ... inside HomeViewModel.kt (Add this function back)
 
-    fun triggerHapticTick() {hapticManager.tick()}
-    fun onCompleteTrip(trip: TripPath) { /* Logic for passport stamp... */ }
-    fun onSlamAnimationFinished() { viewModelScope.launch { _stampingTrip.value = null; _navigationEvent.emit("home") } }
+    fun triggerHapticTick() { hapticManager.tick() }
+    fun onLanguageChange(code: String) = viewModelScope.launch { preferenceManager.updateLanguage(code) }
     fun onHideTutorialPermanent() { viewModelScope.launch { preferenceManager.setHasSeenTutorial(true) } }
-    fun initiateLogistics(tripId: String) { _pendingLogisticsTripId.value = tripId }
-    fun updateEntryPoint(point: EntryPoint) { _logisticsProfile.update { it.copy(entryPoint = point) } }
-    fun updateExitPoint(point: EntryPoint) { _logisticsProfile.update { it.copy(exitPoint = point) } }
-    fun wipeAllUserData() { viewModelScope.launch { repository.nukeAllData(); _navigationEvent.emit("home") } }
-    fun onAbortTrip() { viewModelScope.launch { preferenceManager.updateState(UserJourneyState.BROWSING, null); _navigationEvent.emit("home") } }
+    fun onSlamAnimationFinished() { viewModelScope.launch { _stampingTrip.value = null; _navigationEvent.emit("home") } }
+    fun initiateLogistics(tripId: String) { /* Logic handled in NavGraph briefing route */ }
 }

@@ -64,7 +64,7 @@
     <string name="nuke_data">"Полный сброс"</string>
     <string name="nuke_desc">"Удалить все журналы миссий"</string>
     <string name="error_gps_title">"ДОСТУП ЗАПРЕЩЕН"</string>
-    <string name="error_gps_desc">"Вне зоны операции (>500км)."</string>
+    <string name="error_gps_desc">"Вне зоны операции (&gt;500км)."</string>
     <string name="error_gps_btn">"ПРИНЯТО"</string>
     <string name="passport_title">"ГРУЗИНСКИЙ ПАСПОРТ"</string>
     <string name="region_visas">"ВИЗЫ РЕГИОНОВ"</string>

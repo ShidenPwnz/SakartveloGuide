@@ -1,14 +1,12 @@
 <resources>
     <string name="app_name">საქართველოს მეგზური</string>
 
-    <!-- Navigation -->
     <string name="discover">აღმოაჩინე</string>
     <string name="tap_to_init">შეეხეთ ინიციალიზაციისთვის</string>
     <string name="logistics_info">ლოგისტიკური ინფორმაცია</string>
     <string name="start_mission">მისიის დაწყება</string>
     <string name="confirm_params">პარამეტრების დადასტურება</string>
 
-    <!-- Logistics Wizard -->
     <string name="logistics_params">მისიის პარამეტრები</string>
 
     <string name="logistics_setup">ლოგისტიკის გამართვა</string>
@@ -18,7 +16,6 @@
     <string name="mission_start_label">მისიის დაწყება</string>
     <string name="select_date">აირჩიეთ დაწყების თარიღი</string>
 
-    <!-- Toggles -->
     <string name="log_comms">კავშირი</string>
     <string name="log_comms_sub">eSIM და მონაცემთა პროტოკოლი</string>
     <string name="log_lodging">განთავსება</string>
@@ -28,7 +25,6 @@
     <string name="log_flight">ფრენის ინტელი</string>
     <string name="log_flight_sub">ავიაბილეთების ძიება</string>
 
-    <!-- Transport Types -->
     <string name="trans_rental">მანქანის გაქირავება</string>
     <string name="trans_rental_sub">4x4 მართვა</string>
     <string name="trans_taxi">ტაქსის გამოძახება</string>
@@ -38,14 +34,12 @@
     <string name="trans_own">საკუთარი მანქანა</string>
     <string name="trans_own_sub">მე მყავს ავტომობილი</string>
 
-    <!-- Categories (FIXES THE HEADERS) -->
     <string name="cat_guide">სისტემის სახელმძღვანელო</string>
     <string name="cat_capital">დედაქალაქი</string>
     <string name="cat_mountain">ალპური საზღვარი</string>
     <string name="cat_wine">ღვინის რეგიონები</string>
     <string name="cat_culture">კულტურა და ისტორია</string>
 
-    <!-- Mission Steps -->
     <string name="step_infiltration">ინფილტრაცია</string>
     <string name="step_extraction">ექსტრაქცია</string>
     <string name="step_debriefing">მისიის წარმატება</string>
@@ -53,7 +47,6 @@
     <string name="step_return_base">დაბრუნდით გამგზავრების წერტილში.</string>
     <string name="step_rate_us">დაუჭირეთ მხარი მეგზურს შეფასებით.</string>
 
-    <!-- Tactical Bridge Titles -->
     <string name="mode_walk">ფეხით გადაადგილება</string>
     <string name="mode_drive">მართვის პროტოკოლი</string>
     <string name="mode_fleet">საჭიროა ტრანსპორტი</string>
@@ -61,13 +54,11 @@
     <string name="mode_steep">სიმაღლის გაფრთხილება</string>
     <string name="mode_short">მოკლე მანძილი</string>
 
-    <!-- Tactical Bridge Descriptions -->
     <string name="desc_walk">გააგრძელეთ გზა ფეხით შემდეგ ობიექტამდე.</string>
     <string name="desc_fleet">შორი მანძილი. საჭიროა ავტომობილი.</string>
     <string name="desc_reposition">ავტომობილის გადაადგილება.</string>
     <string name="desc_steep_advice">რეკომენდებულია ტრანსპორტი სიმაღლის გამო.</string>
 
-    <!-- UI Buttons -->
     <string name="btn_walk">ფეხით</string>
     <string name="btn_bolt">ბოლტი</string>
     <string name="btn_reached">ობიექტი მიღწეულია</string>
@@ -78,15 +69,16 @@
     <string name="btn_rate">შეგვაფასეთ PLAY STORE-ზე</string>
     <string name="btn_maps">რუკა</string>
 
-    <!-- Settings -->
     <string name="settings_title">სისტემის პარამეტრები</string>
     <string name="lang_protocol">ენის პროტოკოლი</string>
     <string name="data_mgmt">მონაცემთა მართვა</string>
     <string name="nuke_data">სრული განულება</string>
     <string name="nuke_desc">მისიის ჟურნალების წაშლა</string>
 
-    <!-- Errors -->
     <string name="error_gps_title">წვდომა უარყოფილია</string>
-    <string name="error_gps_desc">თქვენ იმყოფებით ოპერატიული ზონის მიღმა (>500კმ).</string>
+    <string name="error_gps_desc">თქვენ იმყოფებით ოპერატიული ზონის მიღმა (&gt;500კმ).</string>
     <string name="error_gps_btn">გავიგე</string>
+    <string name="passport_title">ვრაცაკან პასპორტი</string>
+    <string name="region_visas">რეგიონის ვიზები</string>
+    <string name="no_stamps">ვიზები ჯერ არ არის.</string>
 </resources>

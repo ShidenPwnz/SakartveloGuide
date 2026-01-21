@@ -49,9 +49,13 @@ fun FobSetupView(
     val focusManager = LocalFocusManager.current
     val scope = rememberCoroutineScope()
 
-    var mapCenter by remember { mutableStateOf(GeoPoint(41.6930, 44.8015)) }
+    // ARCHITECT'S FIX: Initialize map at the mission theatre location
+    val initialCenter = remember { viewModel.getInitialMapCenter() }
+    var mapCenter by remember { mutableStateOf(initialCenter) }
+
     var searchQuery by remember { mutableStateOf("") }
     var mapRef by remember { mutableStateOf<MapLibreMap?>(null) }
+    var isSaving by remember { mutableStateOf(false) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -62,6 +66,11 @@ fun FobSetupView(
             modifier = Modifier.fillMaxSize(),
             onMapReady = { map ->
                 mapRef = map
+                // Fly to initial center on first load
+                map.moveCamera(CameraUpdateFactory.newLatLngZoom(
+                    LatLng(initialCenter.latitude, initialCenter.longitude), 13.0
+                ))
+
                 map.addOnCameraIdleListener {
                     map.cameraPosition.target?.let { pos ->
                         mapCenter = GeoPoint(pos.latitude, pos.longitude)
@@ -69,10 +78,12 @@ fun FobSetupView(
                 }
             }
         )
+// ... rest of the file
 
         Icon(Icons.Default.Add, null, tint = SakartveloRed, modifier = Modifier.size(40.dp).align(Alignment.Center))
 
         Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
+            // SEARCH BAR
             Surface(
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 color = MatteCharcoal.copy(0.9f),
@@ -116,13 +127,7 @@ fun FobSetupView(
                     scope.launch {
                         val freshLoc = viewModel.getFreshLocation()
                         if (freshLoc != null) {
-                            mapRef?.animateCamera(
-                                CameraUpdateFactory.newLatLngZoom(
-                                    LatLng(freshLoc.latitude, freshLoc.longitude),
-                                    15.0
-                                ),
-                                2000
-                            )
+                            mapRef?.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(freshLoc.latitude, freshLoc.longitude), 15.0), 2000)
                         }
                     }
                 },
@@ -130,12 +135,11 @@ fun FobSetupView(
                 contentColor = SakartveloRed,
                 shape = CircleShape,
                 modifier = Modifier.align(Alignment.End).size(48.dp)
-            ) {
-                Icon(Icons.Default.MyLocation, null)
-            }
+            ) { Icon(Icons.Default.MyLocation, null) }
 
             Spacer(Modifier.weight(1f))
 
+            // CONFIRM CARD
             Surface(
                 color = MatteCharcoal.copy(0.95f),
                 shape = RoundedCornerShape(16.dp),
@@ -146,11 +150,19 @@ fun FobSetupView(
                     Text("Establish Base Coordinates", color = Color.White, fontWeight = FontWeight.Black, fontSize = 18.sp)
                     Spacer(Modifier.height(16.dp))
                     Button(
-                        onClick = { onSetBase(mapCenter) },
+                        onClick = {
+                            isSaving = true
+                            onSetBase(mapCenter)
+                        },
                         modifier = Modifier.fillMaxWidth().height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = SakartveloRed)
+                        colors = ButtonDefaults.buttonColors(containerColor = SakartveloRed),
+                        enabled = !isSaving
                     ) {
-                        Text("CONFIRM FOB", fontWeight = FontWeight.Black)
+                        if (isSaving) {
+                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                        } else {
+                            Text("CONFIRM FOB", fontWeight = FontWeight.Black)
+                        }
                     }
                 }
             }
@@ -158,6 +170,7 @@ fun FobSetupView(
     }
 }
 
+// ARCHITECT'S FIX: This function was missing in your last file
 suspend fun performGeocoding(context: Context, query: String): LatLng? = withContext(Dispatchers.IO) {
     try {
         val geocoder = Geocoder(context, Locale.getDefault())

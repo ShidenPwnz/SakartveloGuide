@@ -3,17 +3,35 @@ package com.example.sakartveloguide.domain.model
 import com.example.sakartveloguide.R
 
 data class LogisticsProfile(
-    val isByAir: Boolean = true,
+    // --- NEW STRATEGIC FIELDS ---
+    val transportStrategy: TransportStrategy = TransportStrategy.PASSENGER_URBAN,
+    val vehicleStatus: VehicleStatus = VehicleStatus.NONE,
+
+    // --- CORE FIELDS ---
     val entryPoint: EntryPoint = EntryPoint.AIRPORT_TBS,
-    val exitPoint: EntryPoint = EntryPoint.AIRPORT_TBS,
-    val transportType: TransportType = TransportType.RENTAL_4X4,
-    val needsAccommodation: Boolean = false,
-    val needsEsim: Boolean = false,
+    val exitPoint: EntryPoint = EntryPoint.AIRPORT_TBS, // Restored
+    val startDate: Long? = null,
+    val endDate: Long? = null,
+
+    // --- LEGACY / HELPER FIELDS (Restored to fix compilation) ---
+    val isByAir: Boolean = true,
     val needsFlight: Boolean = false,
     val needsTransport: Boolean = false,
-    val startDate: Long? = null,
-    val endDate: Long? = null
+    val needsAccommodation: Boolean = false,
+    val needsEsim: Boolean = false,
+    val transportType: TransportType = TransportType.TAXI
 )
+
+enum class TransportStrategy {
+    PASSENGER_URBAN,   // Taxi/Bolt
+    PASSENGER_BUDGET,  // Public Transport
+    DRIVER_RENTAL,     // Rental Car
+    DRIVER_OWNER       // Own Car
+}
+
+enum class VehicleStatus {
+    NONE, TO_BE_ACQUIRED, ACTIVE, PARKED_NEARBY
+}
 
 enum class EntryPoint {
     AIRPORT_TBS, AIRPORT_KUT, AIRPORT_BUS, LAND_TURKEY, LAND_ARMENIA, LAND_AZERBAIJAN, LAND_RUSSIA, CITY_CENTER

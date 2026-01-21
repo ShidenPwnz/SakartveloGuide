@@ -10,17 +10,15 @@ import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.getValue // ARCHITECT'S FIX: Crucial
+import androidx.compose.runtime.getValue // ARCHITECT'S FIX: CRITICAL IMPORT
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.sakartveloguide.R
 import com.example.sakartveloguide.domain.model.*
 import com.example.sakartveloguide.presentation.home.components.PathCard
@@ -34,14 +32,14 @@ fun HomeScreen(
     onPassportClick: () -> Unit,
     onSettingsClick: () -> Unit
 ) {
-    // ARCHITECT'S FIX: Using explicit collection with lifecycle awareness
+    // Explicit collection to prevent inference errors
     val uiState by viewModel.uiState.collectAsState()
     val session by viewModel.userSession.collectAsState(initial = UserSession())
+
     val categories = uiState.groupedPaths.keys.toList()
 
     if (categories.isNotEmpty()) {
         val hPagerState = rememberPagerState(pageCount = { categories.size })
-        LaunchedEffect(hPagerState.currentPage) { viewModel.triggerHapticTick() }
 
         Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
             HeaderSection(categories[hPagerState.currentPage], onPassportClick, onSettingsClick)
@@ -55,18 +53,23 @@ fun HomeScreen(
                 val category = categories[hPage]
                 val paths = uiState.groupedPaths[category] ?: emptyList()
 
-                key(session.hasSeenTutorial, session.language) {
-                    val initialTripIndex = if (category.name == "GUIDE" && session.hasSeenTutorial) 1 else 0
-                    val vPagerState = rememberPagerState(initialPage = initialTripIndex, pageCount = { paths.size })
+                key(session.hasSeenTutorial, session.language, paths.size) {
+                    val vPagerState = rememberPagerState(pageCount = { paths.size })
 
                     LaunchedEffect(vPagerState.currentPage) { viewModel.triggerHapticTick() }
 
-                    VerticalPager(state = vPagerState, modifier = Modifier.fillMaxSize(), pageSpacing = (-350).dp) { vPage ->
+                    VerticalPager(
+                        state = vPagerState,
+                        modifier = Modifier.fillMaxSize(),
+                        pageSpacing = (-350).dp
+                    ) { vPage ->
                         val path = paths[vPage]
                         val pageOffset = (vPagerState.currentPage - vPage).toFloat() + vPagerState.currentPageOffsetFraction
+
                         Box(modifier = Modifier.fillMaxWidth().height(520.dp).graphicsLayer {
                             val scale = lerp(0.85f, 1f, 1f - pageOffset.absoluteValue.coerceIn(0f, 1f))
                             scaleX = scale; scaleY = scale
+                            alpha = lerp(0.5f, 1f, 1f - pageOffset.absoluteValue.coerceIn(0f, 1f))
                         }) {
                             PathCard(
                                 trip = path,
@@ -95,10 +98,9 @@ private fun HeaderSection(category: Category, onPassportClick: () -> Unit, onSet
                 style = MaterialTheme.typography.headlineLarge,
                 color = MaterialTheme.colorScheme.onBackground,
                 fontWeight = FontWeight.Black,
-                modifier = Modifier.weight(1f),
                 letterSpacing = (-1).sp
             )
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row {
                 IconButton(onClick = onSettingsClick, modifier = Modifier.background(MaterialTheme.colorScheme.surfaceVariant.copy(0.5f), CircleShape)) {
                     Icon(Icons.Default.Settings, null, tint = MaterialTheme.colorScheme.primary)
                 }
@@ -108,15 +110,14 @@ private fun HeaderSection(category: Category, onPassportClick: () -> Unit, onSet
                 }
             }
         }
+
         val categoryEnum = try { RouteCategory.valueOf(category.name) } catch(e: Exception) { RouteCategory.CULTURE }
         Text(
             text = stringResource(categoryEnum.getLabelRes()),
             color = MaterialTheme.colorScheme.primary,
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold,
-            letterSpacing = 2.sp,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            letterSpacing = 2.sp
         )
     }
 }
