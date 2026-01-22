@@ -36,12 +36,16 @@ data class TripPlannerState(
     val activeNodeId: Int? = null,
     val completedIds: Set<Int> = emptySet(),
     val userLocation: GeoPoint? = null,
+
+    // --- DISCOVERY ENGINE ---
     val searchQuery: String = "",
+    val activeCategory: String? = null,
+    val nearbyRecs: List<LocationEntity> = emptyList(),
+    val regionalRecs: List<LocationEntity> = emptyList(), // Replaces Epic
     val searchResults: List<LocationEntity> = emptyList(),
     val isLoading: Boolean = true
 )
 
-// ARCHITECT'S FIX: Renamed to 'AdventureViewModel' to break Hilt cache collision
 @HiltViewModel
 class AdventureViewModel @Inject constructor(
     private val repository: TripRepository,
@@ -62,20 +66,17 @@ class AdventureViewModel @Inject constructor(
     private val _route = MutableStateFlow<List<LocationEntity>>(emptyList())
     private val _tripTitle = MutableStateFlow("")
     private val _searchQuery = MutableStateFlow("")
+    private val _activeCategory = MutableStateFlow<String?>(null)
     private val _isLoading = MutableStateFlow(true)
     private val _fullInventory = MutableStateFlow<List<LocationEntity>>(emptyList())
 
-    // Using Array-based combine to handle >5 flows
     val uiState: StateFlow<TripPlannerState> = combine(
         listOf(
-            _route,
-            _tripTitle,
-            prefs.userSession.onStart { emit(UserSession()) },
+            _route, _tripTitle, prefs.userSession.onStart { emit(UserSession()) },
             prefs.missionState.onStart { emit(MissionState()) },
             logisticsManager.logisticsProfile.onStart { emit(LogisticsProfile()) },
             locationManager.locationFlow().onStart { emit(GeoPoint(0.0, 0.0)) },
-            _searchQuery,
-            _isLoading
+            _searchQuery, _isLoading, _activeCategory, _fullInventory
         )
     ) { args ->
         val route = args[0] as List<LocationEntity>
@@ -86,24 +87,21 @@ class AdventureViewModel @Inject constructor(
         val userLoc = args[5] as GeoPoint
         val query = args[6] as String
         val loading = args[7] as Boolean
+        val category = args[8] as String?
+        val inventory = args[9] as List<LocationEntity>
 
         val isLive = session.state == UserJourneyState.ON_THE_ROAD && session.activePathId == tripId
         val baseLoc = mState.fobLocation
 
-        // 1. Construct Display Route
+        // 1. ROUTE CONSTRUCTION
         val displayRoute = mutableListOf<LocationEntity>()
-        if (baseLoc != null) {
-            displayRoute.add(createBaseEntity(baseLoc, -1, "HOME (START)"))
-        }
+        if (baseLoc != null) displayRoute.add(createBaseEntity(baseLoc, -1, "HOME (START)"))
         displayRoute.addAll(route)
-        if (baseLoc != null && route.isNotEmpty()) {
-            displayRoute.add(createBaseEntity(baseLoc, -2, "RETURN HOME"))
-        }
+        if (baseLoc != null && route.isNotEmpty()) displayRoute.add(createBaseEntity(baseLoc, -2, "RETURN HOME"))
 
-        // 2. Distance Calculation
+        // 2. DISTANCE CHAIN
         val distMap = mutableMapOf<Int, Double>()
         var prevPoint = baseLoc ?: userLoc
-
         displayRoute.forEach { node ->
             val currPoint = GeoPoint(node.latitude, node.longitude)
             if (node.id != -1 && prevPoint.latitude != 0.0) {
@@ -112,13 +110,37 @@ class AdventureViewModel @Inject constructor(
             prevPoint = currPoint
         }
 
-        // 3. Search Logic
-        val refPoint = route.lastOrNull()?.let { GeoPoint(it.latitude, it.longitude) } ?: baseLoc ?: userLoc
-        val filtered = if (query.isEmpty()) _fullInventory.value.take(15)
-        else _fullInventory.value.filter { it.nameEn.contains(query, true) || it.region.contains(query, true) }
-        val sortedResults = filtered.sortedBy { TacticalMath.calculateDistanceKm(refPoint, GeoPoint(it.latitude, it.longitude)) }.take(20)
+        // 3. DISCOVERY ENGINE (The Filter)
+        val currentIds = route.map { it.id }.toSet()
+        val availablePool = inventory.filter { it.id !in currentIds } // ARCHITECT'S FIX: Exclude existing
 
-        // 4. Active Node Logic
+        // Reference: Last stop -> Base -> User
+        val proximityRef = route.lastOrNull()?.let { GeoPoint(it.latitude, it.longitude) } ?: baseLoc ?: userLoc
+
+        // SORT BY PROXIMITY
+        val proximitySorted = availablePool.sortedBy {
+            TacticalMath.calculateDistanceKm(proximityRef, GeoPoint(it.latitude, it.longitude))
+        }
+
+        // A. NEARBY GEMS (Top 10 closest)
+        val nearby = proximitySorted.take(10)
+
+        // B. REGIONAL HIGHLIGHTS (The next 10 closest - broader region)
+        val regional = proximitySorted.drop(10).take(10)
+
+        // C. SEARCH RESULTS (The Vertical List)
+        var filteredList = if (query.isEmpty()) availablePool else availablePool.filter {
+            it.nameEn.contains(query, true) || it.region.contains(query, true)
+        }
+        if (category != null) {
+            filteredList = filteredList.filter { isLocationInCategory(it, category) }
+        }
+        // Always sort search results by proximity
+        val finalSearchResults = filteredList.sortedBy {
+            TacticalMath.calculateDistanceKm(proximityRef, GeoPoint(it.latitude, it.longitude))
+        }.take(50)
+
+        // 4. ACTIVE STATE
         val activeId = if (isLive && displayRoute.isNotEmpty()) {
             val idx = mState.activeNodeIndex ?: 0
             if (idx in displayRoute.indices) displayRoute[idx].id else null
@@ -129,7 +151,8 @@ class AdventureViewModel @Inject constructor(
             profile = profile, baseLocation = baseLoc, route = displayRoute, distances = distMap,
             activeNodeId = activeId, completedIds = mState.completedNodeIndices,
             userLocation = if (userLoc.latitude != 0.0) userLoc else null,
-            searchQuery = query, searchResults = sortedResults, isLoading = loading
+            searchQuery = query, activeCategory = category,
+            nearbyRecs = nearby, regionalRecs = regional, searchResults = finalSearchResults, isLoading = loading
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TripPlannerState(isLoading = true))
 
@@ -138,112 +161,48 @@ class AdventureViewModel @Inject constructor(
         viewModelScope.launch { locationDao.getAllLocations().collect { _fullInventory.value = it } }
     }
 
-    // ... (Previous imports and package declaration) ...
-
+    // ... (Helper Methods) ...
+    fun onCategorySelect(cat: String) { if (_activeCategory.value == cat) _activeCategory.value = null else _activeCategory.value = cat; haptic.tick() }
+    private fun isLocationInCategory(loc: LocationEntity, cat: String): Boolean {
+        return when (cat) {
+            "Nature" -> loc.type in listOf("NATURE", "MOUNTAIN", "HIKING", "LAKE", "NATIONAL_PARK")
+            "History" -> loc.type in listOf("CULTURE", "HISTORICAL", "RELIGIOUS", "CASTLE")
+            "Caves" -> loc.nameEn.contains("Cave", true) || loc.type == "CAVE"
+            "Relax" -> loc.type in listOf("RELAXED", "WINE", "WINE_CELLAR", "COASTAL")
+            else -> true
+        }
+    }
     private fun loadData() = viewModelScope.launch {
         _isLoading.value = true
-        // If route already exists (e.g. rotated screen or returned from map), don't reload
-        if (_route.value.isNotEmpty()) {
-            _isLoading.value = false
-            return@launch
-        }
-
+        if (_route.value.isNotEmpty()) { _isLoading.value = false; return@launch }
         val session = prefs.userSession.first()
-
-        // RECOVERY LOGIC: If the user is on the road, load the persisted route regardless of how they entered.
         if (session.state == UserJourneyState.ON_THE_ROAD && session.activePathId == tripId) {
             val savedIds = prefs.activeLoadout.first()
             if (savedIds.isNotEmpty()) {
                 val entities = locationDao.getLocationsByIds(savedIds)
-                // Restore order strictly based on saved IDs
                 _route.value = savedIds.mapNotNull { id -> entities.find { it.id == id } }
                 _tripTitle.value = repository.getTripById(tripId)?.title?.en ?: "ACTIVE MISSION"
-            } else {
-                // Fallback if loadout is empty (shouldn't happen, but safe fallback)
-                loadTemplate()
-            }
-        } else {
-            // Normal Template Load
-            loadTemplate()
-        }
+            } else { loadTemplate() }
+        } else { loadTemplate() }
         _isLoading.value = false
     }
-
     private suspend fun loadTemplate() {
         if (tripId == "custom_cargo") {
-            val ids = paramIds.split(",").mapNotNull { it.toIntOrNull() }
-            _route.value = locationDao.getLocationsByIds(ids)
-            _tripTitle.value = "CUSTOM TRIP"
+            if (paramIds.isEmpty()) { _route.value = emptyList(); _tripTitle.value = "NEW ADVENTURE" }
+            else { val ids = paramIds.split(",").mapNotNull { it.toIntOrNull() }; _route.value = locationDao.getLocationsByIds(ids); _tripTitle.value = "CUSTOM TRIP" }
         } else {
             val trip = repository.getTripById(tripId)
             _tripTitle.value = trip?.title?.en ?: "ADVENTURE"
-            _route.value = trip?.itinerary?.mapIndexed { idx, node ->
-                LocationEntity(
-                    id = idx + 10000, nameEn = node.title.en, descEn = node.description.en,
-                    imageUrl = node.imageUrl ?: "", latitude = node.location?.latitude ?: 0.0,
-                    longitude = node.location?.longitude ?: 0.0, type = "POI", region = "Georgia"
-                )
-            } ?: emptyList()
+            _route.value = trip?.itinerary?.mapIndexed { idx, node -> LocationEntity(id = idx + 10000, nameEn = node.title.en, descEn = node.description.en, imageUrl = node.imageUrl ?: "", latitude = node.location?.latitude ?: 0.0, longitude = node.location?.longitude ?: 0.0, type = "POI", region = "Georgia") } ?: emptyList()
         }
     }
-
-// ... (rest of class)
-
-    fun onBackCleanup() = viewModelScope.launch {
-        if (uiState.value.mode == TripMode.EDITING) {
-            prefs.clearCurrentMissionData()
-        }
-    }
-
-    fun onCardClicked(nodeId: Int) = viewModelScope.launch {
-        if (uiState.value.mode == TripMode.LIVE) {
-            val idx = uiState.value.route.indexOfFirst { it.id == nodeId }
-            if (idx != -1) {
-                prefs.setActiveTarget(idx)
-                haptic.tick()
-            }
-        }
-    }
-
-    fun optimizeRoute() = viewModelScope.launch {
-        val start = uiState.value.baseLocation ?: GeoPoint(41.7125, 44.7930)
-        _route.value = smartArrangeUseCase(start, _route.value)
-        haptic.tick()
-    }
-
-    fun markCheckIn(nodeId: Int) = viewModelScope.launch {
-        prefs.markTargetComplete(nodeId)
-        val idx = uiState.value.route.indexOfFirst { it.id == nodeId }
-        if (idx != -1 && idx < uiState.value.route.size - 1) prefs.setActiveTarget(idx + 1)
-        else prefs.setActiveTarget(null)
-        haptic.missionCompleteSlam()
-    }
-
-    private fun createBaseEntity(loc: GeoPoint, id: Int, name: String): LocationEntity {
-        return LocationEntity(
-            id = id, type = "HOME", region = "HQ", latitude = loc.latitude, longitude = loc.longitude,
-            imageUrl = "https://images.pexels.com/photos/271624/pexels-photo-271624.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-            nameEn = name, nameKa = name, nameRu = name, nameTr = name, nameHy = name, nameIw = name, nameAr = name,
-            descEn = "Your secured home base.", descKa = "", descRu = "", descTr = "", descHy = "", descIw = "", descAr = ""
-        )
-    }
-
-    fun setBaseCamp(location: GeoPoint) = viewModelScope.launch {
-        prefs.setFobLocation(location)
-        logisticsManager.saveFullProfile(uiState.value.profile.copy(needsAccommodation = false))
-        haptic.tick()
-    }
-    fun toggleMode() = viewModelScope.launch {
-        if (uiState.value.mode == TripMode.EDITING) {
-            val realIds = _route.value.map { it.id }
-            prefs.saveActiveLoadout(realIds)
-            prefs.updateState(UserJourneyState.ON_THE_ROAD, tripId)
-            prefs.setActiveTarget(0)
-            haptic.missionCompleteSlam()
-        } else {
-            prefs.updateState(UserJourneyState.BROWSING, tripId)
-        }
-    }
+    fun onBackCleanup() = viewModelScope.launch { if (uiState.value.mode == TripMode.EDITING) prefs.clearCurrentMissionData() }
+    fun onCardClicked(nodeId: Int) = viewModelScope.launch { if (uiState.value.mode == TripMode.LIVE) { val idx = uiState.value.route.indexOfFirst { it.id == nodeId }; if (idx != -1) { prefs.setActiveTarget(idx); haptic.tick() } } }
+    fun optimizeRoute() = viewModelScope.launch { val start = uiState.value.baseLocation ?: GeoPoint(41.7125, 44.7930); _route.value = smartArrangeUseCase(start, _route.value); haptic.tick() }
+    fun markCheckIn(nodeId: Int) = viewModelScope.launch { prefs.markTargetComplete(nodeId); val idx = uiState.value.route.indexOfFirst { it.id == nodeId }; if (idx != -1 && idx < uiState.value.route.size - 1) prefs.setActiveTarget(idx + 1) else prefs.setActiveTarget(null); haptic.missionCompleteSlam() }
+    private fun createBaseEntity(loc: GeoPoint, id: Int, name: String): LocationEntity { return LocationEntity(id = id, type = "HOME", region = "HQ", latitude = loc.latitude, longitude = loc.longitude, imageUrl = "https://images.pexels.com/photos/271624/pexels-photo-271624.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1", nameEn = name, nameKa = name, nameRu = name, nameTr = name, nameHy = name, nameIw = name, nameAr = name, descEn = "Your secured home base.", descKa = "", descRu = "", descTr = "", descHy = "", descIw = "", descAr = "") }
+    fun setBaseCamp(location: GeoPoint) = viewModelScope.launch { prefs.setFobLocation(location); logisticsManager.saveFullProfile(uiState.value.profile.copy(needsAccommodation = false)); haptic.tick() }
+    fun toggleMode() = viewModelScope.launch { if (uiState.value.mode == TripMode.EDITING) { val realIds = _route.value.map { it.id }; prefs.saveActiveLoadout(realIds); prefs.updateState(UserJourneyState.ON_THE_ROAD, tripId); prefs.setActiveTarget(0); haptic.missionCompleteSlam() } else { prefs.updateState(UserJourneyState.BROWSING, tripId) } }
     fun onSearchQuery(q: String) { _searchQuery.value = q }
     fun addStop(loc: LocationEntity) { if (!_route.value.any { it.id == loc.id }) { _route.value = _route.value + loc; haptic.tick() } }
     fun removeStop(id: Int) { _route.value = _route.value.filter { it.id != id } }

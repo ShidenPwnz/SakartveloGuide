@@ -82,12 +82,14 @@ fun LogisticsHeader(
             onClick = onBaseSetup,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(48.dp),
+                .height(52.dp), // ARCHITECT'S FIX: Increased Height
             colors = ButtonDefaults.buttonColors(
                 containerColor = if (hasBase) Color(0xFF2E7D32).copy(alpha = 0.1f) else SakartveloRed.copy(alpha = 0.1f),
                 contentColor = if (hasBase) Color(0xFF2E7D32) else SakartveloRed
             ),
             shape = RoundedCornerShape(12.dp),
+            // ARCHITECT'S FIX: Reduced padding to prevent text clipping
+            contentPadding = PaddingValues(vertical = 4.dp),
             border = BorderStroke(1.dp, if (hasBase) Color(0xFF2E7D32) else SakartveloRed)
         ) {
             Icon(
@@ -96,11 +98,22 @@ fun LogisticsHeader(
                 modifier = Modifier.size(18.dp)
             )
             Spacer(Modifier.width(8.dp))
-            Text(
-                text = if (hasBase) "HOME LOCATION SET" else "SET HOME LOCATION",
-                fontWeight = FontWeight.Black,
-                fontSize = 12.sp
-            )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = if (hasBase) "HOME SECURED" else "SET HOME LOCATION",
+                    fontWeight = FontWeight.Black,
+                    fontSize = 11.sp
+                )
+                if (!hasBase) {
+                    Text(
+                        text = "(Unlocks Smart Recs)",
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 9.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Visible // Allow slight overflow if needed
+                    )
+                }
+            }
         }
     }
 }

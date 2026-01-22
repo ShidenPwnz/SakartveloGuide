@@ -9,7 +9,7 @@ import com.example.sakartveloguide.presentation.home.*
 import com.example.sakartveloguide.presentation.passport.*
 import com.example.sakartveloguide.presentation.settings.*
 import com.example.sakartveloguide.presentation.builder.*
-// This will now find AdventureViewModel because it is in the package
+// Imports AdventureViewModel and TripPlannerScreen
 import com.example.sakartveloguide.presentation.planner.*
 import com.example.sakartveloguide.domain.model.*
 import kotlinx.coroutines.flow.collectLatest
@@ -40,7 +40,8 @@ fun SakartveloNavGraph(
                     onPathClick = { id ->
                         if (id == "meta_sandbox") {
                             homeViewModel.prepareForNewMission()
-                            navController.navigate("custom_builder")
+                            // ARCHITECT'S FIX: Bypass Builder, go straight to empty Planner
+                            navController.navigate("briefing/custom_cargo?ids=")
                         } else {
                             navController.navigate("briefing/$id")
                         }
@@ -70,7 +71,6 @@ fun SakartveloNavGraph(
                     navArgument("ids") { defaultValue = ""; type = NavType.StringType }
                 )
             ) { backStackEntry ->
-                // ARCHITECT'S FIX: Use new AdventureViewModel name
                 val vm: AdventureViewModel = hiltViewModel(backStackEntry)
 
                 TripPlannerScreen(
@@ -91,7 +91,6 @@ fun SakartveloNavGraph(
                     navController.getBackStackEntry("briefing/$tripId?ids=")
                 }
 
-                // ARCHITECT'S FIX: Use new AdventureViewModel name
                 val vm: AdventureViewModel = hiltViewModel(parentEntry)
 
                 FobSetupView(
