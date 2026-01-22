@@ -6,12 +6,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import com.example.sakartveloguide.presentation.home.*
-import com.example.sakartveloguide.presentation.detail.*
-import com.example.sakartveloguide.presentation.mission.*
 import com.example.sakartveloguide.presentation.passport.*
 import com.example.sakartveloguide.presentation.settings.*
-import com.example.sakartveloguide.presentation.battle.*
 import com.example.sakartveloguide.presentation.builder.*
+// This will now find AdventureViewModel because it is in the package
+import com.example.sakartveloguide.presentation.planner.*
 import com.example.sakartveloguide.domain.model.*
 import kotlinx.coroutines.flow.collectLatest
 
@@ -21,8 +20,7 @@ fun SakartveloNavGraph(
     onCompleteTrip: (TripPath) -> Unit
 ) {
     val navController = rememberNavController()
-    val startDestinationState = homeViewModel.initialDestination.collectAsState()
-    val startDestination = startDestinationState.value
+    val startDestination by homeViewModel.initialDestination.collectAsState()
 
     LaunchedEffect(Unit) {
         homeViewModel.navigationEvent.collectLatest { route ->
@@ -34,21 +32,17 @@ fun SakartveloNavGraph(
     }
 
     if (startDestination != null) {
-        NavHost(navController = navController, startDestination = startDestination) {
-
-            // 1. HOME MATRIX
-            // ... inside Home composable ...
+        NavHost(navController = navController, startDestination = startDestination!!) {
 
             composable("home") {
                 HomeScreen(
                     viewModel = homeViewModel,
                     onPathClick = { id ->
                         if (id == "meta_sandbox") {
-                            // ARCHITECT'S FIX: Reset GPS & Loadout before entering builder
                             homeViewModel.prepareForNewMission()
                             navController.navigate("custom_builder")
                         } else {
-                            navController.navigate("pitch/$id")
+                            navController.navigate("briefing/$id")
                         }
                     },
                     onPassportClick = { navController.navigate("passport") },
@@ -56,7 +50,6 @@ fun SakartveloNavGraph(
                 )
             }
 
-            // 2. MISSION BUILDER
             composable("custom_builder") {
                 val vm: MissionBuilderViewModel = hiltViewModel()
                 MissionBuilderScreen(
@@ -69,7 +62,7 @@ fun SakartveloNavGraph(
                 )
             }
 
-            // 3. BRIEFING HUB
+            // --- TRIP PLANNER ---
             composable(
                 route = "briefing/{tripId}?ids={ids}",
                 arguments = listOf(
@@ -77,59 +70,39 @@ fun SakartveloNavGraph(
                     navArgument("ids") { defaultValue = ""; type = NavType.StringType }
                 )
             ) { backStackEntry ->
-                val tripId = backStackEntry.arguments?.getString("tripId") ?: "custom_cargo"
-                val vm: MissionBriefingViewModel = hiltViewModel()
+                // ARCHITECT'S FIX: Use new AdventureViewModel name
+                val vm: AdventureViewModel = hiltViewModel(backStackEntry)
 
-                CustomMissionReviewScreen(
+                TripPlannerScreen(
                     viewModel = vm,
-                    onSetFob = { navController.navigate("fob_recon/$tripId") }, // PASS TRIP ID
-                    onLaunch = { navController.navigate("battle/$tripId") }
+                    onBack = { navController.popBackStack() },
+                    onNavigateToFobMap = {
+                        navController.navigate("fob_recon/${backStackEntry.arguments?.getString("tripId")}")
+                    }
                 )
             }
 
-            // 4. INTEL REPORT
-            // ... inside NavGraph ...
-            composable("pitch/{tripId}") {
-                val vm: PathDetailsViewModel = hiltViewModel()
-                val state by vm.uiState.collectAsState()
-
-                PathDetailsScreen(state = state) { tripId ->
-                    // ARCHITECT'S LOGIC:
-                    // We navigate to Briefing. The BriefingViewModel will detect the ID,
-                    // load the template from Repo, and populate the loadout.
-                    navController.navigate("briefing/$tripId")
+            composable(
+                route = "fob_recon/{tripId}",
+                arguments = listOf(navArgument("tripId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
+                val parentEntry = remember(backStackEntry) {
+                    navController.getBackStackEntry("briefing/$tripId?ids=")
                 }
-            }
 
-            // 5. FOB RECON (Accommodation Setup)
-            // ARCHITECT'S FIX: Now accepts tripId to stay in sync with the Briefing Hub
-            composable("fob_recon/{tripId}") { backStackEntry ->
-                val tripId = backStackEntry.arguments?.getString("tripId") ?: "custom_cargo"
-                val battleViewModel: BattleViewModel = hiltViewModel()
-                
-                com.example.sakartveloguide.presentation.battle.components.FobSetupView(
-                    viewModel = battleViewModel,
-                    onSetBase = { geoPoint ->
-                        battleViewModel.setFob(geoPoint) {
-                            navController.popBackStack()
-                        }
+                // ARCHITECT'S FIX: Use new AdventureViewModel name
+                val vm: AdventureViewModel = hiltViewModel(parentEntry)
+
+                FobSetupView(
+                    initialCenter = vm.uiState.value.route.firstOrNull()?.let { GeoPoint(it.latitude, it.longitude) } ?: GeoPoint(41.7, 44.8),
+                    onSetBase = { loc ->
+                        vm.setBaseCamp(loc)
+                        navController.popBackStack()
                     }
                 )
             }
 
-            // 6. BATTLE PLAN
-            composable("battle/{tripId}") {
-                val battleViewModel: BattleViewModel = hiltViewModel()
-                BattlePlanScreen(
-                    viewModel = battleViewModel,
-                    onAbort = {
-                        battleViewModel.abortMission()
-                        navController.navigate("home") { popUpTo(0) }
-                    }
-                )
-            }
-
-            // 7. SETTINGS
             composable("settings") {
                 val sessionState = homeViewModel.userSession.collectAsState(initial = UserSession())
                 SettingsScreen(
@@ -140,7 +113,6 @@ fun SakartveloNavGraph(
                 )
             }
 
-            // 8. PASSPORT
             composable("passport") {
                 val passportViewModel: PassportViewModel = hiltViewModel()
                 val stampsState = passportViewModel.stamps.collectAsState()

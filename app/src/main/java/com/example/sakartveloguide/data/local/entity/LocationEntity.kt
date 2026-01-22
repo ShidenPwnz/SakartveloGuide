@@ -6,15 +6,29 @@ import com.google.gson.annotations.SerializedName
 
 @Entity(tableName = "locations")
 data class LocationEntity(
-    // ARCHITECT'S FIX: Manual ID control for synchronization with JSON
-    @PrimaryKey(autoGenerate = false) 
-    @SerializedName("id") val id: Int,
-    
-    @SerializedName("name") val name: String,
-    @SerializedName("region") val region: String,
-    @SerializedName("type") val type: String,
-    @SerializedName("description") val description: String,
-    @SerializedName("lat") val latitude: Double,
-    @SerializedName("lng") val longitude: Double,
-    @SerializedName("image") val imageUrl: String
+    @PrimaryKey(autoGenerate = false)
+    val id: Int,
+    val type: String,
+    val region: String,
+    val latitude: Double,
+    val longitude: Double,
+    val imageUrl: String,
+
+    // Trip Titles (From your JSON 'name')
+    val nameEn: String,
+    val nameKa: String = "",
+    val nameRu: String = "",
+    val nameTr: String = "",
+    val nameHy: String = "",
+    val nameIw: String = "",
+    val nameAr: String = "",
+
+    // Descriptions (From your JSON 'desc_xx')
+    val descEn: String,
+    val descKa: String = "",
+    val descRu: String = "",
+    val descTr: String = "",
+    val descHy: String = "",
+    val descIw: String = "",
+    val descAr: String = ""
 )

@@ -22,17 +22,18 @@ class PreferenceManager @Inject constructor(
         private val KEY_IS_PRO = booleanPreferencesKey("is_pro_user")
         private val KEY_HAS_SEEN_TUTORIAL = booleanPreferencesKey("has_seen_tutorial")
         private val KEY_LANGUAGE = stringPreferencesKey("user_language")
-
         private val KEY_FOB_LAT = doublePreferencesKey("mission_fob_lat")
         private val KEY_FOB_LNG = doublePreferencesKey("mission_fob_lng")
         private val KEY_HAS_FOB = booleanPreferencesKey("mission_has_fob")
-
         private val KEY_COMPLETED_NODES = stringSetPreferencesKey("mission_completed_nodes")
         private val KEY_ACTIVE_TARGET_IDX = intPreferencesKey("mission_active_target_idx")
         private val KEY_ACTIVE_LOADOUT = stringPreferencesKey("mission_active_loadout")
         private val KEY_EXTRACTION_TYPE = stringPreferencesKey("mission_extraction_type")
+
+        // DRAFT SYSTEM
         private val KEY_DRAFT_IDS = stringPreferencesKey("draft_mission_ids")
         private val KEY_DRAFT_TITLE = stringPreferencesKey("draft_mission_title")
+        private val KEY_DRAFT_TRIP_ID = stringPreferencesKey("draft_trip_id")
     }
 
     val userSession: Flow<UserSession> = dataStore.data.map { prefs ->
@@ -40,7 +41,6 @@ class PreferenceManager @Inject constructor(
             activePathId = prefs[KEY_ACTIVE_TRIP],
             state = UserJourneyState.valueOf(prefs[KEY_STATE] ?: UserJourneyState.BROWSING.name),
             isProUser = prefs[KEY_IS_PRO] ?: false,
-            activeStepIndex = 0,
             hasSeenTutorial = prefs[KEY_HAS_SEEN_TUTORIAL] ?: false,
             language = prefs[KEY_LANGUAGE] ?: "en"
         )
@@ -49,23 +49,16 @@ class PreferenceManager @Inject constructor(
     val missionState: Flow<MissionState> = dataStore.data.map { prefs ->
         val tripId = prefs[KEY_ACTIVE_TRIP] ?: ""
         val hasFob = prefs[KEY_HAS_FOB] ?: false
-        val fob = if (hasFob) {
-            GeoPoint(prefs[KEY_FOB_LAT] ?: 0.0, prefs[KEY_FOB_LNG] ?: 0.0)
-        } else null
-
+        val fob = if (hasFob) GeoPoint(prefs[KEY_FOB_LAT] ?: 0.0, prefs[KEY_FOB_LNG] ?: 0.0) else null
         val completedSet = prefs[KEY_COMPLETED_NODES]?.map { it.toInt() }?.toSet() ?: emptySet()
         val activeIdx = prefs[KEY_ACTIVE_TARGET_IDX]?.let { if (it == -1) null else it }
-
-        val exType = ExtractionType.valueOf(
-            prefs[KEY_EXTRACTION_TYPE] ?: ExtractionType.RETURN_TO_FOB.name
-        )
 
         MissionState(
             tripId = tripId,
             fobLocation = fob,
             completedNodeIndices = completedSet,
             activeNodeIndex = activeIdx,
-            extractionType = exType // ARCHITECT'S FIX: Now persists meta-choice
+            extractionType = ExtractionType.valueOf(prefs[KEY_EXTRACTION_TYPE] ?: ExtractionType.RETURN_TO_FOB.name)
         )
     }.distinctUntilChanged()
 
@@ -73,32 +66,34 @@ class PreferenceManager @Inject constructor(
         prefs[KEY_ACTIVE_LOADOUT]?.split(",")?.filter { it.isNotEmpty() }?.map { it.toInt() } ?: emptyList()
     }
 
-    // 1. GET DRAFT
-    val draftMission: Flow<List<Int>> = dataStore.data.map { prefs ->
-        prefs[KEY_DRAFT_IDS]?.split(",")?.mapNotNull { it.toIntOrNull() } ?: emptyList()
+    // SCOPED DRAFT DATA
+    val draftMissionData: Flow<Triple<List<Int>, String, String>> = dataStore.data.map { prefs ->
+        Triple(
+            prefs[KEY_DRAFT_IDS]?.split(",")?.mapNotNull { it.toIntOrNull() } ?: emptyList(),
+            prefs[KEY_DRAFT_TITLE] ?: "",
+            prefs[KEY_DRAFT_TRIP_ID] ?: ""
+        )
     }
 
-    // 2. SAVE DRAFT (Auto-Save)
-    suspend fun saveDraftMission(ids: List<Int>, title: String) {
+    suspend fun saveDraftMission(ids: List<Int>, title: String, tripId: String) {
         withContext(NonCancellable) {
             dataStore.edit {
                 it[KEY_DRAFT_IDS] = ids.joinToString(",")
                 it[KEY_DRAFT_TITLE] = title
+                it[KEY_DRAFT_TRIP_ID] = tripId
             }
         }
     }
 
-    // 3. CLEAR DRAFT (On success)
     suspend fun clearDraft() {
         withContext(NonCancellable) {
             dataStore.edit {
                 it.remove(KEY_DRAFT_IDS)
                 it.remove(KEY_DRAFT_TITLE)
+                it.remove(KEY_DRAFT_TRIP_ID)
             }
         }
     }
-
-    // --- ACTIONS ---
 
     suspend fun saveActiveLoadout(ids: List<Int>) {
         withContext(NonCancellable) {
@@ -118,7 +113,6 @@ class PreferenceManager @Inject constructor(
                 prefs[KEY_HAS_FOB] = true
                 prefs[KEY_FOB_LAT] = location.latitude
                 prefs[KEY_FOB_LNG] = location.longitude
-                Log.d("TACTICAL_PERSIST", "FOB Saved: ${location.latitude}")
             }
         }
     }
@@ -129,21 +123,15 @@ class PreferenceManager @Inject constructor(
         }
     }
 
-    suspend fun markTargetComplete(index: Int) {
+    suspend fun markTargetComplete(locationId: Int) {
         withContext(NonCancellable) {
             dataStore.edit { prefs ->
                 val currentSet = prefs[KEY_COMPLETED_NODES] ?: emptySet()
-                prefs[KEY_COMPLETED_NODES] = currentSet + index.toString()
-                prefs[KEY_ACTIVE_TARGET_IDX] = -1
+                prefs[KEY_COMPLETED_NODES] = currentSet + locationId.toString()
             }
         }
     }
 
-    suspend fun updateLanguage(langCode: String) {
-        withContext(NonCancellable) { dataStore.edit { it[KEY_LANGUAGE] = langCode } }
-    }
-
-    // ARCHITECT'S FIX: Separated state update from data wiping
     suspend fun updateState(state: UserJourneyState, pathId: String? = null) {
         withContext(NonCancellable) {
             dataStore.edit { prefs ->
@@ -153,7 +141,6 @@ class PreferenceManager @Inject constructor(
         }
     }
 
-    // NEW: Explicit function to clear mission data when aborting
     suspend fun clearCurrentMissionData() {
         withContext(NonCancellable) {
             dataStore.edit { prefs ->
@@ -162,14 +149,17 @@ class PreferenceManager @Inject constructor(
                 prefs.remove(KEY_FOB_LNG)
                 prefs[KEY_COMPLETED_NODES] = emptySet()
                 prefs[KEY_ACTIVE_TARGET_IDX] = -1
-                // We do NOT clear the loadout immediately in case they want to retry
+                prefs.remove(KEY_ACTIVE_TRIP)
+                prefs.remove(KEY_ACTIVE_LOADOUT)
             }
         }
+    }
+
+    suspend fun updateLanguage(langCode: String) {
+        dataStore.edit { it[KEY_LANGUAGE] = langCode }
     }
 
     suspend fun setHasSeenTutorial(seen: Boolean) {
         dataStore.edit { it[KEY_HAS_SEEN_TUTORIAL] = seen }
     }
-
-    suspend fun updateStepIndex(index: Int) { }
 }

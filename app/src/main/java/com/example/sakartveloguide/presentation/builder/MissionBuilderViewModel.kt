@@ -1,10 +1,11 @@
 package com.example.sakartveloguide.presentation.builder
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.sakartveloguide.data.local.PreferenceManager
 import com.example.sakartveloguide.data.local.dao.LocationDao
 import com.example.sakartveloguide.data.local.entity.LocationEntity
+import com.example.sakartveloguide.domain.model.UserSession
 import com.example.sakartveloguide.ui.manager.HapticManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -17,12 +18,14 @@ data class BuilderUiState(
     val selectedIds: Set<Int> = emptySet(),
     val activeCategory: String? = null,
     val activeRegion: String? = null,
-    val isLoading: Boolean = true
+    val isLoading: Boolean = true,
+    val currentLanguage: String = "en"
 )
 
 @HiltViewModel
 class MissionBuilderViewModel @Inject constructor(
     private val locationDao: LocationDao,
+    private val preferenceManager: PreferenceManager,
     private val hapticManager: HapticManager
 ) : ViewModel() {
 
@@ -30,38 +33,49 @@ class MissionBuilderViewModel @Inject constructor(
     private val _activeRegion = MutableStateFlow<String?>(null)
     private val _selectedIds = MutableStateFlow<Set<Int>>(emptySet())
 
-    // ARCHITECT'S FIX: Combine internal filters first to stay under the 5-parameter limit
-    private val filterState = combine(_activeCategory, _activeRegion) { cat, reg ->
+    // Group 1: Database Intel (Flow<Triple>)
+    private val _inventoryData = combine(
+        locationDao.getAllLocations(),
+        locationDao.getAllCategories(),
+        locationDao.getAllRegions()
+    ) { all, cats, regs -> Triple(all, cats, regs) }
+
+    // Group 2: User Filters (Flow<Pair>)
+    private val _filterCriteria = combine(_activeCategory, _activeRegion) { cat, reg ->
         Pair(cat, reg)
     }
 
+    // ARCHITECT'S FIX: Combines 4 Typed Flows
     val uiState: StateFlow<BuilderUiState> = combine(
-        locationDao.getAllLocations(),
-        locationDao.getAllCategories(),
-        locationDao.getAllRegions(),
+        _inventoryData,
         _selectedIds,
-        filterState
-    ) // ... inside combine block ...
-     { inventory, cats, regs, selected, filters ->
+        _filterCriteria,
+        preferenceManager.userSession
+    ) { inventory: Triple<List<LocationEntity>, List<String>, List<String>>,
+        selected: Set<Int>,
+        filters: Pair<String?, String?>,
+        session: UserSession ->
+
+        val (allLocs, cats, regs) = inventory
         val (activeCat, activeReg) = filters
 
-        Log.d("BUILDER_DEBUG", "Total Inventory: ${inventory.size}")
-
-        var filtered = inventory
-        // ARCHITECT'S FIX: Ensure null filters return ALL items
-        if (!activeCat.isNullOrEmpty()) filtered = filtered.filter { it.type == activeCat }
-        if (!activeReg.isNullOrEmpty()) filtered = filtered.filter { it.region == activeReg }
-
-        Log.d("BUILDER_DEBUG", "Filtered Count: ${filtered.size}")
+        var filteredList = allLocs
+        if (!activeCat.isNullOrEmpty()) {
+            filteredList = filteredList.filter { it.type == activeCat }
+        }
+        if (!activeReg.isNullOrEmpty()) {
+            filteredList = filteredList.filter { it.region == activeReg }
+        }
 
         BuilderUiState(
-            inventory = filtered,
+            inventory = filteredList,
             categories = cats,
             regions = regs,
             selectedIds = selected,
             activeCategory = activeCat,
             activeRegion = activeReg,
-            isLoading = false
+            isLoading = false,
+            currentLanguage = session.language.ifEmpty { "en" }
         )
     }.stateIn(
         scope = viewModelScope,

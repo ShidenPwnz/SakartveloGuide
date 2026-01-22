@@ -20,11 +20,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.example.sakartveloguide.R
 import com.example.sakartveloguide.presentation.theme.SakartveloRed
 
 @Composable
@@ -48,7 +50,11 @@ fun PathDetailsScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = SakartveloRed),
                     shape = RoundedCornerShape(16.dp)
                 ) {
-                    Text("CONFIGURE MISSION", fontWeight = FontWeight.Black, color = Color.White)
+                    Text(
+                        stringResource(R.string.configure_trip),
+                        fontWeight = FontWeight.Black,
+                        color = Color.White
+                    )
                 }
             }
         }
@@ -67,7 +73,7 @@ fun PathDetailsScreen(
                 // TACTICAL HEADER
                 Column(modifier = Modifier.padding(24.dp)) {
                     Text(
-                        text = "INTEL REPORT",
+                        text = stringResource(R.string.trip_details_title),
                         color = SakartveloRed,
                         style = MaterialTheme.typography.labelSmall,
                         letterSpacing = 2.sp
@@ -90,21 +96,49 @@ fun PathDetailsScreen(
                                 .fillMaxWidth()
                                 .padding(bottom = 12.dp)
                         ) {
-                            Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.AcUnit, null, tint = Color(0xFFFF9800), modifier = Modifier.size(20.dp))
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.AcUnit,
+                                    null,
+                                    tint = Color(0xFFFF9800),
+                                    modifier = Modifier.size(20.dp)
+                                )
                                 Spacer(Modifier.width(12.dp))
                                 Column {
-                                    Text("SNOW PROTOCOL ACTIVE", color = Color(0xFFFF9800), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
-                                    Text("4x4 & Chains required Nov-April", color = MaterialTheme.colorScheme.onBackground.copy(0.7f), style = MaterialTheme.typography.bodySmall)
+                                    Text(
+                                        stringResource(R.string.snow_warning_title),
+                                        color = Color(0xFFFF9800),
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.labelSmall
+                                    )
+                                    Text(
+                                        stringResource(R.string.snow_warning_desc),
+                                        color = MaterialTheme.colorScheme.onBackground.copy(0.7f),
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
                                 }
                             }
                         }
                     }
 
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TacticalChip("${state.stats.durationDays} DAYS", Icons.Default.CalendarMonth)
-                        TacticalChip(state.stats.driveTime, Icons.Default.Schedule)
-                        TacticalChip(state.stats.intensity.name, Icons.Default.Landscape)
+                        TacticalChip(
+                            stringResource(
+                                R.string.trip_duration_days,
+                                state.stats.durationDays
+                            ), Icons.Default.CalendarMonth
+                        )
+                        TacticalChip(
+                            stringResource(R.string.trip_drive_time, state.stats.driveTime),
+                            Icons.Default.Schedule
+                        )
+                        TacticalChip(
+                            stringResource(R.string.trip_intensity, state.stats.intensity.name),
+                            Icons.Default.Landscape
+                        )
                     }
                 }
 
@@ -129,7 +163,11 @@ private fun TimelineNode(item: TimelineUiModel, isLast: Boolean) {
 
     Row {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(Modifier.size(12.dp).background(SakartveloRed, CircleShape))
+            Box(
+                Modifier
+                    .size(12.dp)
+                    .background(SakartveloRed, CircleShape)
+            )
             if (!isLast) {
                 Box(
                     Modifier
@@ -140,9 +178,11 @@ private fun TimelineNode(item: TimelineUiModel, isLast: Boolean) {
             }
         }
         Spacer(Modifier.width(20.dp))
-        Column(modifier = Modifier
-            .padding(bottom = 32.dp)
-            .animateContentSize()) {
+        Column(
+            modifier = Modifier
+                .padding(bottom = 32.dp)
+                .animateContentSize()
+        ) {
             Text(
                 text = item.title,
                 color = MaterialTheme.colorScheme.onBackground,
@@ -158,7 +198,8 @@ private fun TimelineNode(item: TimelineUiModel, isLast: Boolean) {
             )
             if (isExpanded) {
                 AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current).data(item.imageUrl).crossfade(true).build(),
+                    model = ImageRequest.Builder(LocalContext.current).data(item.imageUrl)
+                        .crossfade(true).build(),
                     contentDescription = null,
                     modifier = Modifier
                         .padding(top = 16.dp)
@@ -178,10 +219,18 @@ private fun TacticalChip(text: String, icon: ImageVector) {
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
         shape = RoundedCornerShape(8.dp)
     ) {
-        Row(Modifier.padding(horizontal = 10.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Icon(icon, null, tint = SakartveloRed, modifier = Modifier.size(14.dp))
             Spacer(Modifier.width(6.dp))
-            Text(text, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black)
+            Text(
+                text,
+                color = MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Black
+            )
         }
     }
 }

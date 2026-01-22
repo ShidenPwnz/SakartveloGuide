@@ -1,84 +1,36 @@
 <resources>
     <string name="app_name">საქართველოს მეგზური</string>
-
     <string name="discover">აღმოაჩინე</string>
-    <string name="tap_to_init">შეეხეთ ინიციალიზაციისთვის</string>
-    <string name="logistics_info">ლოგისტიკური ინფორმაცია</string>
-    <string name="start_mission">მისიის დაწყება</string>
-    <string name="confirm_params">პარამეტრების დადასტურება</string>
+    <string name="top_highlights">მთავარი ადგილები</string>
 
-    <string name="logistics_params">მისიის პარამეტრები</string>
+    <string name="wizard_step_hotel">სად ჩერდებით?</string>
+    <string name="wizard_step_hotel_desc">მონიშნეთ სასტუმრო რუკაზე, რათა დავგეგმოთ თქვენი მარშრუტები.</string>
+    <string name="wizard_step_arrival">როგორ ჩამოდიხართ?</string>
+    <string name="wizard_step_arrival_desc">აირჩიეთ შემოსვლის წერტილი საქართველოში.</string>
+    <string name="wizard_step_transport">როგორ იმოძრავებთ?</string>
+    <string name="wizard_step_transport_desc">აირჩიეთ სასურველი ტრანსპორტი ამ ტურისთვის.</string>
 
-    <string name="logistics_setup">ლოგისტიკის გამართვა</string>
-    <string name="arrival_mode">ჩამოსვლის ფორმა</string>
-    <string name="by_air">საჰაერო</string>
-    <string name="by_land">სახმელეთო</string>
-    <string name="mission_start_label">მისიის დაწყება</string>
-    <string name="select_date">აირჩიეთ დაწყების თარიღი</string>
+    <string name="label_taxi_walking">ტაქსი და ფეხით სიარული</string>
+    <string name="label_rental_car">მანქანის ქირაობა (4x4)</string>
+    <string name="label_tbilisi_airport">თბილისის აეროპორტი (TBS)</string>
+    <string name="label_kutaisi_airport">ქუთაისის აეროპორტი (KUT)</string>
+    <string name="label_batumi_airport">ბათუმის აეროპორტი (BUS)</string>
 
-    <string name="log_comms">კავშირი</string>
-    <string name="log_comms_sub">eSIM და მონაცემთა პროტოკოლი</string>
-    <string name="log_lodging">განთავსება</string>
-    <string name="log_lodging_sub">ბაზა-ბანაკების დაჯავშნა</string>
-    <string name="log_transport">ტრანსპორტის გეგმა</string>
-    <string name="log_transport_sub">ტაქტიკური მობილურობა</string>
-    <string name="log_flight">ფრენის ინტელი</string>
-    <string name="log_flight_sub">ავიაბილეთების ძიება</string>
-
-    <string name="trans_rental">მანქანის გაქირავება</string>
-    <string name="trans_rental_sub">4x4 მართვა</string>
-    <string name="trans_taxi">ტაქსის გამოძახება</string>
-    <string name="trans_taxi_sub">მძღოლის დაქირავება</string>
-    <string name="trans_public">საზოგადოებრივი ტრანსპორტი</string>
-    <string name="trans_public_sub">ავტობუსი / მეტრო</string>
-    <string name="trans_own">საკუთარი მანქანა</string>
-    <string name="trans_own_sub">მე მყავს ავტომობილი</string>
-
-    <string name="cat_guide">სისტემის სახელმძღვანელო</string>
-    <string name="cat_capital">დედაქალაქი</string>
-    <string name="cat_mountain">ალპური საზღვარი</string>
-    <string name="cat_wine">ღვინის რეგიონები</string>
-    <string name="cat_culture">კულტურა და ისტორია</string>
-
-    <string name="step_infiltration">ინფილტრაცია</string>
-    <string name="step_extraction">ექსტრაქცია</string>
-    <string name="step_debriefing">მისიის წარმატება</string>
-    <string name="step_secure_assets">უზრუნველყავით ჩამოსვლის აქტივები.</string>
-    <string name="step_return_base">დაბრუნდით გამგზავრების წერტილში.</string>
-    <string name="step_rate_us">დაუჭირეთ მხარი მეგზურს შეფასებით.</string>
-
-    <string name="mode_walk">ფეხით გადაადგილება</string>
-    <string name="mode_drive">მართვის პროტოკოლი</string>
-    <string name="mode_fleet">საჭიროა ტრანსპორტი</string>
-    <string name="mode_transit">ურბანული ტრანზიტი</string>
-    <string name="mode_steep">სიმაღლის გაფრთხილება</string>
-    <string name="mode_short">მოკლე მანძილი</string>
-
-    <string name="desc_walk">გააგრძელეთ გზა ფეხით შემდეგ ობიექტამდე.</string>
-    <string name="desc_fleet">შორი მანძილი. საჭიროა ავტომობილი.</string>
-    <string name="desc_reposition">ავტომობილის გადაადგილება.</string>
-    <string name="desc_steep_advice">რეკომენდებულია ტრანსპორტი სიმაღლის გამო.</string>
-
-    <string name="btn_walk">ფეხით</string>
-    <string name="btn_bolt">ბოლტი</string>
-    <string name="btn_reached">ობიექტი მიღწეულია</string>
-    <string name="btn_secured">ობიექტი დაცულია</string>
-    <string name="btn_finalize">დასრულება და პასპორტის დამოწმება</string>
-    <string name="btn_abort">შეწყვეტა</string>
-    <string name="btn_hold">პოზიციის შენარჩუნება</string>
-    <string name="btn_rate">შეგვაფასეთ PLAY STORE-ზე</string>
-    <string name="btn_maps">რუკა</string>
-
-    <string name="settings_title">სისტემის პარამეტრები</string>
-    <string name="lang_protocol">ენის პროტოკოლი</string>
-    <string name="data_mgmt">მონაცემთა მართვა</string>
-    <string name="nuke_data">სრული განულება</string>
-    <string name="nuke_desc">მისიის ჟურნალების წაშლა</string>
-
-    <string name="error_gps_title">წვდომა უარყოფილია</string>
-    <string name="error_gps_desc">თქვენ იმყოფებით ოპერატიული ზონის მიღმა (&gt;500კმ).</string>
-    <string name="error_gps_btn">გავიგე</string>
-    <string name="passport_title">ვრაცაკან პასპორტი</string>
-    <string name="region_visas">რეგიონის ვიზები</string>
-    <string name="no_stamps">ვიზები ჯერ არ არის.</string>
+    <string name="btn_set_location">მონიშვნა რუკაზე</string>
+    <string name="start_adventure_btn">ტურის დაწყება</string>
+    <string name="edit_trip_btn">გეგმის შეცვლა</string>
+    <string name="delete_trip_btn">ტურის წაშლა</string>
+    <string name="base_section">განთავსება</string>
+    <string name="base_secured">სასტუმრო მონიშნულია</string>
+    <string name="base_pending">აირჩიეთ ადგილი</string>
+    <string name="auto_arrange_btn">მარშრუტის ოპტიმიზაცია</string>
+    <string name="live_phase">აქტიური ტური</string>
+    <string name="planning_phase">დაგეგმვა</string>
+    <string name="remove_stop_btn">წაშლა</string>
+    <string name="check_in_btn">მონიშვნა</string>
+    <string name="nav_to_fob">სასტუმროსკენ</string>
+    <string name="mission_end_point">ტურის დასასრული</string>
+    <string name="visited_stamp">ნანახია</string>
+    <string name="builder_add_target">ადგილის დამატება</string>
+    <string name="search_hint">ადგილის ძებნა...</string>
 </resources>

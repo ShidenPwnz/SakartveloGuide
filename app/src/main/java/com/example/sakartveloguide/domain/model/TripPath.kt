@@ -1,6 +1,6 @@
 package com.example.sakartveloguide.domain.model
 
-import com.example.sakartveloguide.R
+import com.example.sakartveloguide.R // CRITICAL IMPORT
 
 data class TripPath(
     val id: String,
@@ -36,9 +36,12 @@ data class LocalizedString(
     val tr: String = "", val hy: String = "", val iw: String = "", val ar: String = ""
 ) {
     fun get(code: String): String = when(code.lowercase()) {
-        "ka" -> ka.ifEmpty { en }; "ru" -> ru.ifEmpty { en }
-        "tr" -> tr.ifEmpty { en }; "hy" -> hy.ifEmpty { en }
-        "iw" -> iw.ifEmpty { en }; "ar" -> ar.ifEmpty { en }
+        "ka" -> ka.ifEmpty { en }
+        "ru" -> ru.ifEmpty { en }
+        "tr" -> tr.ifEmpty { en }
+        "hy" -> hy.ifEmpty { en }
+        "iw" -> iw.ifEmpty { en }
+        "ar" -> ar.ifEmpty { en }
         else -> en
     }
 }
@@ -49,17 +52,16 @@ enum class ZoneType { URBAN_CORE, URBAN_PERIPHERY, RURAL_HUB, REMOTE_WILDERNESS,
 enum class RouteCategory { GUIDE, RELIGIOUS, WINE_CELLAR, WINE_REGION, MOUNTAIN, HIKING, URBAN, URBAN_EXPLORER, COASTAL, HISTORICAL, CULTURE, NATURE, CAPITAL }
 enum class Difficulty { RELAXED, NORMAL, EXPLORER, WARRIOR, EASY, MODERATE, HARD }
 
-// Inside TripPath.kt or a standalone file
+// ARCHITECT'S FIX: Pointing to verified string IDs in strings.xml
 fun RouteCategory.getLabelRes(): Int {
     return when(this) {
         RouteCategory.GUIDE -> R.string.cat_guide
-        RouteCategory.CAPITAL -> R.string.cat_capital
+        RouteCategory.URBAN, RouteCategory.CAPITAL, RouteCategory.URBAN_EXPLORER -> R.string.cat_urban
         RouteCategory.MOUNTAIN -> R.string.cat_mountain
         RouteCategory.WINE_REGION, RouteCategory.WINE_CELLAR -> R.string.cat_wine
         RouteCategory.CULTURE, RouteCategory.HISTORICAL -> R.string.cat_culture
-        RouteCategory.URBAN, RouteCategory.URBAN_EXPLORER -> R.string.cat_capital
-        RouteCategory.NATURE -> R.string.cat_mountain
-        RouteCategory.COASTAL -> R.string.cat_culture
+        RouteCategory.NATURE -> R.string.cat_nature
+        RouteCategory.COASTAL -> R.string.cat_relaxed
         else -> R.string.cat_culture
     }
 }

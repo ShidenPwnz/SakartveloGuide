@@ -1,5 +1,6 @@
 package com.example.sakartveloguide.presentation.home
 
+import android.os.Build
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -10,15 +11,18 @@ import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.getValue // ARCHITECT'S FIX: CRITICAL IMPORT
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asComposeRenderEffect // CRITICAL IMPORT
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
+import androidx.compose.ui.zIndex
 import com.example.sakartveloguide.R
 import com.example.sakartveloguide.domain.model.*
 import com.example.sakartveloguide.presentation.home.components.PathCard
@@ -32,7 +36,6 @@ fun HomeScreen(
     onPassportClick: () -> Unit,
     onSettingsClick: () -> Unit
 ) {
-    // Explicit collection to prevent inference errors
     val uiState by viewModel.uiState.collectAsState()
     val session by viewModel.userSession.collectAsState(initial = UserSession())
 
@@ -65,12 +68,40 @@ fun HomeScreen(
                     ) { vPage ->
                         val path = paths[vPage]
                         val pageOffset = (vPagerState.currentPage - vPage).toFloat() + vPagerState.currentPageOffsetFraction
+                        val absOffset = pageOffset.absoluteValue.coerceIn(0f, 1f)
 
-                        Box(modifier = Modifier.fillMaxWidth().height(520.dp).graphicsLayer {
-                            val scale = lerp(0.85f, 1f, 1f - pageOffset.absoluteValue.coerceIn(0f, 1f))
-                            scaleX = scale; scaleY = scale
-                            alpha = lerp(0.5f, 1f, 1f - pageOffset.absoluteValue.coerceIn(0f, 1f))
-                        }) {
+                        // Foreground is 1f, background items are lower
+                        val dynamicZIndex = 1f - absOffset
+
+                        Box(modifier = Modifier
+                            .fillMaxWidth()
+                            .height(520.dp)
+                            .zIndex(dynamicZIndex)
+                            .graphicsLayer {
+                                val scale = lerp(0.85f, 1f, 1f - absOffset)
+                                scaleX = scale
+                                scaleY = scale
+
+                                // Dim background items aggressively
+                                alpha = lerp(0.3f, 1f, 1f - absOffset)
+
+                                // Apply Gaussian Blur for Android 12+ (High Performance)
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                    val blurAmount = absOffset * 40f // Increased blur intensity
+                                    if (blurAmount > 0f) {
+                                        renderEffect = android.graphics.RenderEffect.createBlurEffect(
+                                            blurAmount, blurAmount, android.graphics.Shader.TileMode.DECAL
+                                        ).asComposeRenderEffect()
+                                    }
+                                }
+                            }
+                            // Fallback blur for Android 11 and below
+                            .then(
+                                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S && absOffset > 0.1f) {
+                                    Modifier.blur(radius = (absOffset * 15f).dp)
+                                } else Modifier
+                            )
+                        ) {
                             PathCard(
                                 trip = path,
                                 languageCode = session.language,

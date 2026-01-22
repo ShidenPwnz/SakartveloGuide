@@ -19,8 +19,12 @@ class NavigationBridge @Inject constructor(
         return TacticalMath.calculateDistanceKm(p1, p2)
     }
 
-    fun getMapsIntent(start: GeoPoint, end: GeoPoint, mode: String): Intent {
-        val uri = Uri.parse("https://www.google.com/maps/dir/?api=1&origin=${start.latitude},${start.longitude}&destination=${end.latitude},${end.longitude}&travelmode=$mode")
+    fun getMapsIntent(start: GeoPoint?, end: GeoPoint, mode: String): Intent {
+        // ARCHITECT'S FIX: Use the universal web-dir URI.
+        // Leaving 'origin' empty or using 'Current+Location' forces GPS start.
+        val transportMode = if (mode == "walking") "w" else "d"
+        val uri = Uri.parse("https://www.google.com/maps/dir/?api=1&destination=${end.latitude},${end.longitude}&travelmode=$mode")
+
         return Intent(Intent.ACTION_VIEW, uri).apply {
             setPackage("com.google.android.apps.maps")
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -28,24 +32,17 @@ class NavigationBridge @Inject constructor(
     }
 
     fun getExfilIntent(destination: GeoPoint): Intent {
-        val uri = Uri.parse("google.navigation:q=${destination.latitude},${destination.longitude}")
+        val uri = Uri.parse("https://www.google.com/maps/dir/?api=1&destination=${destination.latitude},${destination.longitude}")
         return Intent(Intent.ACTION_VIEW, uri).apply {
             setPackage("com.google.android.apps.maps")
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
     }
 
-    // FIXED: Bolt Logic with Web Fallback
     fun getBoltIntent(dest: GeoPoint): Intent {
-        // Try Deep Link first
         val uri = Uri.parse("bolt://ride?destination_lat=${dest.latitude}&destination_lng=${dest.longitude}")
-        val intent = Intent(Intent.ACTION_VIEW, uri).apply {
+        return Intent(Intent.ACTION_VIEW, uri).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
-
-        // We verify if app is installed in the UI layer usually,
-        // but here we return the intent. If it fails, the ViewModel fallback handles it.
-        // Actually, let's return a safe wrapper intent here.
-        return intent
     }
 }

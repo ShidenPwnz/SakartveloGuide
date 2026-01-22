@@ -6,22 +6,22 @@ import com.example.sakartveloguide.domain.model.*
 fun TripEntity.toDomain(): TripPath {
     return TripPath(
         id = id,
-        // FIX 1: Convert simple Strings to LocalizedString (English default)
-        title = LocalizedString(en = title),
-        description = LocalizedString(en = description),
+        title = LocalizedString(
+            en = titleEn, ka = titleKa, ru = titleRu,
+            tr = titleTr, hy = titleHy, iw = titleIw, ar = titleAr
+        ),
+        description = LocalizedString(
+            en = descEn, ka = descKa, ru = descRu,
+            tr = descTr, hy = descHy, iw = descIw, ar = descAr
+        ),
         imageUrl = imageUrl,
         category = try { RouteCategory.valueOf(category) } catch (e: Exception) { RouteCategory.CULTURE },
         difficulty = try { Difficulty.valueOf(difficulty) } catch (e: Exception) { Difficulty.NORMAL },
-
-        // FIX 2: Estimate missing fields or set defaults
-        totalRideTimeMinutes = durationDays * 60, // Rough estimate based on days
+        totalRideTimeMinutes = durationDays * 60,
         durationDays = durationDays,
         hasSnowWarning = hasSnowWarning,
         isLocked = isLocked,
         isPremium = isPremium,
-
-        // FIX 3: Return empty lists.
-        // The Repository fills these in using the IDs when 'loadFullDetails' is true.
         route = emptyList(),
         itinerary = emptyList()
     )
