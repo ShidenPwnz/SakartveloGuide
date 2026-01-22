@@ -9,7 +9,6 @@ import com.example.sakartveloguide.presentation.home.*
 import com.example.sakartveloguide.presentation.passport.*
 import com.example.sakartveloguide.presentation.settings.*
 import com.example.sakartveloguide.presentation.builder.*
-// Imports AdventureViewModel and TripPlannerScreen
 import com.example.sakartveloguide.presentation.planner.*
 import com.example.sakartveloguide.domain.model.*
 import kotlinx.coroutines.flow.collectLatest
@@ -40,7 +39,6 @@ fun SakartveloNavGraph(
                     onPathClick = { id ->
                         if (id == "meta_sandbox") {
                             homeViewModel.prepareForNewMission()
-                            // ARCHITECT'S FIX: Bypass Builder, go straight to empty Planner
                             navController.navigate("briefing/custom_cargo?ids=")
                         } else {
                             navController.navigate("briefing/$id")
@@ -52,14 +50,12 @@ fun SakartveloNavGraph(
             }
 
             composable("custom_builder") {
+                // Dead route, but kept for safety
                 val vm: MissionBuilderViewModel = hiltViewModel()
                 MissionBuilderScreen(
                     viewModel = vm,
                     onBack = { navController.popBackStack() },
-                    onProceed = { ids ->
-                        val idsStr = ids.joinToString(",")
-                        navController.navigate("briefing/custom_cargo?ids=$idsStr")
-                    }
+                    onProceed = { ids -> navController.navigate("briefing/custom_cargo?ids=${ids.joinToString(",")}") }
                 )
             }
 
@@ -75,7 +71,15 @@ fun SakartveloNavGraph(
 
                 TripPlannerScreen(
                     viewModel = vm,
-                    onBack = { navController.popBackStack() },
+                    // ARCHITECT'S FIX: Safe Exit Strategy
+                    // If app was killed, backstack is empty. popBackStack() would close app.
+                    // We explicitly navigate Home to ensure safety.
+                    onBack = {
+                        navController.navigate("home") {
+                            popUpTo(0) // Clear stack
+                            launchSingleTop = true
+                        }
+                    },
                     onNavigateToFobMap = {
                         navController.navigate("fob_recon/${backStackEntry.arguments?.getString("tripId")}")
                     }

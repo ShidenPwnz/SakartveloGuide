@@ -1,7 +1,9 @@
 package com.example.sakartveloguide.presentation.builder
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
+import android.location.Geocoder
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -9,6 +11,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -17,17 +21,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.example.sakartveloguide.domain.model.GeoPoint
 import com.example.sakartveloguide.presentation.mission.components.MapViewContainer
 import com.example.sakartveloguide.presentation.theme.SakartveloRed
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.location.LocationComponentActivationOptions
 import org.maplibre.android.maps.MapLibreMap
-import org.maplibre.android.maps.Style
+import java.util.Locale
 
 @Composable
 fun FobSetupView(
@@ -35,10 +44,13 @@ fun FobSetupView(
     onSetBase: (GeoPoint) -> Unit
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val focusManager = LocalFocusManager.current
+
     var mapCenter by remember { mutableStateOf(initialCenter) }
     var mapRef by remember { mutableStateOf<MapLibreMap?>(null) }
+    var searchQuery by remember { mutableStateOf("") }
 
-    // ARCHITECT'S FIX: Safe Permission Launcher with correct Options Builder
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -73,7 +85,6 @@ fun FobSetupView(
                     }
                 }
 
-                // Check permission on load
                 if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
                     map.getStyle { style ->
                         val options = LocationComponentActivationOptions.builder(context, style).build()
@@ -83,6 +94,40 @@ fun FobSetupView(
                 }
             }
         )
+
+        // --- SEARCH BAR OVERLAY ---
+        Surface(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .padding(16.dp),
+            shape = RoundedCornerShape(16.dp),
+            shadowElevation = 8.dp,
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Search address...") },
+                leadingIcon = { Icon(Icons.Default.Search, null, tint = SakartveloRed) },
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent
+                ),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = {
+                    focusManager.clearFocus()
+                    scope.launch {
+                        val result = performGeocoding(context, searchQuery)
+                        result?.let { latLng ->
+                            mapRef?.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15.0))
+                        }
+                    }
+                })
+            )
+        }
 
         // Center Indicator
         Icon(
@@ -129,5 +174,19 @@ fun FobSetupView(
         ) {
             Text("CONFIRM HOME", fontWeight = FontWeight.Black)
         }
+    }
+}
+
+// Simple Geocoder Helper
+suspend fun performGeocoding(context: Context, query: String): LatLng? = withContext(Dispatchers.IO) {
+    try {
+        val geocoder = Geocoder(context, Locale.getDefault())
+        @Suppress("DEPRECATION")
+        val addresses = geocoder.getFromLocationName(query, 1)
+        if (!addresses.isNullOrEmpty()) {
+            LatLng(addresses[0].latitude, addresses[0].longitude)
+        } else null
+    } catch (e: Exception) {
+        null
     }
 }
