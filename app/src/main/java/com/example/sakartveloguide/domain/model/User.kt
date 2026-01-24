@@ -5,5 +5,6 @@ data class SakartveloUser(
     val email: String,
     val displayName: String?,
     val photoUrl: String?,
-    val idToken: String?
+    val idToken: String?,
+    val isGuest: Boolean = false // ADD THIS
 )

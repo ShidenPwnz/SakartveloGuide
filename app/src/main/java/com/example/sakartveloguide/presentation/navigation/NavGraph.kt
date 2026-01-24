@@ -49,17 +49,6 @@ fun SakartveloNavGraph(
                 )
             }
 
-            composable("custom_builder") {
-                // Dead route, but kept for safety
-                val vm: MissionBuilderViewModel = hiltViewModel()
-                MissionBuilderScreen(
-                    viewModel = vm,
-                    onBack = { navController.popBackStack() },
-                    onProceed = { ids -> navController.navigate("briefing/custom_cargo?ids=${ids.joinToString(",")}") }
-                )
-            }
-
-            // --- TRIP PLANNER ---
             composable(
                 route = "briefing/{tripId}?ids={ids}",
                 arguments = listOf(
@@ -68,20 +57,19 @@ fun SakartveloNavGraph(
                 )
             ) { backStackEntry ->
                 val vm: AdventureViewModel = hiltViewModel(backStackEntry)
-
                 TripPlannerScreen(
                     viewModel = vm,
-                    // ARCHITECT'S FIX: Safe Exit Strategy
-                    // If app was killed, backstack is empty. popBackStack() would close app.
-                    // We explicitly navigate Home to ensure safety.
                     onBack = {
                         navController.navigate("home") {
-                            popUpTo(0) // Clear stack
+                            popUpTo(0)
                             launchSingleTop = true
                         }
                     },
                     onNavigateToFobMap = {
                         navController.navigate("fob_recon/${backStackEntry.arguments?.getString("tripId")}")
+                    },
+                    onNavigateToPassport = {
+                        navController.navigate("passport")
                     }
                 )
             }
@@ -94,11 +82,15 @@ fun SakartveloNavGraph(
                 val parentEntry = remember(backStackEntry) {
                     navController.getBackStackEntry("briefing/$tripId?ids=")
                 }
-
                 val vm: AdventureViewModel = hiltViewModel(parentEntry)
+                val plannerState by vm.uiState.collectAsState()
+
+                val firstPoint = plannerState.route.firstOrNull()?.let {
+                    GeoPoint(it.latitude, it.longitude)
+                } ?: GeoPoint(41.7125, 44.7930)
 
                 FobSetupView(
-                    initialCenter = vm.uiState.value.route.firstOrNull()?.let { GeoPoint(it.latitude, it.longitude) } ?: GeoPoint(41.7, 44.8),
+                    initialCenter = firstPoint,
                     onSetBase = { loc ->
                         vm.setBaseCamp(loc)
                         navController.popBackStack()
@@ -107,11 +99,17 @@ fun SakartveloNavGraph(
             }
 
             composable("settings") {
-                val sessionState = homeViewModel.userSession.collectAsState(initial = UserSession())
+                val sessionState by homeViewModel.userSession.collectAsState(initial = UserSession())
+                val currentUser by homeViewModel.currentUser.collectAsState()
                 SettingsScreen(
-                    session = sessionState.value,
+                    user = currentUser,
+                    session = sessionState,
                     onBack = { navController.popBackStack() },
                     onWipeData = { homeViewModel.wipeAllUserData() },
+                    onLogout = {
+                        homeViewModel.signOut()
+                        navController.popBackStack()
+                    },
                     onLanguageChange = { code -> homeViewModel.onLanguageChange(code) }
                 )
             }

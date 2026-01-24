@@ -7,9 +7,9 @@ import androidx.lifecycle.viewModelScope
 import com.example.sakartveloguide.data.local.PreferenceManager
 import com.example.sakartveloguide.domain.location.LocationManager
 import com.example.sakartveloguide.domain.model.*
+import com.example.sakartveloguide.domain.repository.AuthRepository
 import com.example.sakartveloguide.domain.repository.TripRepository
 import com.example.sakartveloguide.domain.usecase.AddPassportStampUseCase
-import com.example.sakartveloguide.domain.util.TacticalMath
 import com.example.sakartveloguide.ui.manager.HapticManager
 import com.example.sakartveloguide.ui.manager.SoundManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -28,6 +28,7 @@ data class HomeUiState(
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val repository: TripRepository,
+    private val authRepository: AuthRepository,
     private val addPassportStampUseCase: AddPassportStampUseCase,
     private val hapticManager: HapticManager,
     private val soundManager: SoundManager,
@@ -49,56 +50,84 @@ class HomeViewModel @Inject constructor(
     val navigationEvent = _navigationEvent.asSharedFlow()
 
     val userSession: Flow<UserSession> = preferenceManager.userSession
+    val currentUser = authRepository.currentUser
 
     private val _stampingTrip = MutableStateFlow<TripPath?>(null)
     val stampingTrip: StateFlow<TripPath?> = _stampingTrip.asStateFlow()
 
-    init { initAdventureEngine() }
+    init {
+        initAdventureEngine()
+    }
 
     private fun initAdventureEngine() {
+        // 1. Trigger Data Refresh (Non-Blocking)
         viewModelScope.launch {
             try {
                 repository.refreshTrips()
-
-                val session = preferenceManager.userSession.first()
-                if (session.state == UserJourneyState.ON_THE_ROAD && session.activePathId != null) {
-                    _initialDestination.value = "briefing/${session.activePathId}"
-                } else {
-                    _initialDestination.value = "home"
-                }
-
-                repository.getAvailableTrips().collectLatest { trips ->
-                    val grouped = trips.groupBy { Category(it.category.name) }.toMutableMap()
-                    val sortedMap = grouped.keys
-                        .sortedByDescending { it.name == "GUIDE" }
-                        .associateWith { grouped[it]!! }
-
-                    _uiState.update { it.copy(groupedPaths = sortedMap, isLoading = false) }
-                    _isSplashReady.value = true
-                }
             } catch (e: Exception) {
-                Log.e("SAKARTVELO_INIT", "Startup Error", e)
-                _initialDestination.value = "home"
-                _isSplashReady.value = true
+                Log.e("SAKARTVELO_INIT", "Data Refresh Failed", e)
             }
+        }
+
+        // 2. Observe Session for Navigation (Non-Blocking)
+        viewModelScope.launch {
+            preferenceManager.userSession
+                .catch { emit(UserSession()) } // Safety fallback
+                .collect { session ->
+                    if (session.state == UserJourneyState.ON_THE_ROAD && session.activePathId != null) {
+                        _initialDestination.value = "briefing/${session.activePathId}?ids="
+                    } else {
+                        _initialDestination.value = "home"
+                    }
+                }
+        }
+
+        // 3. Observe Trips for UI (Non-Blocking)
+        viewModelScope.launch {
+            repository.getAvailableTrips()
+                .catch { Log.e("SAKARTVELO_UI", "Flow Error", it) }
+                .collectLatest { trips ->
+                    if (trips.isNotEmpty()) {
+                        val grouped = trips.groupBy { Category(it.category.name) }.toMutableMap()
+                        val sortedMap = grouped.keys
+                            .sortedByDescending { it.name == "GUIDE" }
+                            .associateWith { grouped[it]!! }
+
+                        _uiState.update { it.copy(groupedPaths = sortedMap, isLoading = false) }
+                        _isSplashReady.value = true
+                    } else {
+                        // Keep loading or show empty state, but don't crash
+                        _uiState.update { it.copy(isLoading = false) } // Stop spinner even if empty
+                        _isSplashReady.value = true
+                    }
+                }
         }
     }
 
-    /**
-     * ARCHITECT'S RESTORATION: The Journey Completion Sequence.
-     * Checks if the user is at the final destination and awards a stamp.
-     */
+    fun signIn(context: Context) {
+        viewModelScope.launch {
+            authRepository.signIn(context)
+        }
+    }
+
+    fun onGuestSignIn() {
+        viewModelScope.launch {
+            authRepository.continueAsGuest()
+        }
+    }
+
+    fun signOut() {
+        viewModelScope.launch {
+            authRepository.signOut()
+        }
+    }
+
     fun onCompleteTrip(trip: TripPath) {
         viewModelScope.launch {
-            // Trigger visual "Slam" animation
             _stampingTrip.value = trip
             hapticManager.missionCompleteSlam()
             soundManager.playStampSlam()
-
-            // Persist the stamp in the database
             addPassportStampUseCase(trip)
-
-            // Journey logic is reset to browsing
             preferenceManager.updateState(UserJourneyState.BROWSING, null)
             preferenceManager.clearCurrentMissionData()
         }
@@ -121,8 +150,15 @@ class HomeViewModel @Inject constructor(
     }
 
     fun triggerHapticTick() { hapticManager.tick() }
-    fun onLanguageChange(code: String) = viewModelScope.launch { preferenceManager.updateLanguage(code) }
-    fun onHideTutorialPermanent() { viewModelScope.launch { preferenceManager.setHasSeenTutorial(true) } }
+
+    fun onLanguageChange(code: String) {
+        viewModelScope.launch { preferenceManager.updateLanguage(code) }
+    }
+
+    fun onHideTutorialPermanent() {
+        viewModelScope.launch { preferenceManager.setHasSeenTutorial(true) }
+    }
+
     fun onSlamAnimationFinished() {
         viewModelScope.launch {
             _stampingTrip.value = null

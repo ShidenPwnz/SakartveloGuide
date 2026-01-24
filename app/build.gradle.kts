@@ -24,14 +24,15 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = true // ARCHITECT'S COMMAND: Turn on shrinking
-            isShrinkResources = true // Remove unused images/layouts
+            isMinifyEnabled = true
+            isShrinkResources = false // <--- CHANGE THIS TO FALSE
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("debug") // Temporary for testing release build
+            signingConfig = signingConfigs.getByName("debug")
         }
+
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11

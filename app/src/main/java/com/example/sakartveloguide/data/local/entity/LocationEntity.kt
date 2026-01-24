@@ -2,19 +2,17 @@ package com.example.sakartveloguide.data.local.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.google.gson.annotations.SerializedName
 
 @Entity(tableName = "locations")
 data class LocationEntity(
-    @PrimaryKey(autoGenerate = false)
-    val id: Int,
+    @PrimaryKey val id: Int,
     val type: String,
     val region: String,
     val latitude: Double,
     val longitude: Double,
     val imageUrl: String,
 
-    // Trip Titles (From your JSON 'name')
+    // NAMES (If your JSON only has 'name', we store it in nameEn and use as fallback)
     val nameEn: String,
     val nameKa: String = "",
     val nameRu: String = "",
@@ -23,7 +21,7 @@ data class LocationEntity(
     val nameIw: String = "",
     val nameAr: String = "",
 
-    // Descriptions (From your JSON 'desc_xx')
+    // DESCRIPTIONS (Mapped from your desc_xx keys)
     val descEn: String,
     val descKa: String = "",
     val descRu: String = "",

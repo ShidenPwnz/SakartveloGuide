@@ -15,7 +15,6 @@ import com.example.sakartveloguide.domain.model.UserSession
 import com.example.sakartveloguide.presentation.home.HomeViewModel
 import com.example.sakartveloguide.presentation.navigation.SakartveloNavGraph
 import com.example.sakartveloguide.presentation.theme.SakartveloTheme
-import com.example.sakartveloguide.presentation.passport.components.PassportSlamOverlay
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -30,8 +29,8 @@ class MainActivity : AppCompatActivity() {
 
         setContent {
             val session by viewModel.userSession.collectAsState(initial = UserSession())
-            val stampingTrip by viewModel.stampingTrip.collectAsState()
 
+            // Reactive Locale Application
             LaunchedEffect(session.language) {
                 if (session.language.isNotEmpty()) {
                     val appLocale = LocaleListCompat.forLanguageTags(session.language)
@@ -45,16 +44,8 @@ class MainActivity : AppCompatActivity() {
                 Box(modifier = Modifier.fillMaxSize()) {
                     SakartveloNavGraph(
                         homeViewModel = viewModel,
-                        // RESOLVED: Lambda correctly calls restored method
                         onCompleteTrip = { trip -> viewModel.onCompleteTrip(trip) }
                     )
-
-                    stampingTrip?.let { trip ->
-                        PassportSlamOverlay(
-                            trip = trip,
-                            onAnimationFinished = { viewModel.onSlamAnimationFinished() }
-                        )
-                    }
                 }
             }
         }

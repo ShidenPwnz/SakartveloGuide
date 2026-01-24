@@ -2,6 +2,7 @@ package com.example.sakartveloguide.data.repository
 
 import android.content.Context
 import android.util.Log
+import androidx.annotation.Keep // CRITICAL IMPORT
 import com.example.sakartveloguide.data.local.dao.LocationDao
 import com.example.sakartveloguide.data.local.dao.TripDao
 import com.example.sakartveloguide.data.local.entity.LocationEntity
@@ -9,6 +10,7 @@ import com.example.sakartveloguide.data.local.entity.TripEntity
 import com.example.sakartveloguide.domain.model.*
 import com.example.sakartveloguide.domain.repository.TripRepository
 import com.google.gson.Gson
+import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -19,16 +21,47 @@ import java.io.InputStreamReader
 import javax.inject.Inject
 import javax.inject.Singleton
 
-// DEFENSIVE DTOs
+// --- HARDENED DTOs WITH @KEEP (Immune to R8) ---
+@Keep
 data class RawLocationDto(
-    val id: Int, val name: String?, val region: String?, val lat: Double?, val lng: Double?, val image: String?, val category: String?,
-    val desc_en: String?, val desc_ka: String?, val desc_ru: String?, val desc_tr: String?, val desc_hy: String?, val desc_iw: String?, val desc_ar: String?
+    @SerializedName("id") val id: Int,
+    @SerializedName("name") val name: String?,
+    @SerializedName("region") val region: String?,
+    @SerializedName("lat") val lat: Double?,
+    @SerializedName("lng") val lng: Double?,
+    @SerializedName("image") val image: String?,
+    @SerializedName("category") val category: String?,
+    @SerializedName("desc_en") val desc_en: String?,
+    @SerializedName("desc_ka") val desc_ka: String?,
+    @SerializedName("desc_ru") val desc_ru: String?,
+    @SerializedName("desc_tr") val desc_tr: String?,
+    @SerializedName("desc_hy") val desc_hy: String?,
+    @SerializedName("desc_iw") val desc_iw: String?,
+    @SerializedName("desc_ar") val desc_ar: String?
 )
 
+@Keep
 data class TripTemplateDto(
-    val id: String, val image: String?, val category: String?, val difficulty: String?, val duration_days: Int?, val sequence: List<Int>?,
-    val title_en: String?, val title_ka: String?, val title_ru: String?, val title_tr: String?, val title_hy: String?, val title_iw: String?, val title_ar: String?,
-    val description_en: String?, val description_ka: String?, val description_ru: String?, val description_tr: String?, val description_hy: String?, val description_iw: String?, val description_ar: String?
+    @SerializedName("id") val id: String,
+    @SerializedName("image") val image: String?,
+    @SerializedName("category") val category: String?,
+    @SerializedName("difficulty") val difficulty: String?,
+    @SerializedName("duration_days") val duration_days: Int?,
+    @SerializedName("sequence") val sequence: List<Int>?,
+    @SerializedName("title_en") val title_en: String?,
+    @SerializedName("title_ka") val title_ka: String?,
+    @SerializedName("title_ru") val title_ru: String?,
+    @SerializedName("title_tr") val title_tr: String?,
+    @SerializedName("title_hy") val title_hy: String?,
+    @SerializedName("title_iw") val title_iw: String?,
+    @SerializedName("title_ar") val title_ar: String?,
+    @SerializedName("description_en") val description_en: String?,
+    @SerializedName("description_ka") val description_ka: String?,
+    @SerializedName("description_ru") val description_ru: String?,
+    @SerializedName("description_tr") val description_tr: String?,
+    @SerializedName("description_hy") val description_hy: String?,
+    @SerializedName("description_iw") val description_iw: String?,
+    @SerializedName("description_ar") val description_ar: String?
 )
 
 @Singleton
@@ -81,23 +114,29 @@ class TripRepositoryImpl @Inject constructor(
                 // 1. Locations
                 val locStream = context.assets.open("master_locations.json")
                 val rawLocs: List<RawLocationDto> = gson.fromJson(InputStreamReader(locStream), object : TypeToken<List<RawLocationDto>>() {}.type)
-                locationDao.insertLocations(rawLocs.map { dto ->
-                    LocationEntity(
-                        id = dto.id, type = dto.category ?: "POI", region = dto.region ?: "Georgia", latitude = dto.lat ?: 0.0, longitude = dto.lng ?: 0.0, imageUrl = dto.image ?: "",
-                        nameEn = dto.name ?: "Place", nameKa = dto.name ?: "", nameRu = dto.name ?: "", nameTr = dto.name ?: "", nameHy = dto.name ?: "", nameIw = dto.name ?: "", nameAr = dto.name ?: "",
-                        descEn = dto.desc_en ?: "", descKa = dto.desc_ka ?: "", descRu = dto.desc_ru ?: "", descTr = dto.desc_tr ?: "", descHy = dto.desc_hy ?: "", descIw = dto.desc_iw ?: "", descAr = dto.desc_ar ?: ""
-                    )
-                })
+
+                if (rawLocs.isNotEmpty()) {
+                    locationDao.insertLocations(rawLocs.map { dto ->
+                        LocationEntity(
+                            id = dto.id, type = dto.category ?: "POI", region = dto.region ?: "Georgia", latitude = dto.lat ?: 0.0, longitude = dto.lng ?: 0.0, imageUrl = dto.image ?: "",
+                            nameEn = dto.name ?: "Place", nameKa = dto.name ?: "", nameRu = dto.name ?: "", nameTr = dto.name ?: "", nameHy = dto.name ?: "", nameIw = dto.name ?: "", nameAr = dto.name ?: "",
+                            descEn = dto.desc_en ?: "", descKa = dto.desc_ka ?: "", descRu = dto.desc_ru ?: "", descTr = dto.desc_tr ?: "", descHy = dto.desc_hy ?: "", descIw = dto.desc_iw ?: "", descAr = dto.desc_ar ?: ""
+                        )
+                    })
+                }
 
                 // 2. Templates
                 val tripStream = context.assets.open("mission_templates.json")
                 val templates: List<TripTemplateDto> = gson.fromJson(InputStreamReader(tripStream), object : TypeToken<List<TripTemplateDto>>() {}.type)
-                val entities = templates.map { t ->
-                    TripEntity(
-                        id = t.id, imageUrl = t.image ?: "", category = t.category ?: "CULTURE", difficulty = t.difficulty ?: "NORMAL", durationDays = t.duration_days ?: 1, targetIds = t.sequence ?: emptyList(),
-                        titleEn = t.title_en ?: "Trip", titleKa = t.title_ka ?: "", titleRu = t.title_ru ?: "", titleTr = t.title_tr ?: "", titleHy = t.title_hy ?: "", titleIw = t.title_iw ?: "", titleAr = t.title_ar ?: "",
-                        descEn = t.description_en ?: "", descKa = t.description_ka ?: "", descRu = t.description_ru ?: "", descTr = t.description_tr ?: "", descHy = t.description_hy ?: "", descIw = t.description_iw ?: "", descAr = t.description_ar ?: ""
-                    )
+
+                val entities = templates.mapNotNull { t ->
+                    if (t.id.isNotEmpty()) {
+                        TripEntity(
+                            id = t.id, imageUrl = t.image ?: "", category = t.category ?: "CULTURE", difficulty = t.difficulty ?: "NORMAL", durationDays = t.duration_days ?: 1, targetIds = t.sequence ?: emptyList(),
+                            titleEn = t.title_en ?: "Trip", titleKa = t.title_ka ?: "", titleRu = t.title_ru ?: "", titleTr = t.title_tr ?: "", titleHy = t.title_hy ?: "", titleIw = t.title_iw ?: "", titleAr = t.title_ar ?: "",
+                            descEn = t.description_en ?: "", descKa = t.description_ka ?: "", descRu = t.description_ru ?: "", descTr = t.description_tr ?: "", descHy = t.description_hy ?: "", descIw = t.description_iw ?: "", descAr = t.description_ar ?: ""
+                        )
+                    } else null
                 }.toMutableList()
 
                 // 3. Sandbox

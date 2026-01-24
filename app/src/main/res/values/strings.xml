@@ -1,83 +1,56 @@
 <resources>
     <string name="app_name">Sakartvelo Guide</string>
+    <string name="auth_init_title">INITIALIZE IDENTITY</string>
+    <string name="auth_welcome">Welcome to Georgia.\nSecure your data to proceed.</string>
+    <string name="auth_google_btn">SIGN IN WITH GOOGLE</string>
+    <string name="auth_guest_btn">PROCEED AS GUEST</string>
+    <string name="auth_footer">Signing in allows mission logs and passport stamps to sync across devices.</string>
     <string name="discover">EXPLORE</string>
-    <string name="top_highlights">TOP HIGHLIGHTS</string>
-
-    <!-- Wizard Step 1 -->
-    <string name="wizard_step_hotel">Where is your base?</string>
-    <string name="wizard_step_hotel_desc">Choose a place to stay. We recommend staying near the old town for this trip.</string>
-    <string name="btn_book_hotel">BROWSE ON BOOKING.COM</string>
-    <string name="btn_set_fob">I\'VE BOOKED, SELECT ON MAP</string>
-
-    <!-- Wizard Step 2 -->
-    <string name="wizard_step_arrival">Arrival Protocol</string>
-    <string name="wizard_step_arrival_desc">Which airport or border crossing are you using?</string>
-
-    <!-- Wizard Step 3 -->
-    <string name="wizard_step_transport">Mobility Strategy</string>
-    <string name="wizard_step_transport_desc">Taxis are cheap, but 4x4s give you total freedom.</string>
-
-    <string name="btn_continue">PROCEED TO NEXT STEP</string>
-    <string name="itinerary_ready">ITINERARY SECURED</string>
-
-    <!-- Labels -->
-    <string name="label_taxi_walking">Taxis &amp; Walking</string>
-    <string name="label_rental_car">Rental Car (4x4)</string>
-    <string name="label_tbilisi_airport">Tbilisi Airport (TBS)</string>
-    <string name="label_kutaisi_airport">Kutaisi Airport (KUT)</string>
-    <string name="label_batumi_airport">Batumi Airport (BUS)</string>
-
-    <!-- UI Buttons -->
-    <string name="btn_set_location">SELECT ON MAP</string>
-    <string name="start_adventure_btn">START ADVENTURE</string>
-    <string name="edit_trip_btn">EDIT TRIP</string>
-    <string name="delete_trip_btn">SCRAP TRIP</string>
-    <string name="remove_stop_btn">REMOVE</string>
-    <string name="walk_btn">WALK</string>
-    <string name="drive_btn">DRIVE</string>
-    <string name="bolt_btn">BOLT TAXI</string>
-    <string name="check_in_btn">CHECK IN</string>
-    <string name="nav_to_fob">NAVIGATE TO HOTEL</string>
-    <string name="mission_end_point">TRIP END POINT</string>
-    <string name="visited_stamp">VISITED</string>
-    <string name="builder_title">TRIP PLANNER</string>
-    <string name="builder_loadout">ITINERARY</string>
+    <string name="settings_title">SETTINGS</string>
+    <string name="passport_title">MY PASSPORT</string>
+    <string name="lang_protocol">LANGUAGE PROTOCOL</string>
+    <string name="data_mgmt">DATA MANAGEMENT</string>
+    <string name="nuke_data">RESET ALL DATA</string>
+    <string name="nuke_desc">Permanently delete mission history</string>
+    <string name="logout_label">TERMINATE SESSION</string>
+    <string name="builder_title">MISSION BUILDER</string>
+    <string name="builder_loadout">LOADOUT</string>
     <string name="builder_proceed">PROCEED</string>
-    <string name="builder_add_target">ADD LOCATION</string>
-    <string name="search_hint">Search places...</string>
-    <string name="search_nearby">SUGGESTED NEARBY</string>
-    <string name="search_results">RESULTS</string>
+    <string name="planner_title">TRIP PLANNER</string>
+    <string name="trip_essentials">TRIP ESSENTIALS</string>
+    <string name="label_stay">STAY</string>
+    <string name="label_flight">FLIGHT</string>
+    <string name="label_taxi">TAXI</string>
+    <string name="set_home_title">SET HOME LOCATION</string>
+    <string name="set_home_sub">(Unlocks Smart Recs)</string>
+    <string name="home_secured">HOME SECURED</string>
+    <string name="home_start_title">HOME (START)</string>
+    <string name="home_return_title">RETURN HOME</string>
+    <string name="home_desc">Your secured base of operations.</string>
+    <string name="planner_empty_state">Set Home Location or Add a Stop to begin.</string>
     <string name="trip_details_title">TRIP OVERVIEW</string>
-    <string name="configure_trip">CUSTOMIZE</string>
+    <string name="configure_trip">CUSTOMIZE PROTOCOL</string>
     <string name="trip_duration_days">%d DAYS</string>
     <string name="trip_drive_time">DRIVE: %s</string>
     <string name="trip_intensity">PACE: %s</string>
     <string name="snow_warning_title">WINTER ALERT</string>
     <string name="snow_warning_desc">4x4 required Nov-April</string>
-    <string name="settings_title">SETTINGS</string>
-    <string name="lang_protocol">LANGUAGE</string>
-    <string name="data_mgmt">DATA</string>
-    <string name="nuke_data">Reset App</string>
-    <string name="nuke_desc">Delete history</string>
-    <string name="passport_title">MY PASSPORT</string>
-    <string name="region_visas">REGION STAMPS</string>
-    <string name="no_stamps">No stamps yet.</string>
-    <string name="arrival_section">ARRIVAL</string>
-    <string name="transport_section">TRANSPORT</string>
-    <string name="base_section">ACCOMMODATION</string>
-    <string name="base_secured">HOTEL SET</string>
-    <string name="base_pending">LOCATION NEEDED</string>
-    <string name="auto_arrange_btn">OPTIMIZE ROUTE</string>
-    <string name="live_phase">LIVE JOURNEY</string>
-    <string name="planning_phase">PLANNING</string>
-    <string name="trans_driver">DRIVER</string>
-    <string name="trans_driver_sub">Rental / Own Car</string>
+    <string name="trans_driver">PILOT</string>
+    <string name="trans_driver_sub">Rental / Own Vehicle</string>
     <string name="trans_passenger">PASSENGER</string>
-    <string name="trans_passenger_sub">Taxis / Walking</string>
-    <string name="get_bolt">GET BOLT</string>
-    <string name="rent_4x4">RENT 4x4</string>
-
-    <!-- Categories -->
+    <string name="trans_passenger_sub">Taxi / Transit / Walk</string>
+    <string name="btn_start_journey">START JOURNEY</string>
+    <string name="btn_pause_edit">PAUSE &amp; EDIT</string>
+    <string name="btn_optimize">OPTIMIZE ROUTE</string>
+    <string name="btn_check_in">CHECK IN</string>
+    <string name="btn_arrive_home">ARRIVE HOME &amp; FINISH</string>
+    <string name="search_hint">Search places or regions…</string>
+    <string name="nearby_gems">NEARBY GEMS</string>
+    <string name="regional_highlights">REGIONAL HIGHLIGHTS</string>
+    <string name="search_results">SEARCH RESULTS</string>
+    <string name="recommended_for_you">RECOMMENDED FOR YOU</string>
+    <string name="btn_add_to_trip">ADD TO TRIP</string>
+    <string name="btn_close">CLOSE</string>
     <string name="cat_guide">GUIDE</string>
     <string name="cat_urban">URBAN</string>
     <string name="cat_mountain">MOUNTAIN</string>
@@ -85,8 +58,7 @@
     <string name="cat_culture">CULTURE</string>
     <string name="cat_nature">NATURE</string>
     <string name="cat_relaxed">RELAXED</string>
-
-    <!-- General UI (Missing from your log) -->
-
-    <string name="base_set_btn">SET HOTEL</string>
+    <string name="region_visas">REGION STAMPS</string>
+    <string name="no_stamps">No stamps earned yet.</string>
+    <string name="approved_protocol">APPROVED PROTOCOL</string>
 </resources>

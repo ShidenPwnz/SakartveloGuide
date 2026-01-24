@@ -2,55 +2,53 @@ package com.example.sakartveloguide.presentation.passport.components
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
-import com.example.sakartveloguide.domain.model.TripPath
+import com.example.sakartveloguide.R
 import com.example.sakartveloguide.presentation.theme.SakartveloRed
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.launch // FIXED: Added missing import
 
 @Composable
 fun PassportSlamOverlay(
-    trip: TripPath,
+    regionName: String,
     onAnimationFinished: () -> Unit
 ) {
-    // ARCHITECT'S NOTE: Starting at 5x scale creates the "falling from sky" effect
-    val scale = remember { Animatable(5f) } 
-    val alpha = remember { Animatable(0f) }
-    val rotation = remember { Animatable(-10f) } // Tactical tilt
+    val scale = remember { Animatable(3f) }
+    val animAlpha = remember { Animatable(0f) }
+    val rotation = remember { Animatable(-15f) }
 
     LaunchedEffect(Unit) {
+        // Parallel Animation Launch
         launch {
-            // The "Thud": Low stiffness creates the heavy impact
             scale.animateTo(
                 targetValue = 1f,
                 animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow 
+                    dampingRatio = 0.4f,
+                    stiffness = Spring.StiffnessMedium
                 )
             )
         }
         launch {
-            alpha.animateTo(1f, tween(100))
-        }
-        launch {
-            rotation.animateTo(0f, spring(stiffness = Spring.StiffnessLow))
+            animAlpha.animateTo(1f, tween(300))
         }
 
-        // Hold for the "Collector's Gaze"
+        // Hold time for visual impact
         delay(2500)
         onAnimationFinished()
     }
@@ -58,51 +56,47 @@ fun PassportSlamOverlay(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.85f))
-            .zIndex(100f), // Force top layer
+            .background(Color.Black.copy(alpha = 0.8f))
+            .zIndex(100f),
         contentAlignment = Alignment.Center
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
+        Box(
             modifier = Modifier
-                .graphicsLayer(
-                    scaleX = scale.value,
-                    scaleY = scale.value,
-                    alpha = alpha.value,
-                    rotationZ = rotation.value
-                )
-                .drawBehind {
-                    // Visual: Tactical dashed circle (Ink-stamp aesthetic)
-                    drawCircle(
-                        color = SakartveloRed,
-                        style = Stroke(
-                            width = 4.dp.toPx(),
-                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(30f, 20f), 0f)
-                        )
-                    )
-                }
-                .padding(60.dp)
+                .size(280.dp)
+                .scale(scale.value)
+                .rotate(rotation.value)
+                .alpha(animAlpha.value)
+                .border(8.dp, SakartveloRed, RoundedCornerShape(24.dp))
+                .background(Color.Transparent),
+            contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = trip.category.name,
-                color = SakartveloRed,
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 2.sp
-            )
-            Text(
-                text = "APPROVED PROTOCOL",
-                color = SakartveloRed.copy(alpha = 0.8f),
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = "SAKARTVELO",
-                color = SakartveloRed,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.ExtraBold
-            )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = stringResource(R.string.approved_protocol),
+                    color = SakartveloRed,
+                    fontWeight = FontWeight.Black,
+                    fontSize = 14.sp,
+                    letterSpacing = 2.sp
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = regionName.uppercase(),
+                    color = SakartveloRed,
+                    fontWeight = FontWeight.Black,
+                    fontSize = 32.sp,
+                    style = MaterialTheme.typography.displaySmall,
+                    lineHeight = 40.sp,
+                    modifier = Modifier.padding(horizontal = 8.dp)
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "SAKARTVELO",
+                    color = SakartveloRed.copy(0.6f),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp,
+                    letterSpacing = 4.sp
+                )
+            }
         }
     }
 }
