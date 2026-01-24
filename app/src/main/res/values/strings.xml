@@ -20,7 +20,8 @@
     <string name="trip_essentials">TRIP ESSENTIALS</string>
     <string name="label_stay">STAY</string>
     <string name="label_flight">FLIGHT</string>
-    <string name="label_taxi">TAXI</string>
+    <string name="label_taxi">TRANSPORT</string>
+    <string name="label_rent">RENT CAR</string>
     <string name="set_home_title">SET HOME LOCATION</string>
     <string name="set_home_sub">(Unlocks Smart Recs)</string>
     <string name="home_secured">HOME SECURED</string>
@@ -44,6 +45,8 @@
     <string name="btn_optimize">OPTIMIZE ROUTE</string>
     <string name="btn_check_in">CHECK IN</string>
     <string name="btn_arrive_home">ARRIVE HOME &amp; FINISH</string>
+    <string name="btn_taxi">TAXI</string>
+    <string name="btn_rent">RENT 4X4</string>
     <string name="search_hint">Search places or regions…</string>
     <string name="nearby_gems">NEARBY GEMS</string>
     <string name="regional_highlights">REGIONAL HIGHLIGHTS</string>

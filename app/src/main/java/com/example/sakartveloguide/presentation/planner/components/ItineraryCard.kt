@@ -19,10 +19,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.example.sakartveloguide.R
 import com.example.sakartveloguide.data.local.entity.LocationEntity
 import com.example.sakartveloguide.presentation.planner.TripMode
 import com.example.sakartveloguide.presentation.theme.SakartveloRed
@@ -40,6 +42,7 @@ fun ItineraryCard(
     isCompleted: Boolean,
     onMapClick: () -> Unit,
     onTaxiClick: () -> Unit,
+    onRentClick: () -> Unit, // ADDED
     onCheckIn: () -> Unit,
     onRemove: () -> Unit,
     onCardClick: () -> Unit
@@ -51,11 +54,17 @@ fun ItineraryCard(
 
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         if (distFromPrev != null) {
-            TacticalConnector(dist = distFromPrev, showControls = showActiveVisuals, onMap = onMapClick, onTaxi = onTaxiClick)
+            TacticalConnector(
+                dist = distFromPrev,
+                showControls = showActiveVisuals,
+                onMap = onMapClick,
+                onTaxi = onTaxiClick,
+                onRent = onRentClick // ADDED
+            )
         } else { Spacer(Modifier.height(16.dp)) }
 
-        Surface(modifier = Modifier.fillMaxWidth().animateContentSize().clickable { onCardClick() }, shape = RoundedCornerShape(16.dp), border = BorderStroke(2.dp, borderColor), shadowElevation = if (showActiveVisuals) 12.dp else 4.dp, color = MaterialTheme.colorScheme.surface) {
-            Column {
+        Surface(modifier = Modifier.fillMaxWidth().clickable { onCardClick() }, shape = RoundedCornerShape(16.dp), border = BorderStroke(2.dp, borderColor), shadowElevation = if (showActiveVisuals) 12.dp else 4.dp, color = MaterialTheme.colorScheme.surface) {
+            Column(modifier = Modifier.animateContentSize()) {
                 Box(Modifier.height(180.dp)) {
                     AsyncImage(model = node.imageUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop, alpha = cardAlpha)
                     Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(0.9f)))))
@@ -87,7 +96,7 @@ fun ItineraryCard(
 }
 
 @Composable
-fun TacticalConnector(dist: Double, showControls: Boolean, onMap: () -> Unit, onTaxi: () -> Unit) {
+fun TacticalConnector(dist: Double, showControls: Boolean, onMap: () -> Unit, onTaxi: () -> Unit, onRent: () -> Unit) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(vertical = 4.dp)) {
         DottedLine(height = 12.dp)
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -95,7 +104,14 @@ fun TacticalConnector(dist: Double, showControls: Boolean, onMap: () -> Unit, on
             Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(50), border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(0.1f))) {
                 Text(text = formatDistance(dist), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface.copy(0.7f), modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
             }
-            if (showControls) { DottedHorizontal(8.dp); DiscreetPill(Icons.Default.LocalTaxi, "TAXI", onTaxi) }
+            if (showControls) {
+                DottedHorizontal(8.dp)
+                if (dist > 35.0) {
+                    DiscreetPill(Icons.Default.Key, stringResource(R.string.btn_rent), onRent)
+                } else {
+                    DiscreetPill(Icons.Default.LocalTaxi, stringResource(R.string.btn_taxi), onTaxi)
+                }
+            }
         }
         DottedLine(height = 12.dp)
     }
@@ -107,7 +123,7 @@ fun DiscreetPill(icon: androidx.compose.ui.graphics.vector.ImageVector, label: S
         Row(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(icon, null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onSurface.copy(0.8f))
             Spacer(Modifier.width(4.dp))
-            Text(label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface.copy(0.8f))
+            Text(label, fontSize = 10.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface.copy(0.8f))
         }
     }
 }

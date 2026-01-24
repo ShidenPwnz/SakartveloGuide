@@ -2,7 +2,7 @@ package com.example.sakartveloguide.data.repository
 
 import android.content.Context
 import android.util.Log
-import androidx.annotation.Keep // CRITICAL IMPORT
+import androidx.annotation.Keep
 import com.example.sakartveloguide.data.local.dao.LocationDao
 import com.example.sakartveloguide.data.local.dao.TripDao
 import com.example.sakartveloguide.data.local.entity.LocationEntity
@@ -21,7 +21,6 @@ import java.io.InputStreamReader
 import javax.inject.Inject
 import javax.inject.Singleton
 
-// --- HARDENED DTOs WITH @KEEP (Immune to R8) ---
 @Keep
 data class RawLocationDto(
     @SerializedName("id") val id: Int,
@@ -111,10 +110,8 @@ class TripRepositoryImpl @Inject constructor(
         withContext(Dispatchers.IO) {
             try {
                 val gson = Gson()
-                // 1. Locations
                 val locStream = context.assets.open("master_locations.json")
                 val rawLocs: List<RawLocationDto> = gson.fromJson(InputStreamReader(locStream), object : TypeToken<List<RawLocationDto>>() {}.type)
-
                 if (rawLocs.isNotEmpty()) {
                     locationDao.insertLocations(rawLocs.map { dto ->
                         LocationEntity(
@@ -125,10 +122,8 @@ class TripRepositoryImpl @Inject constructor(
                     })
                 }
 
-                // 2. Templates
                 val tripStream = context.assets.open("mission_templates.json")
                 val templates: List<TripTemplateDto> = gson.fromJson(InputStreamReader(tripStream), object : TypeToken<List<TripTemplateDto>>() {}.type)
-
                 val entities = templates.mapNotNull { t ->
                     if (t.id.isNotEmpty()) {
                         TripEntity(
@@ -139,11 +134,10 @@ class TripRepositoryImpl @Inject constructor(
                     } else null
                 }.toMutableList()
 
-                // 3. Sandbox
                 entities.add(0, TripEntity(
                     id = "meta_sandbox", imageUrl = "https://images.pexels.com/photos/32307/pexels-photo.jpg", category = "GUIDE", difficulty = "RELAXED", durationDays = 1, targetIds = emptyList(),
                     titleEn = "BUILD YOUR DREAM TRIP", titleKa = "ააწყე შენი ტური", titleRu = "СОЗДАЙ СВОЙ ТУР", titleTr = "HAYALİNDEKİ TURU YAP", titleHy = "ՍՏԵՂԾԻՐ ՔՈ ՏՈՒՐԸ", titleIw = "בנה את הטיול שלך", titleAr = "اصنع رحلتك",
-                    descEn = "Fabricate a custom journey from 800+ locations.", descKa = "შექმენით ინდივიდუალური მარშრუტი 800+ ადგილიდან.", descRu = "Создайте свой маршрут из 800+ мест.", descTr = "800+ noktadan özel rota oluştur.", descHy = "Ստեղწեք անհატական երთუღი 800+ վայրերից:", descIw = "צור מסלול מותאם אישית מ-800+ מיקומים.", descAr = "اصنع مسارًا مخصصًا من أكثر من 800 موقع."
+                    descEn = "Fabricate a custom journey from 800+ locations.", descKa = "შექმენით ინდივიდუალური მარშრუტი 800+ ადგილიდან.", descRu = "Создайте свой маршрут из 800+ мест.", descTr = "800+ noktadan özel rota oluştur.", descHy = "Ստեղწեք անհատական երთუღი 800+ վայրերից:", descIw = "צור מסלול מותאם אישית מ-800+ מיקומים.", descAr = "اصنع مسارًا مخصصًا من أكثر من 800 موقع."
                 ))
                 tripDao.insertTrips(entities)
             } catch (e: Exception) { Log.e("REPO", "Data error", e) }

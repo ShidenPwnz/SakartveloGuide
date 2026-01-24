@@ -5,6 +5,7 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -22,11 +23,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip // REQUIRED IMPORT
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Brush // GRADIENT SUPPORT
+import androidx.compose.ui.focus.FocusRequester // REQUIRED IMPORT
+import androidx.compose.ui.focus.focusRequester // REQUIRED IMPORT
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -36,8 +39,8 @@ import coil.compose.AsyncImage
 import com.example.sakartveloguide.R
 import com.example.sakartveloguide.data.local.entity.LocationEntity
 import com.example.sakartveloguide.domain.model.*
-import com.example.sakartveloguide.domain.util.getDisplayName // REQUIRED EXTENSION
-import com.example.sakartveloguide.domain.util.getDisplayDesc // REQUIRED EXTENSION
+import com.example.sakartveloguide.domain.util.getDisplayName
+import com.example.sakartveloguide.domain.util.getDisplayDesc
 import com.example.sakartveloguide.presentation.passport.components.PassportSlamOverlay
 import com.example.sakartveloguide.presentation.planner.components.*
 import com.example.sakartveloguide.presentation.theme.SakartveloRed
@@ -115,20 +118,58 @@ fun TripPlannerScreen(
                 LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 100.dp)) {
                     item {
                         if (state.mode == TripMode.EDITING) {
-                            LogisticsHeader(baseLoc != null, !state.profile.needsFlight, onNavigateToFobMap, { viewModel.onStayAction(it) }, { viewModel.onFlightAction(it) }, { viewModel.onTransportAction(it) })
+                            LogisticsHeader(
+                                hasBase = baseLoc != null,
+                                hasFlights = !state.profile.needsFlight,
+                                onBaseSetup = onNavigateToFobMap,
+                                onBaseLink = { viewModel.onStayAction(it) },
+                                onFlightAction = { viewModel.onFlightAction(it) },
+                                onTransportAction = { viewModel.onTransportAction(it) },
+                                onRentAction = { viewModel.onRentCarAction() }
+                            )
                         }
                     }
 
                     if (baseLoc != null) {
                         item {
                             val isActive = state.activeNodeId == -1
-                            ItineraryCard(createSyntheticNode(baseLoc, -1, homeStartTitle, homeDescription), currentLang, null, state.mode, isActive, isActive, true, {}, {}, {}, {}, { if (state.mode == TripMode.LIVE) viewModel.onCardClicked(-1) else expandedEditId = if(expandedEditId == -1) null else -1 })
+                            val isExpanded = if (state.mode == TripMode.LIVE) isActive else (expandedEditId == -1)
+                            ItineraryCard(
+                                node = createSyntheticNode(baseLoc, -1, homeStartTitle, homeDescription),
+                                lang = currentLang,
+                                distFromPrev = state.distances[-1],
+                                mode = state.mode,
+                                isActive = isActive,
+                                isExpanded = isExpanded,
+                                isCompleted = state.completedIds.contains(-1),
+                                onMapClick = { viewModel.launchNavigation(baseLoc, "driving") },
+                                onTaxiClick = { viewModel.onTransportAction("bolt") },
+                                onRentClick = { viewModel.onRentCarAction() },
+                                onCheckIn = { viewModel.markCheckIn(-1) },
+                                onRemove = {},
+                                onCardClick = { if (state.mode == TripMode.LIVE) viewModel.onCardClicked(-1) else expandedEditId = if(expandedEditId == -1) null else -1 }
+                            )
                         }
                     }
 
                     itemsIndexed(state.route) { _, node ->
                         val isActive = state.activeNodeId == node.id
-                        ItineraryCard(node, currentLang, state.distances[node.id], state.mode, isActive, isActive, state.completedIds.contains(node.id), { viewModel.launchNavigation(GeoPoint(node.latitude, node.longitude), "driving") }, { viewModel.onTransportAction("bolt") }, { viewModel.markCheckIn(node.id) }, { viewModel.removeStop(node.id) }, { if (state.mode == TripMode.LIVE) viewModel.onCardClicked(node.id) else expandedEditId = if(expandedEditId == node.id) null else node.id })
+                        val isExpanded = if (state.mode == TripMode.LIVE) isActive else (expandedEditId == node.id)
+                        ItineraryCard(
+                            node = node,
+                            lang = currentLang,
+                            distFromPrev = state.distances[node.id],
+                            mode = state.mode,
+                            isActive = isActive,
+                            isExpanded = isExpanded,
+                            isCompleted = state.completedIds.contains(node.id),
+                            onMapClick = { viewModel.launchNavigation(GeoPoint(node.latitude, node.longitude), "driving") },
+                            onTaxiClick = { viewModel.onTransportAction("bolt") },
+                            onRentClick = { viewModel.onRentCarAction() },
+                            onCheckIn = { viewModel.markCheckIn(node.id) },
+                            onRemove = { viewModel.removeStop(node.id) },
+                            onCardClick = { if (state.mode == TripMode.LIVE) viewModel.onCardClicked(node.id) else expandedEditId = if(expandedEditId == node.id) null else node.id }
+                        )
                     }
 
                     if (state.mode == TripMode.EDITING) {
@@ -143,13 +184,24 @@ fun TripPlannerScreen(
                         if (baseLoc != null) {
                             item {
                                 val isActive = state.activeNodeId == -2
-                                ItineraryCard(createSyntheticNode(baseLoc, -2, homeReturnTitle, homeDescription), currentLang, state.distances[-2], state.mode, isActive, isActive, false, { viewModel.launchNavigation(baseLoc, "driving") }, { viewModel.onTransportAction("bolt") }, { viewModel.completeMission() }, {}, { if (state.mode == TripMode.LIVE) viewModel.onCardClicked(-2) else expandedEditId = if(expandedEditId == -2) null else -2 })
+                                val isExpanded = if (state.mode == TripMode.LIVE) isActive else (expandedEditId == -2)
+                                ItineraryCard(
+                                    node = createSyntheticNode(baseLoc, -2, homeReturnTitle, homeDescription),
+                                    lang = currentLang, distFromPrev = state.distances[-2], mode = state.mode, isActive = isActive,
+                                    isExpanded = isExpanded,
+                                    isCompleted = false,
+                                    onMapClick = { viewModel.launchNavigation(baseLoc, "driving") },
+                                    onTaxiClick = { viewModel.onTransportAction("bolt") },
+                                    onRentClick = { viewModel.onRentCarAction() },
+                                    onCheckIn = { viewModel.completeMission() }, onRemove = {},
+                                    onCardClick = { if (state.mode == TripMode.LIVE) viewModel.onCardClicked(-2) else expandedEditId = if(expandedEditId == -2) null else -2 }
+                                )
                             }
                         } else {
                             val lastStopLoc = state.route.last().let { GeoPoint(it.latitude, it.longitude) }
                             item {
                                 val isActive = state.activeNodeId == -3
-                                ItineraryCard(createSyntheticNode(lastStopLoc, -3, missionEndTitle, missionEndDesc), currentLang, 0.0, state.mode, isActive, true, false, { }, { }, { viewModel.completeMission() }, {}, { if (state.mode == TripMode.LIVE) viewModel.onCardClicked(-3) })
+                                ItineraryCard(createSyntheticNode(lastStopLoc, -3, missionEndTitle, missionEndDesc), currentLang, 0.0, state.mode, isActive, true, false, { }, { }, { viewModel.onRentCarAction() }, { viewModel.completeMission() }, {}, { if (state.mode == TripMode.LIVE) viewModel.onCardClicked(-3) })
                             }
                         }
                     }
@@ -182,25 +234,76 @@ fun AddStopSheet(query: String, lang: String, nearby: List<LocationEntity>, resu
     var detailNode by remember { mutableStateOf<LocationEntity?>(null) }
     var isExplMode by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
+    val interactionSource = remember { MutableInteractionSource() }
+
+    LaunchedEffect(interactionSource) {
+        interactionSource.interactions.collectLatest { interaction ->
+            if (interaction is PressInteraction.Release) {
+                if (!isExplMode) { isExplMode = true } else { focusRequester.requestFocus() }
+            }
+        }
+    }
 
     if (detailNode != null) {
-        AlertDialog(onDismissRequest = { detailNode = null }, confirmButton = { Button(onClick = { onAdd(detailNode!!); detailNode = null }, colors = ButtonDefaults.buttonColors(containerColor = SakartveloRed)) { Text(stringResource(R.string.btn_add_to_trip)) } }, dismissButton = { TextButton(onClick = { detailNode = null }) { Text(stringResource(R.string.btn_close)) } }, title = { Text(detailNode!!.getDisplayName(lang), fontWeight = FontWeight.Black) }, text = { Column(modifier = Modifier.verticalScroll(rememberScrollState())) { AsyncImage(model = detailNode!!.imageUrl, contentDescription = null, modifier = Modifier.fillMaxWidth().height(160.dp).clip(RoundedCornerShape(12.dp)), contentScale = ContentScale.Crop); Spacer(Modifier.height(16.dp)); Text(detailNode!!.getDisplayDesc(lang), style = MaterialTheme.typography.bodyMedium) } })
+        AlertDialog(
+            onDismissRequest = { detailNode = null },
+            confirmButton = {
+                Button(onClick = { onAdd(detailNode!!); detailNode = null }, colors = ButtonDefaults.buttonColors(containerColor = SakartveloRed)) {
+                    Text(stringResource(R.string.btn_add_to_trip))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { detailNode = null }) {
+                    Text(stringResource(R.string.btn_close))
+                }
+            },
+            title = { Text(detailNode!!.getDisplayName(lang), fontWeight = FontWeight.Black) },
+            text = {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    AsyncImage(
+                        model = detailNode!!.imageUrl,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxWidth().height(160.dp).clip(RoundedCornerShape(12.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Text(detailNode!!.getDisplayDesc(lang), style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        )
     }
 
     Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxHeight(0.85f)) {
         Box(modifier = Modifier.fillMaxWidth()) {
-            OutlinedTextField(value = query, onValueChange = onQuery, modifier = Modifier.fillMaxWidth().focusRequester(focusRequester), placeholder = { Text(stringResource(R.string.search_hint)) }, leadingIcon = { Icon(Icons.Default.Search, null, tint = SakartveloRed) }, trailingIcon = { if (isExplMode || query.isNotEmpty()) IconButton(onClick = { onQuery(""); isExplMode = false }) { Icon(Icons.Default.Close, null) } }, shape = RoundedCornerShape(12.dp), singleLine = true)
-            if (!isExplMode) { Box(modifier = Modifier.matchParentSize().clickable { isExplMode = true }) }
+            OutlinedTextField(
+                value = query,
+                onValueChange = onQuery,
+                modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
+                placeholder = { Text(stringResource(R.string.search_hint)) },
+                leadingIcon = { Icon(Icons.Default.Search, null, tint = SakartveloRed) },
+                trailingIcon = { if (isExplMode || query.isNotEmpty()) IconButton(onClick = { onQuery(""); isExplMode = false }) { Icon(Icons.Default.Close, null) } },
+                shape = RoundedCornerShape(12.dp),
+                singleLine = true,
+                interactionSource = interactionSource
+            )
         }
         Spacer(Modifier.height(24.dp))
         if (!isExplMode) {
             Text(stringResource(R.string.nearby_gems), fontWeight = FontWeight.Black, color = SakartveloRed, style = MaterialTheme.typography.labelMedium)
             Spacer(Modifier.height(12.dp))
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) { items(nearby) { RecommendationCard(it, lang, { detailNode = it }, { onAdd(it) }) } }
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                items(nearby) { item ->
+                    RecommendationCard(item, lang, { detailNode = item }, { onAdd(item) })
+                }
+            }
         } else {
             Text(text = if(query.isEmpty()) stringResource(R.string.recommended_for_you) else stringResource(R.string.search_results), fontWeight = FontWeight.Black, color = Color.Gray, style = MaterialTheme.typography.labelMedium)
             Spacer(Modifier.height(12.dp))
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) { items(results) { DiscoveryCard(it, lang, { detailNode = it }, { onAdd(it) }) } }
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                items(results) { item ->
+                    DiscoveryCard(item, lang, { detailNode = item }, { onAdd(item) })
+                }
+            }
         }
     }
 }
@@ -225,7 +328,7 @@ fun RecommendationCard(location: LocationEntity, lang: String, onInfo: () -> Uni
     Card(modifier = Modifier.size(160.dp, 220.dp).clickable { onInfo() }, shape = RoundedCornerShape(16.dp)) {
         Box {
             AsyncImage(model = location.imageUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(0.8f)))))
+            Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(0.8f)))))
             Column(Modifier.align(Alignment.BottomStart).padding(12.dp)) {
                 Text(location.region.uppercase(), color = SakartveloRed, fontSize = 8.sp, fontWeight = FontWeight.Bold)
                 Text(location.getDisplayName(lang), color = Color.White, fontWeight = FontWeight.Black, fontSize = 14.sp, maxLines = 2, lineHeight = 18.sp)

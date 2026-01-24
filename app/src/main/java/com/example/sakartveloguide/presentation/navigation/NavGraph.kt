@@ -19,20 +19,21 @@ fun SakartveloNavGraph(
     onCompleteTrip: (TripPath) -> Unit
 ) {
     val navController = rememberNavController()
-    val startDestination by homeViewModel.initialDestination.collectAsState()
+    val startDestState by homeViewModel.initialDestination.collectAsState()
 
-    LaunchedEffect(Unit) {
-        homeViewModel.navigationEvent.collectLatest { route ->
-            navController.navigate(route) {
-                if (route == "home") popUpTo(0)
-                launchSingleTop = true
+    if (startDestState != null) {
+        val initialRoute = remember { startDestState!! }
+
+        LaunchedEffect(Unit) {
+            homeViewModel.navigationEvent.collectLatest { route ->
+                navController.navigate(route) {
+                    if (route == "home") popUpTo(0)
+                    launchSingleTop = true
+                }
             }
         }
-    }
 
-    if (startDestination != null) {
-        NavHost(navController = navController, startDestination = startDestination!!) {
-
+        NavHost(navController = navController, startDestination = initialRoute) {
             composable("home") {
                 HomeScreen(
                     viewModel = homeViewModel,
@@ -41,7 +42,7 @@ fun SakartveloNavGraph(
                             homeViewModel.prepareForNewMission()
                             navController.navigate("briefing/custom_cargo?ids=")
                         } else {
-                            navController.navigate("briefing/$id")
+                            navController.navigate("briefing/$id?ids=")
                         }
                     },
                     onPassportClick = { navController.navigate("passport") },

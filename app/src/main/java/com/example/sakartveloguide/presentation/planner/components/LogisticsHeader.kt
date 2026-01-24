@@ -28,7 +28,8 @@ fun LogisticsHeader(
     onBaseSetup: () -> Unit,
     onBaseLink: (String) -> Unit,
     onFlightAction: (String) -> Unit,
-    onTransportAction: (String) -> Unit
+    onTransportAction: (String) -> Unit,
+    onRentAction: () -> Unit // NEW
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(16.dp)
@@ -45,6 +46,19 @@ fun LogisticsHeader(
             ExpandableLogisticTile(stringResource(R.string.label_stay), Icons.Default.Bed, hasBase, Modifier.weight(1f), listOf("BOOKING" to "booking", "AIRBNB" to "airbnb"), onBaseLink)
             ExpandableLogisticTile(stringResource(R.string.label_flight), Icons.Default.Flight, hasFlights, Modifier.weight(1f), listOf("SKYSCANNER" to "sky", "WIZZAIR" to "wizz"), onFlightAction)
             ExpandableLogisticTile(stringResource(R.string.label_taxi), Icons.Default.LocalTaxi, true, Modifier.weight(1f), listOf("BOLT" to "bolt", "YANDEX" to "yandex"), onTransportAction)
+
+            // NEW: RENT TILE
+            Surface(
+                onClick = onRentAction,
+                modifier = Modifier.weight(1f).height(65.dp),
+                color = SakartveloRed.copy(0.08f),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                    Icon(Icons.Default.Key, null, tint = SakartveloRed, modifier = Modifier.size(22.dp))
+                    Text(stringResource(R.string.label_rent), fontSize = 9.sp, fontWeight = FontWeight.Black, color = SakartveloRed)
+                }
+            }
         }
 
         Spacer(Modifier.height(12.dp))
@@ -79,10 +93,10 @@ private fun ExpandableLogisticTile(label: String, icon: ImageVector, isSet: Bool
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(icon, null, tint = tint, modifier = Modifier.size(22.dp))
-        Text(label, fontSize = 10.sp, fontWeight = FontWeight.Black, color = tint)
+        Text(label, fontSize = 9.sp, fontWeight = FontWeight.Black, color = tint, maxLines = 1)
         if (expanded) {
             links.forEach { (txt, action) ->
-                Text(txt, fontSize = 9.sp, fontWeight = FontWeight.ExtraBold, color = tint, modifier = Modifier.padding(vertical = 6.dp).clickable { onLinkClick(action) })
+                Text(txt, fontSize = 8.sp, fontWeight = FontWeight.ExtraBold, color = tint, modifier = Modifier.padding(vertical = 6.dp).clickable { onLinkClick(action) })
             }
         }
     }
