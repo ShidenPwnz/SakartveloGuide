@@ -64,4 +64,6 @@
     <string name="region_visas">BÖLGE DAMGALARI</string>
     <string name="no_stamps">Henüz damga kazanılmadı.</string>
     <string name="approved_protocol">ONAYLANMIŞ PROTOKOL</string>
+    <string name="btn_more_info">DAHA FAZLA BİLGİ</string>
+
 </resources>

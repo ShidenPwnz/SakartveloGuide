@@ -64,4 +64,7 @@
     <string name="region_visas">أختام المنطقة</string>
     <string name="no_stamps">لم يتم كسب أي أختام بعد.</string>
     <string name="approved_protocol">بروتوكول معتمد</string>
+    <string name="btn_more_info">مزيد من المعلومات</string>
+
+
 </resources>

@@ -64,4 +64,6 @@
     <string name="region_visas">ՏԱՐԱԾԱՇՐՋԱՆԻ ԿՆԻՔՆԵՐ</string>
     <string name="no_stamps">Դեռ կնիքներ չկան:</string>
     <string name="approved_protocol">ՀԱՍՏԱՏՎԱԾ ԱՐՁԱՆԱԳՐՈՒԹՅՈՒՆ</string>
+    <string name="btn_more_info">ԱՎԵԼԻՆ</string>
+
 </resources>

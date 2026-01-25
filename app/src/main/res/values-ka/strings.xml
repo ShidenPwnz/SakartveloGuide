@@ -64,4 +64,6 @@
     <string name="region_visas">რეგიონის ვიზები</string>
     <string name="no_stamps">შტამპები ჯერ არ არის.</string>
     <string name="approved_protocol">პროტოკოლი დამტკიცებულია</string>
+    <string name="btn_more_info">მეტი ინფორმაცია</string>
+
 </resources>

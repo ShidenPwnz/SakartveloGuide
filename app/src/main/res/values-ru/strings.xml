@@ -64,4 +64,6 @@
     <string name="region_visas">ВИЗЫ РЕГИОНОВ</string>
     <string name="no_stamps">Штампов пока нет.</string>
     <string name="approved_protocol">ПРОТОКОЛ УТВЕРЖДЕН</string>
+    <string name="btn_more_info">ПОДРОБНЕЕ</string>
+
 </resources>

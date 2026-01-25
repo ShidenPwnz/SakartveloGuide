@@ -64,4 +64,6 @@
     <string name="region_visas">חותמות אזור</string>
     <string name="no_stamps">טרם נצברו חותמות.</string>
     <string name="approved_protocol">פרוטוקול מאושר</string>
+    <string name="btn_more_info">מידע נוסף</string>
+
 </resources>

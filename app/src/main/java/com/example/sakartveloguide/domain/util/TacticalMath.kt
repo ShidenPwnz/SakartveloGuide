@@ -4,10 +4,11 @@ import com.example.sakartveloguide.domain.model.GeoPoint
 import kotlin.math.*
 
 object TacticalMath {
+
     /**
-     * Calculates distance in kilometers between two points.
+     * Standard Haversine (Crow flies)
      */
-    fun calculateDistanceKm(p1: GeoPoint, p2: GeoPoint): Double {
+    fun calculateDirectDistanceKm(p1: GeoPoint, p2: GeoPoint): Double {
         val r = 6371.0
         val dLat = Math.toRadians(p2.latitude - p1.latitude)
         val dLon = Math.toRadians(p2.longitude - p1.longitude)
@@ -18,13 +19,20 @@ object TacticalMath {
     }
 
     /**
-     * PHASE 27: Country-Level Validation.
-     * Roughly covers Georgia's bounding box.
-     * Lat: 41.0 to 44.0
-     * Lon: 40.0 to 47.0
+     * Legacy Alias for UseCases
      */
+    fun calculateDistanceKm(p1: GeoPoint, p2: GeoPoint): Double = calculateDirectDistanceKm(p1, p2)
+
+    /**
+     * Applied Winding Factor (1.27x) for Road Distance Estimation
+     */
+    fun calculateRoadEstimateKm(p1: GeoPoint, p2: GeoPoint): Double {
+        val direct = calculateDirectDistanceKm(p1, p2)
+        return if (direct < 0.1) direct else direct * 1.27
+    }
+
     fun isUserInOperationalArea(loc: GeoPoint?): Boolean {
-        if (loc == null) return false // No GPS = No Stamp
+        if (loc == null) return false
         return loc.latitude in 41.0..44.0 && loc.longitude in 40.0..47.0
     }
 }

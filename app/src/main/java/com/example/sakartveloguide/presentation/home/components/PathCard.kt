@@ -1,13 +1,14 @@
 package com.example.sakartveloguide.presentation.home.components
 
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.border
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -30,85 +31,80 @@ fun PathCard(
     onHideTutorial: () -> Unit
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "Breathe")
-
     val imageScale by infiniteTransition.animateFloat(
-        initialValue = 1.0f,
-        targetValue = 1.12f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(15000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ), label = "Zoom"
-    )
-
-    val pulseAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.4f,
-        targetValue = 0.9f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ), label = "Pulse"
+        initialValue = 1.0f, targetValue = 1.10f,
+        animationSpec = infiniteRepeatable(tween(25000, easing = LinearEasing), RepeatMode.Reverse),
+        label = "Zoom"
     )
 
     Card(
         onClick = { if (trip.id == "meta_tutorial") onHideTutorial() else onCardClick(trip.id) },
         modifier = Modifier
             .fillMaxSize()
-            .border(
-                width = 1.dp,
-                brush = Brush.radialGradient(
-                    colors = listOf(SakartveloRed.copy(alpha = pulseAlpha), Color.Transparent)
-                ),
-                shape = RoundedCornerShape(24.dp)
-            ),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            .clip(RoundedCornerShape(28.dp)),
+        shape = RoundedCornerShape(28.dp)
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            Box(modifier = Modifier.weight(0.5f).fillMaxWidth().clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))) {
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(trip.imageUrl)
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer {
-                            scaleX = imageScale
-                            scaleY = imageScale
-                        },
-                    contentScale = ContentScale.Crop
-                )
-            }
+        Box(modifier = Modifier.fillMaxSize()) {
+            // LAYER 1: Full Card Image
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(trip.imageUrl)
+                    .crossfade(true).build(),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize().graphicsLayer {
+                    scaleX = imageScale
+                    scaleY = imageScale
+                },
+                contentScale = ContentScale.Crop
+            )
 
-            Column(modifier = Modifier.weight(0.5f).padding(24.dp)) {
+            // LAYER 2: Bottom Scrim Overlay
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.5f)
+                    .align(Alignment.BottomCenter)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f))
+                        )
+                    )
+            )
+
+            // LAYER 3: Text Content
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(24.dp)
+            ) {
                 Text(
                     text = trip.title.get(languageCode).uppercase(),
                     style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Black
+                    fontWeight = FontWeight.Black,
+                    color = Color.White,
+                    letterSpacing = 1.sp
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
                     text = trip.description.get(languageCode),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                    maxLines = 4
+                    color = Color.White.copy(alpha = 0.7f),
+                    maxLines = 3,
+                    lineHeight = 20.sp
                 )
 
-                Spacer(Modifier.weight(1f))
+                Spacer(Modifier.height(20.dp))
 
                 if (trip.id != "meta_tutorial") {
                     PathIntelligenceRow(path = trip)
-                    Spacer(Modifier.height(16.dp))
+                    Spacer(Modifier.height(12.dp))
                     Text(
                         text = "TAP TO INITIALIZE",
                         color = SakartveloRed,
                         style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.graphicsLayer { alpha = pulseAlpha }
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 2.sp
                     )
-                } else {
-                    Text("TAP TO DISMISS TUTORIAL", color = SakartveloRed, fontWeight = FontWeight.Bold)
                 }
             }
         }

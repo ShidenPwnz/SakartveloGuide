@@ -86,6 +86,7 @@ fun SakartveloNavGraph(
                 val vm: AdventureViewModel = hiltViewModel(parentEntry)
                 val plannerState by vm.uiState.collectAsState()
 
+                // ARCHITECT'S FIX: Manual type mapping for GeoPoint center
                 val firstPoint = plannerState.route.firstOrNull()?.let {
                     GeoPoint(it.latitude, it.longitude)
                 } ?: GeoPoint(41.7125, 44.7930)

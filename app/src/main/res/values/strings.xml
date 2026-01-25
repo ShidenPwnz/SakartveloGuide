@@ -64,4 +64,8 @@
     <string name="region_visas">REGION STAMPS</string>
     <string name="no_stamps">No stamps earned yet.</string>
     <string name="approved_protocol">APPROVED PROTOCOL</string>
+    <string name="btn_more_info">MORE INFO</string>
+    <string name="btn_preview_trip">PREVIEW TRIP</string>
+    <string name="btn_optimize_short">OPTIMIZE</string>
+
 </resources>

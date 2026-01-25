@@ -14,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -42,7 +43,8 @@ fun ItineraryCard(
     isCompleted: Boolean,
     onMapClick: () -> Unit,
     onTaxiClick: () -> Unit,
-    onRentClick: () -> Unit, // ADDED
+    onRentClick: () -> Unit,
+    onMoreInfo: () -> Unit,
     onCheckIn: () -> Unit,
     onRemove: () -> Unit,
     onCardClick: () -> Unit
@@ -54,13 +56,7 @@ fun ItineraryCard(
 
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         if (distFromPrev != null) {
-            TacticalConnector(
-                dist = distFromPrev,
-                showControls = showActiveVisuals,
-                onMap = onMapClick,
-                onTaxi = onTaxiClick,
-                onRent = onRentClick // ADDED
-            )
+            TacticalConnector(dist = distFromPrev, showControls = showActiveVisuals, onMap = onMapClick, onTaxi = onTaxiClick, onRent = onRentClick)
         } else { Spacer(Modifier.height(16.dp)) }
 
         Surface(modifier = Modifier.fillMaxWidth().clickable { onCardClick() }, shape = RoundedCornerShape(16.dp), border = BorderStroke(2.dp, borderColor), shadowElevation = if (showActiveVisuals) 12.dp else 4.dp, color = MaterialTheme.colorScheme.surface) {
@@ -79,7 +75,19 @@ fun ItineraryCard(
                     Text(node.getDisplayName(lang), color = Color.White, fontWeight = FontWeight.Black, fontSize = 20.sp, maxLines = 2, modifier = Modifier.align(Alignment.BottomStart).padding(16.dp))
                 }
                 if (isExpanded) {
-                    Text(text = node.getDisplayDesc(lang), modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(0.8f))
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(text = node.getDisplayDesc(lang), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(0.8f))
+                        if (!isHomeNode) {
+                            Spacer(Modifier.height(12.dp))
+                            Button(onClick = onMoreInfo, modifier = Modifier.fillMaxWidth().height(40.dp), shape = RoundedCornerShape(8.dp), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurface)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Place, null, modifier = Modifier.size(16.dp))
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(stringResource(R.string.btn_more_info), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
                 }
                 if (showActiveVisuals && node.id != -1) {
                     Surface(onClick = onCheckIn, color = SakartveloRed, modifier = Modifier.fillMaxWidth().height(48.dp)) {
@@ -106,11 +114,8 @@ fun TacticalConnector(dist: Double, showControls: Boolean, onMap: () -> Unit, on
             }
             if (showControls) {
                 DottedHorizontal(8.dp)
-                if (dist > 35.0) {
-                    DiscreetPill(Icons.Default.Key, stringResource(R.string.btn_rent), onRent)
-                } else {
-                    DiscreetPill(Icons.Default.LocalTaxi, stringResource(R.string.btn_taxi), onTaxi)
-                }
+                if (dist > 35.0) { DiscreetPill(Icons.Default.Key, stringResource(R.string.btn_rent), onRent) }
+                else { DiscreetPill(Icons.Default.LocalTaxi, stringResource(R.string.btn_taxi), onTaxi) }
             }
         }
         DottedLine(height = 12.dp)
@@ -142,4 +147,4 @@ fun DottedHorizontal(width: androidx.compose.ui.unit.Dp) {
     }
 }
 
-fun formatDistance(km: Double): String = if (km < 1.0) "${(km * 1000).toInt()} m" else "${String.format("%.1f", km)} km"
+fun formatDistance(km: Double): String = if (km < 1.0) "${(km * 1000).toInt()} m" else "~${String.format("%.1f", km)} km"

@@ -111,14 +111,14 @@ class AdventureViewModel @Inject constructor(
         }
 
         val distMap = mutableMapOf<Int, Double>()
-        if (baseLoc != null) distMap[-1] = TacticalMath.calculateDistanceKm(actualUserLoc, baseLoc)
+        if (baseLoc != null) distMap[-1] = TacticalMath.calculateRoadEstimateKm(actualUserLoc, baseLoc)
         var prevPoint = baseLoc ?: actualUserLoc
         route.forEach { node ->
             val curr = GeoPoint(node.latitude, node.longitude)
-            distMap[node.id] = TacticalMath.calculateDistanceKm(prevPoint, curr)
+            distMap[node.id] = TacticalMath.calculateRoadEstimateKm(prevPoint, curr)
             prevPoint = curr
         }
-        if (baseLoc != null && route.isNotEmpty()) distMap[-2] = TacticalMath.calculateDistanceKm(prevPoint, baseLoc)
+        if (baseLoc != null && route.isNotEmpty()) distMap[-2] = TacticalMath.calculateRoadEstimateKm(prevPoint, baseLoc)
 
         val activeId = if (isLive) {
             val idx = mState.activeNodeIndex ?: (if (baseLoc != null) -1 else 0)
@@ -185,6 +185,65 @@ class AdventureViewModel @Inject constructor(
         }
     }
 
+    /**
+     * ARCHITECT'S REFINED DIRECTION LOGIC
+     * Handles "No Home" scenario by shifting PoI 1 to the Origin.
+     */
+    fun launchFullTripIntent() {
+        val state = uiState.value
+        val completed = state.completedIds
+
+        // Filter out visited POIs
+        val unvisitedStops = state.route.filter { it.id !in completed }
+
+        // --- 1. DETERMINE ORIGIN ---
+        val origin: String = when {
+            // Case A: Home is set and unvisited
+            state.baseLocation != null && -1 !in completed ->
+                "${state.baseLocation.latitude},${state.baseLocation.longitude}"
+
+            // Case B: No Home (or visited), use the first unvisited POI as the starting point
+            unvisitedStops.isNotEmpty() ->
+                "${unvisitedStops.first().latitude},${unvisitedStops.first().longitude}"
+
+            // Case C: Absolute fallback (Current GPS)
+            else -> state.userLocation?.let { "${it.latitude},${it.longitude}" } ?: "Current+Location"
+        }
+
+        // --- 2. DETERMINE DESTINATION ---
+        val destination: String = when {
+            // Priority 1: If "Return Home" is unvisited
+            state.baseLocation != null && -2 !in completed && unvisitedStops.isEmpty() ->
+                "${state.baseLocation.latitude},${state.baseLocation.longitude}"
+
+            // Priority 2: The last unvisited POI
+            unvisitedStops.size > 1 ->
+                "${unvisitedStops.last().latitude},${unvisitedStops.last().longitude}"
+
+            // Priority 3: If only one POI remains and we started from Home
+            unvisitedStops.size == 1 && origin != "${unvisitedStops.first().latitude},${unvisitedStops.first().longitude}" ->
+                "${unvisitedStops.first().latitude},${unvisitedStops.first().longitude}"
+
+            else -> origin // Trip already essentially finished
+        }
+
+        // --- 3. DETERMINE WAYPOINTS (The "Stops" in between) ---
+        // We take everything between the chosen Origin and the chosen Destination
+        val waypointsList = unvisitedStops.filter {
+            val coord = "${it.latitude},${it.longitude}"
+            coord != origin && coord != destination
+        }
+
+        val waypoints = waypointsList.joinToString("|") { "${it.latitude},${it.longitude}" }
+
+        val uri = Uri.parse("https://www.google.com/maps/dir/?api=1&origin=$origin&destination=$destination&waypoints=$waypoints&travelmode=driving")
+        val intent = Intent(Intent.ACTION_VIEW, uri).apply {
+            setPackage("com.google.android.apps.maps")
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        try { context.startActivity(intent) } catch (e: Exception) { context.startActivity(Intent(Intent.ACTION_VIEW, uri)) }
+    }
+
     fun toggleMode() = viewModelScope.launch {
         if (uiState.value.mode == TripMode.EDITING) {
             prefs.saveActiveLoadout(_route.value.map { it.id })
@@ -225,14 +284,11 @@ class AdventureViewModel @Inject constructor(
     fun onStayAction(p: String) { if (p == "airbnb") affiliateManager.launchAirbnb() else affiliateManager.launchBooking() }
     fun onTransportAction(p: String) { affiliateManager.launchBolt(uiState.value.baseLocation) }
     fun onFlightAction(p: String) { affiliateManager.launchSkyscanner() }
-
-    // THE MISSING METHOD - ARCHITECT'S FIX
     fun onRentCarAction() {
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://localrent.com/en/georgia/?r=6716"))
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         context.startActivity(intent)
     }
-
     fun setBaseCamp(location: GeoPoint) = viewModelScope.launch { prefs.setFobLocation(location) }
     fun optimizeRoute() = viewModelScope.launch { _route.value = smartArrangeUseCase(uiState.value.baseLocation ?: GeoPoint(41.7, 44.8), _route.value); haptic.tick() }
 }
