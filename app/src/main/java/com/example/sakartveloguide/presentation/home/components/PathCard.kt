@@ -8,7 +8,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -21,7 +20,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.sakartveloguide.domain.model.TripPath
-import com.example.sakartveloguide.presentation.theme.*
+import com.example.sakartveloguide.presentation.theme.SakartveloRed
 
 @Composable
 fun PathCard(
@@ -38,14 +37,15 @@ fun PathCard(
     )
 
     Card(
-        onClick = { if (trip.id == "meta_tutorial") onHideTutorial() else onCardClick(trip.id) },
+        // ARCHITECT'S FIX: meta_tutorial now triggers navigation (onCardClick)
+        // meta_tutorial_dismiss is a hypothetical ID if we wanted to hide it later
+        onClick = { onCardClick(trip.id) },
         modifier = Modifier
             .fillMaxSize()
             .clip(RoundedCornerShape(28.dp)),
         shape = RoundedCornerShape(28.dp)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            // LAYER 1: Full Card Image
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(trip.imageUrl)
@@ -58,7 +58,6 @@ fun PathCard(
                 contentScale = ContentScale.Crop
             )
 
-            // LAYER 2: Bottom Scrim Overlay
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -71,7 +70,6 @@ fun PathCard(
                     )
             )
 
-            // LAYER 3: Text Content
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
@@ -95,17 +93,13 @@ fun PathCard(
 
                 Spacer(Modifier.height(20.dp))
 
-                if (trip.id != "meta_tutorial") {
-                    PathIntelligenceRow(path = trip)
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        text = "TAP TO INITIALIZE",
-                        color = SakartveloRed,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 2.sp
-                    )
-                }
+                Text(
+                    text = "TAP TO INITIALIZE",
+                    color = SakartveloRed,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 2.sp
+                )
             }
         }
     }

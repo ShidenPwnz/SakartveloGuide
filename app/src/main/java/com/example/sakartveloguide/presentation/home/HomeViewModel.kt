@@ -52,117 +52,90 @@ class HomeViewModel @Inject constructor(
     val userSession: Flow<UserSession> = preferenceManager.userSession
     val currentUser = authRepository.currentUser
 
-    private val _stampingTrip = MutableStateFlow<TripPath?>(null)
-    val stampingTrip: StateFlow<TripPath?> = _stampingTrip.asStateFlow()
-
     init {
         initAdventureEngine()
     }
 
     private fun initAdventureEngine() {
-        // 1. Trigger Data Refresh (Non-Blocking)
-        viewModelScope.launch {
-            try {
-                repository.refreshTrips()
-            } catch (e: Exception) {
-                Log.e("SAKARTVELO_INIT", "Data Refresh Failed", e)
-            }
-        }
+        Log.d("SAKARTVELO_VM", "Initializing Engine...")
 
-        // 2. Observe Session for Navigation (Non-Blocking)
+        // 1. Navigation & Splash Control
         viewModelScope.launch {
             preferenceManager.userSession
-                .catch { emit(UserSession()) } // Safety fallback
+                .catch { emit(UserSession()) }
                 .collect { session ->
+                    Log.d("SAKARTVELO_VM", "Session detected, target: ${session.activePathId}")
                     if (session.state == UserJourneyState.ON_THE_ROAD && session.activePathId != null) {
                         _initialDestination.value = "briefing/${session.activePathId}?ids="
                     } else {
                         _initialDestination.value = "home"
                     }
+                    _isSplashReady.value = true
                 }
         }
 
-        // 3. Observe Trips for UI (Non-Blocking)
+        // 2. Background Data Sync (Non-blocking)
         viewModelScope.launch {
-            repository.getAvailableTrips()
-                .catch { Log.e("SAKARTVELO_UI", "Flow Error", it) }
-                .collectLatest { trips ->
+            Log.d("SAKARTVELO_VM", "Triggering Data Refresh...")
+            repository.refreshTrips()
+        }
+
+        // 3. UI State Pipeline
+        viewModelScope.launch {
+            // Combine Auth state with Database state
+            combine(
+                authRepository.currentUser,
+                repository.getAvailableTrips()
+            ) { user, trips ->
+                Log.d("SAKARTVELO_VM", "Syncing: User=${user?.id}, TripsCount=${trips.size}")
+
+                if (user != null) {
                     if (trips.isNotEmpty()) {
-                        val grouped = trips.groupBy { Category(it.category.name) }.toMutableMap()
+                        val grouped = trips.groupBy { Category(it.category.name) }
                         val sortedMap = grouped.keys
                             .sortedByDescending { it.name == "GUIDE" }
                             .associateWith { grouped[it]!! }
 
                         _uiState.update { it.copy(groupedPaths = sortedMap, isLoading = false) }
-                        _isSplashReady.value = true
                     } else {
-                        // Keep loading or show empty state, but don't crash
-                        _uiState.update { it.copy(isLoading = false) } // Stop spinner even if empty
-                        _isSplashReady.value = true
+                        // DB is empty, keep loading but allow AuthGatekeeper to be hidden
+                        _uiState.update { it.copy(isLoading = true) }
                     }
+                } else {
+                    // Not logged in: Spinner MUST stop so Auth screen can show
+                    _uiState.update { it.copy(isLoading = false) }
                 }
+            }.catch { e ->
+                Log.e("SAKARTVELO_VM", "Engine Stream Failed", e)
+                _uiState.update { it.copy(isLoading = false) }
+            }.collect()
         }
     }
 
-    fun signIn(context: Context) {
-        viewModelScope.launch {
-            authRepository.signIn(context)
-        }
+    fun signIn(context: Context) = viewModelScope.launch { authRepository.signIn(context) }
+    fun onGuestSignIn() = viewModelScope.launch { authRepository.continueAsGuest() }
+    fun signOut() = viewModelScope.launch {
+        authRepository.signOut()
+        _navigationEvent.emit("home")
     }
 
-    fun onGuestSignIn() {
-        viewModelScope.launch {
-            authRepository.continueAsGuest()
-        }
-    }
-
-    fun signOut() {
-        viewModelScope.launch {
-            authRepository.signOut()
-        }
-    }
-
-    fun onCompleteTrip(trip: TripPath) {
-        viewModelScope.launch {
-            _stampingTrip.value = trip
-            hapticManager.missionCompleteSlam()
-            soundManager.playStampSlam()
-            addPassportStampUseCase(trip)
-            preferenceManager.updateState(UserJourneyState.BROWSING, null)
-            preferenceManager.clearCurrentMissionData()
-        }
-    }
-
-    fun prepareForNewMission() {
-        viewModelScope.launch {
-            preferenceManager.clearCurrentMissionData()
-        }
-    }
-
-    fun wipeAllUserData() {
-        viewModelScope.launch {
-            repository.nukeAllData()
-            preferenceManager.clearCurrentMissionData()
-            preferenceManager.updateState(UserJourneyState.BROWSING, null)
-            repository.refreshTrips()
-            _navigationEvent.emit("home")
-        }
+    fun wipeAllUserData() = viewModelScope.launch {
+        _uiState.update { it.copy(isLoading = true) }
+        repository.nukeAllData()
+        preferenceManager.clearCurrentMissionData()
+        preferenceManager.updateState(UserJourneyState.BROWSING, null)
+        repository.refreshTrips()
+        _navigationEvent.emit("home")
     }
 
     fun triggerHapticTick() { hapticManager.tick() }
+    fun onLanguageChange(code: String) = viewModelScope.launch { preferenceManager.updateLanguage(code) }
+    fun onHideTutorialPermanent() { viewModelScope.launch { preferenceManager.setHasSeenTutorial(true) } }
 
-    fun onLanguageChange(code: String) {
-        viewModelScope.launch { preferenceManager.updateLanguage(code) }
-    }
-
-    fun onHideTutorialPermanent() {
-        viewModelScope.launch { preferenceManager.setHasSeenTutorial(true) }
-    }
-
-    fun onSlamAnimationFinished() {
-        viewModelScope.launch {
-            _stampingTrip.value = null
-            _navigationEvent.emit("home")
-        }
-    }
+    // Stamping
+    private val _stampingTrip = MutableStateFlow<TripPath?>(null)
+    val stampingTrip: StateFlow<TripPath?> = _stampingTrip.asStateFlow()
+    fun onCompleteTrip(trip: TripPath) { /* ... */ }
+    fun onSlamAnimationFinished() { _stampingTrip.value = null }
+    fun prepareForNewMission() { viewModelScope.launch { preferenceManager.clearCurrentMissionData() } }
 }

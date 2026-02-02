@@ -21,7 +21,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -33,7 +32,6 @@ fun LogisticsHeader(
     imageUrl: String,
     hasBase: Boolean,
     hasFlights: Boolean,
-    onBaseSetup: () -> Unit,
     onBaseLink: (String) -> Unit,
     onFlightAction: (String) -> Unit,
     onTransportAction: (String) -> Unit,
@@ -43,21 +41,18 @@ fun LogisticsHeader(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 12.dp)
-            .height(200.dp) // Standardized container height
             .clip(RoundedCornerShape(24.dp))
     ) {
-        // LAYER 1: Background
         AsyncImage(
             model = imageUrl,
             contentDescription = null,
-            modifier = Modifier.fillMaxSize().blur(20.dp),
+            modifier = Modifier.matchParentSize().blur(20.dp),
             contentScale = ContentScale.Crop
         )
 
-        // LAYER 2: Heavy Tactical Scrim
         Box(
             modifier = Modifier
-                .fillMaxSize()
+                .matchParentSize()
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
@@ -69,8 +64,7 @@ fun LogisticsHeader(
                 )
         )
 
-        // LAYER 3: Interactive UI
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(16.dp).animateContentSize()) {
             Text(
                 text = stringResource(R.string.trip_essentials),
                 fontSize = 10.sp, fontWeight = FontWeight.Black,
@@ -78,16 +72,14 @@ fun LogisticsHeader(
             )
             Spacer(Modifier.height(16.dp))
 
-            // THE GRID: Unified heights for all 4 tiles
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ExpandableLogisticTile(stringResource(R.string.label_stay), Icons.Default.Bed, hasBase, Modifier.weight(1f), listOf("BOOKING" to "booking", "AIRBNB" to "airbnb"), onBaseLink)
                 ExpandableLogisticTile(stringResource(R.string.label_flight), Icons.Default.Flight, hasFlights, Modifier.weight(1f), listOf("SKYSCANNER" to "sky", "WIZZAIR" to "wizz"), onFlightAction)
                 ExpandableLogisticTile(stringResource(R.string.label_taxi), Icons.Default.LocalTaxi, true, Modifier.weight(1f), listOf("BOLT" to "bolt", "YANDEX" to "yandex"), onTransportAction)
 
-                // Unified RENT tile
                 Surface(
                     onClick = onRentAction,
-                    modifier = Modifier.weight(1f).height(74.dp), // FIXED HEIGHT
+                    modifier = Modifier.weight(1f).height(74.dp),
                     color = Color.White.copy(alpha = 0.08f),
                     shape = RoundedCornerShape(16.dp),
                     border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
@@ -96,38 +88,6 @@ fun LogisticsHeader(
                         Icon(Icons.Default.Key, null, tint = Color.White, modifier = Modifier.size(22.dp))
                         Spacer(Modifier.height(4.dp))
                         Text(stringResource(R.string.label_rent), fontSize = 8.sp, fontWeight = FontWeight.Black, color = Color.White, textAlign = TextAlign.Center, lineHeight = 10.sp)
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(20.dp)) // ARCHITECT'S FIX: Added clearance to prevent overlap
-
-            // HOME ACTION BUTTON
-            Button(
-                onClick = onBaseSetup,
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (hasBase) Color(0xFF4CAF50).copy(alpha = 0.15f) else SakartveloRed.copy(alpha = 0.15f),
-                    contentColor = if (hasBase) Color(0xFF81C784) else SakartveloRed
-                ),
-                shape = RoundedCornerShape(14.dp),
-                border = BorderStroke(1.dp, if (hasBase) Color(0xFF4CAF50).copy(alpha = 0.4f) else SakartveloRed.copy(alpha = 0.4f))
-            ) {
-                Icon(if (hasBase) Icons.Default.CheckCircle else Icons.Default.Map, null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(10.dp))
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = if (hasBase) stringResource(R.string.home_secured) else stringResource(R.string.set_home_title),
-                        fontWeight = FontWeight.Black,
-                        fontSize = 12.sp
-                    )
-                    if (!hasBase) {
-                        Text(
-                            text = stringResource(R.string.set_home_sub),
-                            fontSize = 8.sp, // MICROSCOPIC SUBTEXT
-                            fontWeight = FontWeight.Normal,
-                            color = SakartveloRed.copy(alpha = 0.7f)
-                        )
                     }
                 }
             }
@@ -149,19 +109,21 @@ private fun ExpandableLogisticTile(
 
     Column(
         modifier = modifier
-            .height(74.dp) // FIXED HEIGHT FOR ALIGNMENT
+            .defaultMinSize(minHeight = 74.dp)
             .animateContentSize()
             .background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
             .clickable { expanded = !expanded }
-            .padding(vertical = 12.dp),
+            .padding(vertical = 12.dp, horizontal = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = if (expanded) Arrangement.Top else Arrangement.Center
     ) {
+        Icon(icon, null, tint = tint, modifier = Modifier.size(22.dp))
+        Spacer(Modifier.height(4.dp))
+
         if (!expanded) {
-            Icon(icon, null, tint = tint, modifier = Modifier.size(22.dp))
-            Spacer(Modifier.height(4.dp))
             Text(label, fontSize = 8.sp, fontWeight = FontWeight.Black, color = tint, maxLines = 1, textAlign = TextAlign.Center)
         } else {
+            Spacer(Modifier.height(4.dp))
             links.forEach { (txt, action) ->
                 Text(
                     text = txt,

@@ -17,7 +17,7 @@ import com.example.sakartveloguide.data.local.entity.LocationEntity
         PassportEntity::class,
         LocationEntity::class
     ],
-    version = 10, // BUMP TO 10
+    version = 12, // BUMPED TO 12 for Smart Schema
     exportSchema = false
 )
 @TypeConverters(RouteConverter::class)

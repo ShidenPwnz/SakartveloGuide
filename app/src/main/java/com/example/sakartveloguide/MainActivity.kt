@@ -25,7 +25,11 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
-        splashScreen.setKeepOnScreenCondition { !viewModel.isSplashReady.value }
+
+        // Keep splash on screen until initial navigation target is determined
+        splashScreen.setKeepOnScreenCondition {
+            !viewModel.isSplashReady.value
+        }
 
         setContent {
             val session by viewModel.userSession.collectAsState(initial = UserSession())

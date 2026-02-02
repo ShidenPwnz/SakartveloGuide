@@ -67,5 +67,16 @@
     <string name="btn_more_info">MORE INFO</string>
     <string name="btn_preview_trip">PREVIEW TRIP</string>
     <string name="btn_optimize_short">OPTIMIZE</string>
+    <string name="tut_next">NEXT PROTOCOL</string>
+    <string name="tut_skip">SKIP TUTORIAL</string>
+
+    <string name="tut_step1_title">STEP 1: LOGISTICS</string>
+    <string name="tut_step1_desc">Use Trip Essentials to secure flights, booking, and transport before you deploy.</string>
+
+    <string name="tut_step2_title">STEP 2: THE ANCHOR</string>
+    <string name="tut_step2_desc">Set your Home location. This is mission critical—it unlocks personalized smart recommendations.</string>
+
+    <string name="tut_step3_title">STEP 3: DISCOVERY</string>
+    <string name="tut_step3_desc">Tap the add button to explore 800+ verified locations across Georgia.</string>
 
 </resources>

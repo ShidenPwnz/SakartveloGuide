@@ -4,8 +4,10 @@ import android.os.Build
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -33,6 +35,7 @@ import coil.compose.AsyncImage
 import com.example.sakartveloguide.R
 import com.example.sakartveloguide.domain.model.*
 import com.example.sakartveloguide.presentation.home.components.PathCard
+import com.example.sakartveloguide.presentation.settings.LanguageChip
 import com.example.sakartveloguide.presentation.theme.MatteCharcoal
 import com.example.sakartveloguide.presentation.theme.SakartveloRed
 import com.example.sakartveloguide.presentation.theme.SnowWhite
@@ -51,29 +54,33 @@ fun HomeScreen(
     val currentUser by viewModel.currentUser.collectAsState()
     val context = LocalContext.current
 
-    if (currentUser == null) {
-        AuthGatekeeper(
-            onSignIn = { viewModel.signIn(context) },
-            onGuestSignIn = { viewModel.onGuestSignIn() }
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Shared Background
+        AsyncImage(
+            model = "https://images.pexels.com/photos/459225/pexels-photo-459225.jpeg",
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize().blur(30.dp),
+            contentScale = ContentScale.Crop
         )
-    } else {
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.7f)))
 
-            // LAYER 1: Global Map Background (Blurred)
-            AsyncImage(
-                model = "https://images.pexels.com/photos/459225/pexels-photo-459225.jpeg", // Placeholder for Topographic map
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize().blur(30.dp),
-                contentScale = ContentScale.Crop
+        if (currentUser == null) {
+            AuthGatekeeper(
+                currentLang = session.language,
+                onSignIn = { viewModel.signIn(context) },
+                onGuestSignIn = { viewModel.onGuestSignIn() },
+                onLangChange = { viewModel.onLanguageChange(it) }
             )
-            Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.7f)))
-
-            // LAYER 2: Authenticated Content
+        } else {
             val categories = uiState.groupedPaths.keys.toList()
 
             if (uiState.isLoading) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = SakartveloRed)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator(color = SakartveloRed)
+                        Spacer(Modifier.height(16.dp))
+                        Text("INITIALIZING ADVENTURE ENGINE...", color = Color.White.copy(alpha = 0.6f), style = MaterialTheme.typography.labelSmall)
+                    }
                 }
             } else if (categories.isEmpty()) {
                 DataLoadErrorFallback(onSettingsClick)
@@ -92,50 +99,51 @@ fun HomeScreen(
                         val category = categories[hPage]
                         val paths = uiState.groupedPaths[category] ?: emptyList()
 
-                        key(session.hasSeenTutorial, session.language, paths.size) {
-                            val vPagerState = rememberPagerState(pageCount = { paths.size })
+                        val vPagerState = rememberPagerState(pageCount = { paths.size })
 
-                            LaunchedEffect(vPagerState.currentPage) {
-                                viewModel.triggerHapticTick()
-                            }
+                        LaunchedEffect(vPagerState.currentPage) {
+                            viewModel.triggerHapticTick()
+                        }
 
-                            VerticalPager(
-                                state = vPagerState,
-                                modifier = Modifier.fillMaxSize(),
-                                pageSpacing = (-350).dp
-                            ) { vPage ->
-                                val path = paths[vPage]
-                                val pageOffset = (vPagerState.currentPage - vPage).toFloat() + vPagerState.currentPageOffsetFraction
-                                val absOffset = pageOffset.absoluteValue.coerceIn(0f, 1f)
-                                val dynamicZIndex = 1f - absOffset
+                        VerticalPager(
+                            state = vPagerState,
+                            modifier = Modifier.fillMaxSize(),
+                            // ARCHITECT'S FIX: Reduced overlap to restore swipe physics
+                            pageSpacing = (-240).dp,
+                            beyondViewportPageCount = 2
+                        ) { vPage ->
+                            val path = paths[vPage]
+                            val pageOffset = (vPagerState.currentPage - vPage).toFloat() + vPagerState.currentPageOffsetFraction
+                            val absOffset = pageOffset.absoluteValue.coerceIn(0f, 1f)
 
-                                Box(modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(520.dp)
-                                    .zIndex(dynamicZIndex)
-                                    .graphicsLayer {
-                                        val scale = lerp(0.85f, 1f, 1f - absOffset)
-                                        scaleX = scale
-                                        scaleY = scale
-                                        alpha = lerp(0.4f, 1f, 1f - absOffset)
+                            val dynamicZIndex = if (vPagerState.currentPage == vPage) 10f else 1f - absOffset
 
-                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                                            val blurAmount = absOffset * 30f
-                                            if (blurAmount > 0f) {
-                                                renderEffect = android.graphics.RenderEffect.createBlurEffect(
-                                                    blurAmount, blurAmount, android.graphics.Shader.TileMode.DECAL
-                                                ).asComposeRenderEffect()
-                                            }
+                            Box(modifier = Modifier
+                                .fillMaxWidth()
+                                .height(520.dp)
+                                .zIndex(dynamicZIndex)
+                                .graphicsLayer {
+                                    val scale = lerp(0.85f, 1f, 1f - absOffset)
+                                    scaleX = scale
+                                    scaleY = scale
+                                    alpha = lerp(0.4f, 1f, 1f - absOffset)
+
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                        val blurAmount = absOffset * 30f
+                                        if (blurAmount > 0f) {
+                                            renderEffect = android.graphics.RenderEffect.createBlurEffect(
+                                                blurAmount, blurAmount, android.graphics.Shader.TileMode.DECAL
+                                            ).asComposeRenderEffect()
                                         }
                                     }
-                                ) {
-                                    PathCard(
-                                        trip = path,
-                                        languageCode = session.language,
-                                        onCardClick = onPathClick,
-                                        onHideTutorial = { viewModel.onHideTutorialPermanent() }
-                                    )
                                 }
+                            ) {
+                                PathCard(
+                                    trip = path,
+                                    languageCode = session.language,
+                                    onCardClick = onPathClick,
+                                    onHideTutorial = { viewModel.onHideTutorialPermanent() }
+                                )
                             }
                         }
                     }
@@ -146,23 +154,31 @@ fun HomeScreen(
 }
 
 @Composable
-private fun AuthGatekeeper(onSignIn: () -> Unit, onGuestSignIn: () -> Unit) {
-    Box(modifier = Modifier.fillMaxSize().background(MatteCharcoal), contentAlignment = Alignment.Center) {
-        Column(modifier = Modifier.padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = stringResource(R.string.auth_init_title), style = MaterialTheme.typography.labelSmall, color = SakartveloRed, letterSpacing = 4.sp)
-            Spacer(Modifier.height(16.dp))
-            Text(text = stringResource(R.string.auth_welcome), style = MaterialTheme.typography.headlineSmall, color = SnowWhite, fontWeight = FontWeight.Black, textAlign = TextAlign.Center)
-            Spacer(Modifier.height(48.dp))
-            Button(onClick = onSignIn, modifier = Modifier.fillMaxWidth().height(60.dp), colors = ButtonDefaults.buttonColors(containerColor = SakartveloRed), shape = RoundedCornerShape(12.dp)) {
-                Icon(Icons.AutoMirrored.Filled.Login, null)
-                Spacer(Modifier.width(12.dp))
-                Text(stringResource(R.string.auth_google_btn), fontWeight = FontWeight.Bold)
-            }
-            Spacer(Modifier.height(12.dp))
-            OutlinedButton(onClick = onGuestSignIn, modifier = Modifier.fillMaxWidth().height(60.dp), border = BorderStroke(1.dp, Color.White.copy(0.3f)), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.outlinedButtonColors(contentColor = SnowWhite)) {
-                Text(stringResource(R.string.auth_guest_btn), fontWeight = FontWeight.Medium)
-            }
+private fun AuthGatekeeper(currentLang: String, onSignIn: () -> Unit, onGuestSignIn: () -> Unit, onLangChange: (String) -> Unit) {
+    Column(modifier = Modifier.padding(32.dp).fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+        Text(text = stringResource(R.string.auth_init_title), style = MaterialTheme.typography.labelSmall, color = SakartveloRed, letterSpacing = 4.sp)
+        Spacer(Modifier.height(16.dp))
+        Text(text = stringResource(R.string.auth_welcome), style = MaterialTheme.typography.headlineSmall, color = SnowWhite, fontWeight = FontWeight.Black, textAlign = TextAlign.Center)
+        Spacer(Modifier.height(48.dp))
+        Row(modifier = Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            LanguageChip("EN", "English", currentLang == "en") { onLangChange("en") }
+            LanguageChip("GE", "ქართული", currentLang == "ka") { onLangChange("ka") }
+            LanguageChip("RU", "Русский", currentLang == "ru") { onLangChange("ru") }
+            LanguageChip("AR", "العربية", currentLang == "ar") { onLangChange("ar") }
+            LanguageChip("HE", "עברית", currentLang == "iw") { onLangChange("iw") }
         }
+        Spacer(Modifier.height(48.dp))
+        Button(onClick = onSignIn, modifier = Modifier.fillMaxWidth().height(60.dp), colors = ButtonDefaults.buttonColors(containerColor = SakartveloRed), shape = RoundedCornerShape(12.dp)) {
+            Icon(Icons.AutoMirrored.Filled.Login, null)
+            Spacer(Modifier.width(12.dp))
+            Text(stringResource(R.string.auth_google_btn), fontWeight = FontWeight.Bold)
+        }
+        Spacer(Modifier.height(12.dp))
+        OutlinedButton(onClick = onGuestSignIn, modifier = Modifier.fillMaxWidth().height(60.dp), border = BorderStroke(1.dp, Color.White.copy(0.3f)), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.outlinedButtonColors(contentColor = SnowWhite)) {
+            Text(stringResource(R.string.auth_guest_btn), fontWeight = FontWeight.Medium)
+        }
+        Spacer(Modifier.height(24.dp))
+        Text(text = stringResource(R.string.auth_footer), color = Color.White.copy(alpha = 0.4f), fontSize = 10.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 16.dp))
     }
 }
 
@@ -172,13 +188,9 @@ private fun HeaderSection(category: Category, onPassportClick: () -> Unit, onSet
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text(text = stringResource(R.string.discover), style = MaterialTheme.typography.headlineLarge, color = Color.White, fontWeight = FontWeight.Black, letterSpacing = (-1).sp)
             Row {
-                IconButton(onClick = onSettingsClick, modifier = Modifier.background(Color.White.copy(0.1f), CircleShape)) {
-                    Icon(Icons.Default.Settings, null, tint = Color.White)
-                }
+                IconButton(onClick = onSettingsClick, modifier = Modifier.background(Color.White.copy(0.1f), CircleShape)) { Icon(Icons.Default.Settings, null, tint = Color.White) }
                 Spacer(Modifier.width(8.dp))
-                IconButton(onClick = onPassportClick, modifier = Modifier.background(Color.White.copy(0.1f), CircleShape)) {
-                    Icon(Icons.Default.Badge, null, tint = Color.White)
-                }
+                IconButton(onClick = onPassportClick, modifier = Modifier.background(Color.White.copy(0.1f), CircleShape)) { Icon(Icons.Default.Badge, null, tint = Color.White) }
             }
         }
         val categoryEnum = try { RouteCategory.valueOf(category.name) } catch(e: Exception) { RouteCategory.CULTURE }
@@ -190,11 +202,11 @@ private fun HeaderSection(category: Category, onPassportClick: () -> Unit, onSet
 private fun DataLoadErrorFallback(onSettingsClick: () -> Unit) {
     Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = "MISSION DATA LOST", color = SakartveloRed, fontWeight = FontWeight.Black, textAlign = TextAlign.Center)
-            Spacer(Modifier.height(24.dp))
-            Button(onClick = onSettingsClick, colors = ButtonDefaults.buttonColors(containerColor = SakartveloRed)) {
-                Text("GO TO SETTINGS")
-            }
+            Text(text = "MISSION DATA LOST", color = SakartveloRed, fontWeight = FontWeight.Black, textAlign = TextAlign.Center, fontSize = 24.sp)
+            Spacer(Modifier.height(16.dp))
+            Text(text = "The Tactical Engine failed to ingest local mission parameters. This usually occurs after a major schema update.", color = Color.White.copy(0.6f), textAlign = TextAlign.Center, fontSize = 12.sp)
+            Spacer(Modifier.height(32.dp))
+            Button(onClick = onSettingsClick, colors = ButtonDefaults.buttonColors(containerColor = SakartveloRed), shape = RoundedCornerShape(12.dp)) { Text("REINITIALIZE SYSTEM", fontWeight = FontWeight.Bold) }
         }
     }
 }

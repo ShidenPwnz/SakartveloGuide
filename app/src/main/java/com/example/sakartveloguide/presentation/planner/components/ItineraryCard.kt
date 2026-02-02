@@ -41,6 +41,7 @@ fun ItineraryCard(
     isActive: Boolean,
     isExpanded: Boolean,
     isCompleted: Boolean,
+    isSmall: Boolean = false, // ARCHITECT'S FIX: Internal height control
     onMapClick: () -> Unit,
     onTaxiClick: () -> Unit,
     onRentClick: () -> Unit,
@@ -51,52 +52,92 @@ fun ItineraryCard(
 ) {
     val isHomeNode = node.type == "HOME"
     val showActiveVisuals = mode == TripMode.LIVE && isActive
-    val borderColor = if (showActiveVisuals) SakartveloRed else Color.Transparent
-    val cardAlpha = if (isCompleted) 0.6f else 1f
 
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    val borderColor = if (showActiveVisuals) SakartveloRed else if (isHomeNode && !isCompleted) SakartveloRed.copy(alpha = 0.5f) else Color.Transparent
+    val cardAlpha = if (isCompleted && !isHomeNode) 0.6f else 1f
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
         if (distFromPrev != null) {
             TacticalConnector(dist = distFromPrev, showControls = showActiveVisuals, onMap = onMapClick, onTaxi = onTaxiClick, onRent = onRentClick)
-        } else { Spacer(Modifier.height(16.dp)) }
+        } else {
+            Spacer(Modifier.height(16.dp))
+        }
 
-        Surface(modifier = Modifier.fillMaxWidth().clickable { onCardClick() }, shape = RoundedCornerShape(16.dp), border = BorderStroke(2.dp, borderColor), shadowElevation = if (showActiveVisuals) 12.dp else 4.dp, color = MaterialTheme.colorScheme.surface) {
-            Column(modifier = Modifier.animateContentSize()) {
-                Box(Modifier.height(180.dp)) {
-                    AsyncImage(model = node.imageUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop, alpha = cardAlpha)
+        // --- SINGLE CLICKABLE SURFACE ---
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .animateContentSize()
+                .clickable { onCardClick() }, // Unified touch target
+            shape = if (showActiveVisuals && node.id != -1) RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp) else RoundedCornerShape(16.dp),
+            border = BorderStroke(2.dp, borderColor),
+            shadowElevation = if (showActiveVisuals) 12.dp else 4.dp,
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Column {
+                // Image Header with dynamic height
+                Box(Modifier.height(if (isSmall && !isExpanded) 120.dp else 180.dp)) {
+                    AsyncImage(
+                        model = node.imageUrl,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        alpha = cardAlpha
+                    )
                     Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(0.9f)))))
+
                     Row(modifier = Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                         Surface(color = SakartveloRed, shape = RoundedCornerShape(4.dp)) {
                             Text(node.region.uppercase(), color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                         }
+
                         if (mode == TripMode.EDITING && !isCompleted && !isHomeNode) {
-                            IconButton(onClick = onRemove, modifier = Modifier.size(24.dp).background(Color.Black.copy(0.5f), CircleShape)) { Icon(Icons.Default.Close, null, tint = Color.White, modifier = Modifier.size(14.dp)) }
-                        } else if (isCompleted) { Icon(Icons.Default.CheckCircle, null, tint = Color(0xFF4CAF50)) }
+                            IconButton(onClick = onRemove, modifier = Modifier.size(24.dp).background(Color.Black.copy(0.5f), CircleShape)) {
+                                Icon(Icons.Default.Close, null, tint = Color.White, modifier = Modifier.size(14.dp))
+                            }
+                        } else if (isCompleted) {
+                            Icon(Icons.Default.CheckCircle, null, tint = Color(0xFF4CAF50))
+                        } else if (isHomeNode && !isCompleted) {
+                            Surface(shape = CircleShape, color = SakartveloRed) {
+                                Icon(Icons.Default.EditLocation, null, tint = Color.White, modifier = Modifier.padding(4.dp).size(16.dp))
+                            }
+                        }
                     }
-                    Text(node.getDisplayName(lang), color = Color.White, fontWeight = FontWeight.Black, fontSize = 20.sp, maxLines = 2, modifier = Modifier.align(Alignment.BottomStart).padding(16.dp))
+
+                    Text(node.getDisplayName(lang), color = Color.White, fontWeight = FontWeight.Black, fontSize = if(isSmall && !isExpanded) 16.sp else 20.sp, maxLines = 2, modifier = Modifier.align(Alignment.BottomStart).padding(16.dp))
                 }
-                if (isExpanded) {
+
+                if (isExpanded && !isHomeNode) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(text = node.getDisplayDesc(lang), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(0.8f))
-                        if (!isHomeNode) {
-                            Spacer(Modifier.height(12.dp))
-                            Button(onClick = onMoreInfo, modifier = Modifier.fillMaxWidth().height(40.dp), shape = RoundedCornerShape(8.dp), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurface)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.Place, null, modifier = Modifier.size(16.dp))
-                                    Spacer(Modifier.width(8.dp))
-                                    Text(stringResource(R.string.btn_more_info), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                }
+                        Spacer(Modifier.height(12.dp))
+                        Button(onClick = onMoreInfo, modifier = Modifier.fillMaxWidth().height(40.dp), shape = RoundedCornerShape(8.dp), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurface)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Place, null, modifier = Modifier.size(16.dp)); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.btn_more_info), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
                 }
-                if (showActiveVisuals && node.id != -1) {
-                    Surface(onClick = onCheckIn, color = SakartveloRed, modifier = Modifier.fillMaxWidth().height(48.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-                            Icon(if (isHomeNode) Icons.Default.Home else Icons.Default.CheckCircle, null, tint = Color.White, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text(text = if (isHomeNode) "FINISH MISSION" else "CHECK IN", color = Color.White, fontWeight = FontWeight.Black, fontSize = 14.sp)
-                        }
-                    }
+            }
+        }
+
+        // Separate surface for Check-In so it doesn't collide with expansion logic
+        if (showActiveVisuals && node.id != -1) {
+            Surface(
+                onClick = { onCheckIn() },
+                color = SakartveloRed,
+                shape = RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp),
+                modifier = Modifier.fillMaxWidth().height(48.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                    Icon(if (isHomeNode) Icons.Default.Home else Icons.Default.CheckCircle, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(text = if (isHomeNode) "FINISH MISSION" else "CHECK IN", color = Color.White, fontWeight = FontWeight.Black, fontSize = 14.sp)
                 }
             }
         }

@@ -36,15 +36,18 @@ fun SakartveloNavGraph(
         NavHost(navController = navController, startDestination = initialRoute) {
             composable("home") {
                 HomeScreen(
-                    viewModel = homeViewModel,
-                    onPathClick = { id ->
-                        if (id == "meta_sandbox") {
-                            homeViewModel.prepareForNewMission()
-                            navController.navigate("briefing/custom_cargo?ids=")
-                        } else {
-                            navController.navigate("briefing/$id?ids=")
-                        }
-                    },
+                        viewModel = homeViewModel,
+                        onPathClick = { id ->
+                            if (id == "meta_sandbox") {
+                                homeViewModel.prepareForNewMission()
+                                navController.navigate("briefing/custom_cargo?ids=")
+                            } else if (id == "meta_tutorial") { // ARCHITECT'S FIX: Specific handling for Bootcamp
+                                homeViewModel.prepareForNewMission()
+                                navController.navigate("briefing/meta_tutorial?ids=")
+                            } else {
+                                navController.navigate("briefing/$id?ids=")
+                            }
+                        },
                     onPassportClick = { navController.navigate("passport") },
                     onSettingsClick = { navController.navigate("settings") }
                 )
