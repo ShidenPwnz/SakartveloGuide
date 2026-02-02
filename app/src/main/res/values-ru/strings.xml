@@ -1,20 +1,20 @@
 <resources>
     <string name="app_name">Sakartvelo Guide</string>
-    <string name="auth_init_title">ИНИЦИАЛИЗАЦИЯ ЛИЧНОСТИ</string>
-    <string name="auth_welcome">Добро пожаловать в Грузию.\nЗащитите свои данные для продолжения.</string>
+    <string name="auth_init_title">ВХОД / РЕГИСТРАЦИЯ</string>
+    <string name="auth_welcome">Добро пожаловать в Грузию.\nВойдите, чтобы сохранить путешествие.</string>
     <string name="auth_google_btn">ВОЙТИ ЧЕРЕЗ GOOGLE</string>
     <string name="auth_guest_btn">ПРОДОЛЖИТЬ КАК ГОСТЬ</string>
-    <string name="auth_footer">Вход позволяет синхронизировать журналы миссий и штампы между устройствами.</string>
+    <string name="auth_footer">Вход позволяет синхронизировать планы поездок и цифровые сувениры между устройствами.</string>
     <string name="discover">ОБЗОР</string>
     <string name="settings_title">НАСТРОЙКИ</string>
     <string name="passport_title">МОЙ ПАСПОРТ</string>
-    <string name="lang_protocol">ЯЗЫКОВОЙ ПРОТОКОЛ</string>
+    <string name="lang_protocol">ЯЗЫК</string>
     <string name="data_mgmt">УПРАВЛЕНИЕ ДАННЫМИ</string>
-    <string name="nuke_data">СБРОСИТЬ ВСЕ ДАННЫЕ</string>
-    <string name="nuke_desc">Безвозвратно удалить историю миссий</string>
-    <string name="logout_label">ЗАВЕРШИТЬ СЕАНС</string>
-    <string name="builder_title">КОНСТРУКТОР МИССИЙ</string>
-    <string name="builder_loadout">СНАРЯЖЕНИЕ</string>
+    <string name="nuke_data">СБРОСИТЬ ДАННЫЕ ПРИЛОЖЕНИЯ</string>
+    <string name="nuke_desc">Безвозвратно удалить историю поездок</string>
+    <string name="logout_label">ВЫЙТИ</string>
+    <string name="builder_title">ПЛАНИРОВЩИК</string>
+    <string name="builder_loadout">МАРШРУТ</string>
     <string name="builder_proceed">ПРОДОЛЖИТЬ</string>
     <string name="planner_title">ПЛАНИРОВЩИК</string>
     <string name="trip_essentials">ОСНОВЫ ПОЕЗДКИ</string>
@@ -22,29 +22,29 @@
     <string name="label_flight">ПЕРЕЛЕТ</string>
     <string name="label_taxi">ТРАНСПОРТ</string>
     <string name="label_rent">АРЕНДА</string>
-    <string name="set_home_title">ЗАДАТЬ БАЗУ</string>
+    <string name="set_home_title">ЗАДАТЬ ЖИЛЬЕ</string>
     <string name="set_home_sub">(Разблокирует рекомендации)</string>
-    <string name="home_secured">БАЗА ЗАДАНА</string>
-    <string name="home_start_title">БАЗА (СТАРТ)</string>
-    <string name="home_return_title">ВОЗВРАТ НА БАЗУ</string>
-    <string name="home_desc">Ваш защищенный центр операций.</string>
-    <string name="planner_empty_state">Задайте базу или добавьте точку для начала.</string>
+    <string name="home_secured">ЖИЛЬЕ ЗАДАНО</string>
+    <string name="home_start_title">ЖИЛЬЕ (СТАРТ)</string>
+    <string name="home_return_title">ВОЗВРАТ В ЖИЛЬЕ</string>
+    <string name="home_desc">Ваше место проживания.</string>
+    <string name="planner_empty_state">Задайте жилье или добавьте точку для начала.</string>
     <string name="trip_details_title">ОБЗОР ПОЕЗДКИ</string>
-    <string name="configure_trip">НАСТРОИТЬ ПРОТОКОЛ</string>
+    <string name="configure_trip">НАСТРОИТЬ ПОЕЗДКУ</string>
     <string name="trip_duration_days">%d дн.</string>
     <string name="trip_drive_time">Вождение: %s</string>
     <string name="trip_intensity">Темп: %s</string>
     <string name="snow_warning_title">ЗИМНЕЕ ПРЕДУПРЕЖДЕНИЕ</string>
     <string name="snow_warning_desc">Требуется 4x4 (Нояб-Апр)</string>
-    <string name="trans_driver">ПИЛОТ</string>
+    <string name="trans_driver">ВОДИТЕЛЬ</string>
     <string name="trans_driver_sub">Аренда / Свой авто</string>
     <string name="trans_passenger">ПАССАЖИР</string>
     <string name="trans_passenger_sub">Такси / Транспорт / Пешком</string>
-    <string name="btn_start_journey">НАЧАТЬ МИССИЮ</string>
+    <string name="btn_start_journey">НАЧАТЬ ПОЕЗДКУ</string>
     <string name="btn_pause_edit">ПАУЗА И РЕД.</string>
     <string name="btn_optimize">ОПТИМИЗАЦИЯ</string>
     <string name="btn_check_in">ОТМЕТИТЬСЯ</string>
-    <string name="btn_arrive_home">ПРИБЫТИЕ НА БАЗУ</string>
+    <string name="btn_arrive_home">ПРИБЫТИЕ И ЗАВЕРШЕНИЕ</string>
     <string name="btn_taxi">ТАКСИ</string>
     <string name="btn_rent">АРЕНДА 4X4</string>
     <string name="search_hint">Поиск мест или регионов…</string>
@@ -63,7 +63,20 @@
     <string name="cat_relaxed">ОТДЫХ</string>
     <string name="region_visas">ВИЗЫ РЕГИОНОВ</string>
     <string name="no_stamps">Штампов пока нет.</string>
-    <string name="approved_protocol">ПРОТОКОЛ УТВЕРЖДЕН</string>
+    <string name="approved_protocol">ПОЕЗДКА ПОДТВЕРЖДЕНА</string>
     <string name="btn_more_info">ПОДРОБНЕЕ</string>
+    <string name="btn_preview_trip">ПРОСМОТР</string>
+    <string name="btn_optimize_short">ОПТИМИЗИРОВАТЬ</string>
+    <string name="tut_next">ДАЛЕЕ</string>
+    <string name="tut_skip">ПРОПУСТИТЬ</string>
+
+    <string name="tut_step1_title">ШАГ 1: ОСНОВЫ</string>
+    <string name="tut_step1_desc">Используйте Основы поездки, чтобы забронировать перелеты, жилье и транспорт перед отправлением.</string>
+
+    <string name="tut_step2_title">ШАГ 2: ЖИЛЬЕ</string>
+    <string name="tut_step2_desc">Укажите место вашего проживания. Это откроет доступ к персональным рекомендациям.</string>
+
+    <string name="tut_step3_title">ШАГ 3: ОТКРЫТИЯ</string>
+    <string name="tut_step3_desc">Нажмите кнопку добавления, чтобы открыть для себя более 800 проверенных мест по всей Грузии.</string>
 
 </resources>

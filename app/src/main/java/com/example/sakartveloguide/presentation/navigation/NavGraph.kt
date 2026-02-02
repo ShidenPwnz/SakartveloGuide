@@ -8,8 +8,8 @@ import androidx.navigation.navArgument
 import com.example.sakartveloguide.presentation.home.*
 import com.example.sakartveloguide.presentation.passport.*
 import com.example.sakartveloguide.presentation.settings.*
-import com.example.sakartveloguide.presentation.builder.*
 import com.example.sakartveloguide.presentation.planner.*
+import com.example.sakartveloguide.presentation.builder.FobSetupView // FIX: Added missing import
 import com.example.sakartveloguide.domain.model.*
 import kotlinx.coroutines.flow.collectLatest
 
@@ -36,18 +36,18 @@ fun SakartveloNavGraph(
         NavHost(navController = navController, startDestination = initialRoute) {
             composable("home") {
                 HomeScreen(
-                        viewModel = homeViewModel,
-                        onPathClick = { id ->
-                            if (id == "meta_sandbox") {
-                                homeViewModel.prepareForNewMission()
-                                navController.navigate("briefing/custom_cargo?ids=")
-                            } else if (id == "meta_tutorial") { // ARCHITECT'S FIX: Specific handling for Bootcamp
-                                homeViewModel.prepareForNewMission()
-                                navController.navigate("briefing/meta_tutorial?ids=")
-                            } else {
-                                navController.navigate("briefing/$id?ids=")
-                            }
-                        },
+                    viewModel = homeViewModel,
+                    onPathClick = { id ->
+                        if (id == "meta_sandbox") {
+                            homeViewModel.prepareForNewMission()
+                            navController.navigate("briefing/custom_cargo?ids=")
+                        } else if (id == "meta_tutorial") {
+                            homeViewModel.prepareForNewMission()
+                            navController.navigate("briefing/meta_tutorial?ids=")
+                        } else {
+                            navController.navigate("briefing/$id?ids=")
+                        }
+                    },
                     onPassportClick = { navController.navigate("passport") },
                     onSettingsClick = { navController.navigate("settings") }
                 )
@@ -63,18 +63,12 @@ fun SakartveloNavGraph(
                 val vm: AdventureViewModel = hiltViewModel(backStackEntry)
                 TripPlannerScreen(
                     viewModel = vm,
-                    onBack = {
-                        navController.navigate("home") {
-                            popUpTo(0)
-                            launchSingleTop = true
-                        }
-                    },
+                    onBack = { navController.navigate("home") { popUpTo(0); launchSingleTop = true } },
                     onNavigateToFobMap = {
-                        navController.navigate("fob_recon/${backStackEntry.arguments?.getString("tripId")}")
+                        val tid = backStackEntry.arguments?.getString("tripId") ?: ""
+                        navController.navigate("fob_recon/$tid")
                     },
-                    onNavigateToPassport = {
-                        navController.navigate("passport")
-                    }
+                    onNavigateToPassport = { navController.navigate("passport") }
                 )
             }
 
@@ -86,17 +80,20 @@ fun SakartveloNavGraph(
                 val parentEntry = remember(backStackEntry) {
                     navController.getBackStackEntry("briefing/$tripId?ids=")
                 }
+
                 val vm: AdventureViewModel = hiltViewModel(parentEntry)
                 val plannerState by vm.uiState.collectAsState()
 
-                // ARCHITECT'S FIX: Manual type mapping for GeoPoint center
-                val firstPoint = plannerState.route.firstOrNull()?.let {
-                    GeoPoint(it.latitude, it.longitude)
-                } ?: GeoPoint(41.7125, 44.7930)
+                val routeList = plannerState.route
+                val firstPoint = if (routeList.isNotEmpty()) {
+                    GeoPoint(routeList[0].latitude, routeList[0].longitude)
+                } else {
+                    GeoPoint(41.7125, 44.7930)
+                }
 
                 FobSetupView(
                     initialCenter = firstPoint,
-                    onSetBase = { loc ->
+                    onSetBase = { loc: GeoPoint -> // FIX: Explicit type for inference
                         vm.setBaseCamp(loc)
                         navController.popBackStack()
                     }
@@ -113,7 +110,7 @@ fun SakartveloNavGraph(
                     onWipeData = { homeViewModel.wipeAllUserData() },
                     onLogout = {
                         homeViewModel.signOut()
-                        navController.popBackStack()
+                        navController.navigate("home") { popUpTo(0) }
                     },
                     onLanguageChange = { code -> homeViewModel.onLanguageChange(code) }
                 )
@@ -121,8 +118,8 @@ fun SakartveloNavGraph(
 
             composable("passport") {
                 val passportViewModel: PassportViewModel = hiltViewModel()
-                val stampsState = passportViewModel.stamps.collectAsState()
-                PassportScreen(stampsState.value, { navController.popBackStack() })
+                val stampsState by passportViewModel.stamps.collectAsState()
+                PassportScreen(stampsState, { navController.popBackStack() })
             }
         }
     }

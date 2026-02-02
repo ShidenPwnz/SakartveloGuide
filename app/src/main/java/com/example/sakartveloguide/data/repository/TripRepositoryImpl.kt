@@ -15,6 +15,7 @@ import com.google.gson.reflect.TypeToken
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.io.InputStreamReader
@@ -103,11 +104,13 @@ class TripRepositoryImpl @Inject constructor(
     override suspend fun refreshTrips() {
         withContext(Dispatchers.IO) {
             try {
-                if (tripDao.getTripCount() > 0) return@withContext
+                val gson = Gson()
 
-                val gson = Gson() // FIXED: Reference added
+                // 1. Snapshot existing progress (Handle null/empty case after nuke)
+                val existingTrips = tripDao.getAllTrips().firstOrNull() ?: emptyList()
+                val lockStateMap = existingTrips.associate { it.id to it.isLocked }
 
-                // 1. INGEST LOCATIONS
+                // 2. Refresh Locations
                 val locStream = context.assets.open("master_locations.json")
                 val rawLocs: List<RawLocationDto?> = gson.fromJson(InputStreamReader(locStream), object : TypeToken<List<RawLocationDto?>>() {}.type)
                 val locationEntities = rawLocs.mapNotNull { it }.map { dto ->
@@ -122,20 +125,23 @@ class TripRepositoryImpl @Inject constructor(
                 }
                 locationDao.insertLocations(locationEntities)
 
-                // 2. INGEST TEMPLATES
+                // 3. Refresh Templates & Merge State
                 val tripStream = context.assets.open("mission_templates.json")
                 val templates: List<TripTemplateDto?> = gson.fromJson(InputStreamReader(tripStream), object : TypeToken<List<TripTemplateDto?>>() {}.type)
+
                 val tripEntities = templates.mapNotNull { it }.map { t ->
+                    val wasLocked = lockStateMap[t.id] ?: false
                     TripEntity(
                         id = t.id, imageUrl = t.image ?: "", category = t.category ?: "CULTURE",
                         difficulty = t.difficulty ?: "NORMAL", durationDays = t.duration_days ?: 1,
                         targetIds = t.sequence ?: emptyList(),
                         titleEn = t.title_en ?: "Trip", titleKa = t.title_ka ?: "", titleRu = t.title_ru ?: "",
-                        descEn = t.description_en ?: "", descKa = t.description_ka ?: "", descRu = t.description_ru ?: ""
+                        descEn = t.description_en ?: "", descKa = t.description_ka ?: "", descRu = t.description_ru ?: "",
+                        isLocked = wasLocked
                     )
                 }.toMutableList()
 
-                // 3. INJECT SANDBOX
+                // 4. Inject Tools
                 tripEntities.add(0, TripEntity(
                     id = "meta_sandbox", imageUrl = "https://images.pexels.com/photos/32307/pexels-photo-32307.jpeg",
                     category = "GUIDE", difficulty = "RELAXED", durationDays = 1, targetIds = emptyList(),
@@ -143,7 +149,6 @@ class TripRepositoryImpl @Inject constructor(
                     descEn = "Fabricate a custom journey from 800+ locations."
                 ))
 
-                // 4. INJECT BOOTCAMP
                 tripEntities.add(0, TripEntity(
                     id = "meta_tutorial", imageUrl = "https://images.pexels.com/photos/1252983/pexels-photo-1252983.jpeg",
                     category = "GUIDE", difficulty = "EASY", durationDays = 1, targetIds = emptyList(),
@@ -152,12 +157,22 @@ class TripRepositoryImpl @Inject constructor(
                 ))
 
                 tripDao.insertTrips(tripEntities)
+                Log.d("SAKARTVELO_REPO", "Sync Successful: ${tripEntities.size} items.")
+
             } catch (e: Exception) {
-                Log.e("SAKARTVELO_REPO", "INGESTION ERROR", e)
+                Log.e("SAKARTVELO_REPO", "Sync Failed", e)
             }
         }
     }
 
     override suspend fun lockTrip(tripId: String) = tripDao.updateLockStatus(tripId, true)
-    override suspend fun nukeAllData() { tripDao.nukeTable(); locationDao.nukeTable() }
+
+    override suspend fun nukeAllData() {
+        withContext(Dispatchers.IO) {
+            Log.d("SAKARTVELO_REPO", "Executing Global Data Nuke...")
+            tripDao.nukeTable()
+            locationDao.nukeTable()
+            Log.d("SAKARTVELO_REPO", "Nuke Complete.")
+        }
+    }
 }

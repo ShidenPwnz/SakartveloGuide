@@ -1,20 +1,20 @@
 <resources>
     <string name="app_name">Sakartvelo Guide</string>
-    <string name="auth_init_title">ԻՆՔՆՈՒԹՅԱՆ ՍԿԶԲՆԱՎՈՐՈՒՄ</string>
-    <string name="auth_welcome">Բարի գալուստ Վրաստան:\nԱպահովեք ձեր տվյալները՝ շարունակելու համար:</string>
+    <string name="auth_init_title">ՄՈՒՏՔ / ԳՐԱՆՑՈՒՄ</string>
+    <string name="auth_welcome">Բարի գալուստ Վրաստան:\nՄուտք գործեք՝ ձեր ճանապարհորդությունը պահպանելու համար:</string>
     <string name="auth_google_btn">ՄՈՒՏՔ GOOGLE-ՈՎ</string>
     <string name="auth_guest_btn">ՇԱՐՈՒՆԱԿԵԼ ՈՐՊԵՍ ՀՅՈՒՐ</string>
-    <string name="auth_footer">Մուտքը թույլ է տալիս համաժամեցնել առաքելության գրառումները սարքերի միջև:</string>
+    <string name="auth_footer">Մուտքը թույլ է տալիս համաժամեցնել ճանապարհորդության պլանները և թվային հուշանվերները սարքերի միջև:</string>
     <string name="discover">ԲԱՑԱՀԱՅՏԵԼ</string>
     <string name="settings_title">ԿԱՐԳԱՎՈՐՈՒՄՆԵՐ</string>
     <string name="passport_title">ԻՄ ԱՆՁՆԱԳԻՐԸ</string>
-    <string name="lang_protocol">ԼԵԶՎԻ ԱՐՁԱՆԱԳՐՈՒԹՅՈՒՆ</string>
+    <string name="lang_protocol">ԼԵԶՈՒ</string>
     <string name="data_mgmt">ՏՎՅԱԼՆԵՐԻ ԿԱՌԱՎԱՐՈՒՄ</string>
-    <string name="nuke_data">ՋՆՋԵԼ ԲՈԼՈՐ ՏՎՅԱԼՆԵՐԸ</string>
-    <string name="nuke_desc">Անդառնալիորեն ջնջել առաքելության պատմությունը</string>
-    <string name="logout_label">ԱՎԱՐՏԵԼ ՍԵՍԻԱՆ</string>
-    <string name="builder_title">ԱՌԱՔԵԼՈՒԹՅԱՆ ԿԱՌՈՒՑԻՉ</string>
-    <string name="builder_loadout">ՀԱՆԴԵՐՁԱՆՔ</string>
+    <string name="nuke_data">ՎԵՐԱԿԱՆԳՆԵԼ ՀԱՎԵԼՎԱԾԻ ՏՎՅԱԼՆԵՐԸ</string>
+    <string name="nuke_desc">Անդառնալիորեն ջնջել ճանապարհորդության պատմությունը</string>
+    <string name="logout_label">ԴՈՒՐՍ ԳԱԼ</string>
+    <string name="builder_title">ՃԱՆԱՊԱՐՀՈՐԴՈՒԹՅԱՆ ՊԼԱՆԱՎՈՐԻՉ</string>
+    <string name="builder_loadout">ԵՐԹՈՒՂԻ</string>
     <string name="builder_proceed">ՇԱՐՈՒՆԱԿԵԼ</string>
     <string name="planner_title">ՈՒՂԵՎՈՐՈՒԹՅԱՆ ՊԼԱՆԱՎՈՐԻՉ</string>
     <string name="trip_essentials">ՈՒՂԵՎՈՐՈՒԹՅԱՆ ՀԻՄՈՒՆՔՆԵՐ</string>
@@ -24,19 +24,19 @@
     <string name="label_rent">ՎԱՐՁՈՒՅԹ</string>
     <string name="set_home_title">ՍԱՀՄԱՆԵԼ ՏԱՆ ԴԻՐՔԸ</string>
     <string name="set_home_sub">(Բացում է խելացի առաջարկները)</string>
-    <string name="home_secured">ՏՈՒՆԸ ԱՊԱՀՈՎՎԱԾ Է</string>
+    <string name="home_secured">ՏՈՒՆԸ ՍԱՀՄԱՆՎԱԾ Է</string>
     <string name="home_start_title">ՏՈՒՆ (ՄԵԿՆԱՐԿ)</string>
     <string name="home_return_title">ՎԵՐԱԴԱՐՁ ՏՈՒՆ</string>
-    <string name="home_desc">Ձեր ապահով գործողությունների կենտրոնը:</string>
+    <string name="home_desc">Ձեր կացարանը:</string>
     <string name="planner_empty_state">Սահմանեք տան դիրքը կամ ավելացրեք կանգառ՝ սկսելու համար:</string>
     <string name="trip_details_title">ՈՒՂԵՎՈՐՈՒԹՅԱՆ ԱԿՆԱՐԿ</string>
-    <string name="configure_trip">ԿԱՐԳԱՎՈՐԵԼ ԱՐՁԱՆԱԳՐՈՒԹՅՈՒՆԸ</string>
+    <string name="configure_trip">ՀԱՐՄԱՐԵՑՆԵԼ ՃԱՆԱՊԱՐՀՈՐԴՈՒԹՅՈՒՆԸ</string>
     <string name="trip_duration_days">%d օր</string>
     <string name="trip_drive_time">Վարում. %s</string>
     <string name="trip_intensity">Տեմպ. %s</string>
     <string name="snow_warning_title">ՁՄԵՌԱՅԻՆ ԶԳՈՒՇԱՑՈՒՄ</string>
     <string name="snow_warning_desc">Պահանջվում է 4x4 (Նոյ-Ապր)</string>
-    <string name="trans_driver">ՕԴԱՉՈՒ</string>
+    <string name="trans_driver">ՎԱՐՈՐԴ</string>
     <string name="trans_driver_sub">Վարձույթ / Անձնական մեքենա</string>
     <string name="trans_passenger">ՈՒՂԵՎՈՐ</string>
     <string name="trans_passenger_sub">Տաքսի / Տրանսպորտ / Քայլել</string>
@@ -63,7 +63,20 @@
     <string name="cat_relaxed">ՀԱՆԳԻՍՏ</string>
     <string name="region_visas">ՏԱՐԱԾԱՇՐՋԱՆԻ ԿՆԻՔՆԵՐ</string>
     <string name="no_stamps">Դեռ կնիքներ չկան:</string>
-    <string name="approved_protocol">ՀԱՍՏԱՏՎԱԾ ԱՐՁԱՆԱԳՐՈՒԹՅՈՒՆ</string>
+    <string name="approved_protocol">ՃԱՆԱՊԱՐՀՈՐԴՈՒԹՅՈՒՆԸ ՀԱՍՏԱՏՎԱԾ Է</string>
     <string name="btn_more_info">ԱՎԵԼԻՆ</string>
+    <string name="btn_preview_trip">ԴԻՏԵԼ ՈՒՂԵՎՈՐՈՒԹՅՈՒՆԸ</string>
+    <string name="btn_optimize_short">ՕՊՏԻՄԱԼԱՑՆԵԼ</string>
+    <string name="tut_next">ՀԱՋՈՐԴ</string>
+    <string name="tut_skip">ԲԱՑ ԹՈՂՆԵԼ</string>
+
+    <string name="tut_step1_title">ՔԱՅԼ 1. ՀԻՄՈՒՆՔՆԵՐ</string>
+    <string name="tut_step1_desc">Օգտագործեք Ուղևորության Հիմունքները թռիչքներ, կացարաններ և տրանսպորտ ամրագրելու համար մինչ մեկնելը:</string>
+
+    <string name="tut_step2_title">ՔԱՅԼ 2. ՍԱՀՄԱՆԵԼ ՏՈՒՆԸ</string>
+    <string name="tut_step2_desc">Սահմանեք ձեր Տան դիրքը: Այն բացում է անհատականացված առաջարկներ ձեր ուղևորության համար:</string>
+
+    <string name="tut_step3_title">ՔԱՅԼ 3. ԲԱՑԱՀԱՅՏՈՒՄ</string>
+    <string name="tut_step3_desc">Հպեք ավելացնելու կոճակին՝ Վրաստանի ավելի քան 800 ստուգված վայրեր բացահայտելու համար:</string>
 
 </resources>

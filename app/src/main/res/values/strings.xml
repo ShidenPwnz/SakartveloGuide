@@ -1,21 +1,21 @@
 <resources>
     <string name="app_name">Sakartvelo Guide</string>
-    <string name="auth_init_title">INITIALIZE IDENTITY</string>
-    <string name="auth_welcome">Welcome to Georgia.\nSecure your data to proceed.</string>
+    <string name="auth_init_title">LOG IN / SIGN UP</string>
+    <string name="auth_welcome">Welcome to Georgia.\nSign in to save your journey.</string>
     <string name="auth_google_btn">SIGN IN WITH GOOGLE</string>
-    <string name="auth_guest_btn">PROCEED AS GUEST</string>
-    <string name="auth_footer">Signing in allows mission logs and passport stamps to sync across devices.</string>
+    <string name="auth_guest_btn">CONTINUE AS GUEST</string>
+    <string name="auth_footer">Signing in allows trip plans and digital souvenirs to sync across devices.</string>
     <string name="discover">EXPLORE</string>
     <string name="settings_title">SETTINGS</string>
     <string name="passport_title">MY PASSPORT</string>
-    <string name="lang_protocol">LANGUAGE PROTOCOL</string>
+    <string name="lang_protocol">LANGUAGE</string>
     <string name="data_mgmt">DATA MANAGEMENT</string>
-    <string name="nuke_data">RESET ALL DATA</string>
-    <string name="nuke_desc">Permanently delete mission history</string>
-    <string name="logout_label">TERMINATE SESSION</string>
-    <string name="builder_title">MISSION BUILDER</string>
-    <string name="builder_loadout">LOADOUT</string>
-    <string name="builder_proceed">PROCEED</string>
+    <string name="nuke_data">RESET APP DATA</string>
+    <string name="nuke_desc">Permanently delete trip history</string>
+    <string name="logout_label">LOG OUT</string>
+    <string name="builder_title">TRIP PLANNER</string>
+    <string name="builder_loadout">ITINERARY</string>
+    <string name="builder_proceed">CONTINUE</string>
     <string name="planner_title">TRIP PLANNER</string>
     <string name="trip_essentials">TRIP ESSENTIALS</string>
     <string name="label_stay">STAY</string>
@@ -23,24 +23,24 @@
     <string name="label_taxi">TRANSPORT</string>
     <string name="label_rent">RENT CAR</string>
     <string name="set_home_title">SET HOME LOCATION</string>
-    <string name="set_home_sub">(Unlocks Smart Recs)</string>
-    <string name="home_secured">HOME SECURED</string>
+    <string name="set_home_sub">(Unlocks Recommendations)</string>
+    <string name="home_secured">HOME SET</string>
     <string name="home_start_title">HOME (START)</string>
     <string name="home_return_title">RETURN HOME</string>
-    <string name="home_desc">Your secured base of operations.</string>
+    <string name="home_desc">Your place of stay.</string>
     <string name="planner_empty_state">Set Home Location or Add a Stop to begin.</string>
     <string name="trip_details_title">TRIP OVERVIEW</string>
-    <string name="configure_trip">CUSTOMIZE PROTOCOL</string>
+    <string name="configure_trip">CUSTOMIZE TRIP</string>
     <string name="trip_duration_days">%d DAYS</string>
     <string name="trip_drive_time">DRIVE: %s</string>
     <string name="trip_intensity">PACE: %s</string>
     <string name="snow_warning_title">WINTER ALERT</string>
     <string name="snow_warning_desc">4x4 required Nov-April</string>
-    <string name="trans_driver">PILOT</string>
+    <string name="trans_driver">DRIVER</string>
     <string name="trans_driver_sub">Rental / Own Vehicle</string>
     <string name="trans_passenger">PASSENGER</string>
     <string name="trans_passenger_sub">Taxi / Transit / Walk</string>
-    <string name="btn_start_journey">START JOURNEY</string>
+    <string name="btn_start_journey">START TRIP</string>
     <string name="btn_pause_edit">PAUSE &amp; EDIT</string>
     <string name="btn_optimize">OPTIMIZE ROUTE</string>
     <string name="btn_check_in">CHECK IN</string>
@@ -61,22 +61,22 @@
     <string name="cat_culture">CULTURE</string>
     <string name="cat_nature">NATURE</string>
     <string name="cat_relaxed">RELAXED</string>
-    <string name="region_visas">REGION STAMPS</string>
-    <string name="no_stamps">No stamps earned yet.</string>
-    <string name="approved_protocol">APPROVED PROTOCOL</string>
+    <string name="region_visas">REGIONAL STAMPS</string>
+    <string name="no_stamps">No stamps collected yet.</string>
+    <string name="approved_protocol">TRIP CONFIRMED</string>
     <string name="btn_more_info">MORE INFO</string>
     <string name="btn_preview_trip">PREVIEW TRIP</string>
     <string name="btn_optimize_short">OPTIMIZE</string>
-    <string name="tut_next">NEXT PROTOCOL</string>
-    <string name="tut_skip">SKIP TUTORIAL</string>
+    <string name="tut_next">NEXT</string>
+    <string name="tut_skip">SKIP</string>
 
-    <string name="tut_step1_title">STEP 1: LOGISTICS</string>
-    <string name="tut_step1_desc">Use Trip Essentials to secure flights, booking, and transport before you deploy.</string>
+    <string name="tut_step1_title">STEP 1: ESSENTIALS</string>
+    <string name="tut_step1_desc">Use Trip Essentials to book flights, stays, and transport before you go.</string>
 
-    <string name="tut_step2_title">STEP 2: THE ANCHOR</string>
-    <string name="tut_step2_desc">Set your Home location. This is mission critical—it unlocks personalized smart recommendations.</string>
+    <string name="tut_step2_title">STEP 2: SET HOME</string>
+    <string name="tut_step2_desc">Set your Home location. It unlocks personalized recommendations for your trip.</string>
 
-    <string name="tut_step3_title">STEP 3: DISCOVERY</string>
+    <string name="tut_step3_title">STEP 3: DISCOVER</string>
     <string name="tut_step3_desc">Tap the add button to explore 800+ verified locations across Georgia.</string>
 
 </resources>

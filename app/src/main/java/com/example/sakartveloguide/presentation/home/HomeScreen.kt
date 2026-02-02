@@ -1,6 +1,7 @@
 package com.example.sakartveloguide.presentation.home
 
 import android.os.Build
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -13,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.filled.Badge
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -79,12 +81,17 @@ fun HomeScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         CircularProgressIndicator(color = SakartveloRed)
                         Spacer(Modifier.height(16.dp))
-                        Text("INITIALIZING ADVENTURE ENGINE...", color = Color.White.copy(alpha = 0.6f), style = MaterialTheme.typography.labelSmall)
+                        Text(
+                            text = "INITIALIZING ADVENTURE ENGINE...",
+                            color = Color.White.copy(alpha = 0.6f),
+                            style = MaterialTheme.typography.labelSmall
+                        )
                     }
                 }
             } else if (categories.isEmpty()) {
                 DataLoadErrorFallback(onSettingsClick)
             } else {
+                // THE MATRIX (Horizontal Categories)
                 val hPagerState = rememberPagerState(pageCount = { categories.size })
 
                 Column(modifier = Modifier.fillMaxSize()) {
@@ -99,51 +106,69 @@ fun HomeScreen(
                         val category = categories[hPage]
                         val paths = uiState.groupedPaths[category] ?: emptyList()
 
-                        val vPagerState = rememberPagerState(pageCount = { paths.size })
+                        // Vertical Stack (Trips)
+                        key(session.hasSeenTutorial, session.language, paths.size) {
+                            val vPagerState = rememberPagerState(pageCount = { paths.size })
 
-                        LaunchedEffect(vPagerState.currentPage) {
-                            viewModel.triggerHapticTick()
-                        }
+                            LaunchedEffect(vPagerState.currentPage) {
+                                viewModel.triggerHapticTick()
+                            }
 
-                        VerticalPager(
-                            state = vPagerState,
-                            modifier = Modifier.fillMaxSize(),
-                            // ARCHITECT'S FIX: Reduced overlap to restore swipe physics
-                            pageSpacing = (-240).dp,
-                            beyondViewportPageCount = 2
-                        ) { vPage ->
-                            val path = paths[vPage]
-                            val pageOffset = (vPagerState.currentPage - vPage).toFloat() + vPagerState.currentPageOffsetFraction
-                            val absOffset = pageOffset.absoluteValue.coerceIn(0f, 1f)
+                            Box(modifier = Modifier.fillMaxSize()) {
+                                VerticalPager(
+                                    state = vPagerState,
+                                    modifier = Modifier.fillMaxSize(),
+                                    // ARCHITECT'S FIX: Use standard spacing, achieve overlap via TranslationY
+                                    pageSpacing = 0.dp,
+                                    contentPadding = PaddingValues(top = 16.dp, bottom = 80.dp),
+                                    beyondViewportPageCount = 3
+                                ) { vPage ->
+                                    val path = paths[vPage]
 
-                            val dynamicZIndex = if (vPagerState.currentPage == vPage) 10f else 1f - absOffset
+                                    // Parallax & Scale Logic
+                                    val pageOffset = (vPagerState.currentPage - vPage).toFloat() + vPagerState.currentPageOffsetFraction
+                                    val absOffset = pageOffset.absoluteValue.coerceIn(0f, 1f)
+                                    val dynamicZIndex = if (vPagerState.currentPage == vPage) 10f else 5f - absOffset
 
-                            Box(modifier = Modifier
-                                .fillMaxWidth()
-                                .height(520.dp)
-                                .zIndex(dynamicZIndex)
-                                .graphicsLayer {
-                                    val scale = lerp(0.85f, 1f, 1f - absOffset)
-                                    scaleX = scale
-                                    scaleY = scale
-                                    alpha = lerp(0.4f, 1f, 1f - absOffset)
+                                    Box(modifier = Modifier
+                                        .fillMaxWidth()
+                                        .fillMaxHeight(0.85f) // Taller cards
+                                        .zIndex(dynamicZIndex)
+                                        .graphicsLayer {
+                                            val scale = lerp(0.90f, 1f, 1f - absOffset)
+                                            scaleX = scale
+                                            scaleY = scale
+                                            alpha = lerp(0.5f, 1f, 1f - absOffset)
 
-                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                                        val blurAmount = absOffset * 30f
-                                        if (blurAmount > 0f) {
-                                            renderEffect = android.graphics.RenderEffect.createBlurEffect(
-                                                blurAmount, blurAmount, android.graphics.Shader.TileMode.DECAL
-                                            ).asComposeRenderEffect()
+                                            // ARCHITECT'S FIX: Visual Overlap via Translation
+                                            // Pushes non-active cards down/up visually without affecting touch target
+                                            translationY = pageOffset * 100f
+
+                                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                                val blurAmount = absOffset * 20f
+                                                if (blurAmount > 0f) {
+                                                    renderEffect = android.graphics.RenderEffect.createBlurEffect(
+                                                        blurAmount, blurAmount, android.graphics.Shader.TileMode.DECAL
+                                                    ).asComposeRenderEffect()
+                                                }
+                                            }
                                         }
+                                    ) {
+                                        PathCard(
+                                            trip = path,
+                                            languageCode = session.language,
+                                            onCardClick = onPathClick,
+                                            onHideTutorial = { viewModel.onHideTutorialPermanent() }
+                                        )
                                     }
                                 }
-                            ) {
-                                PathCard(
-                                    trip = path,
-                                    languageCode = session.language,
-                                    onCardClick = onPathClick,
-                                    onHideTutorial = { viewModel.onHideTutorialPermanent() }
-                                )
+
+                                // Bouncing Arrow (Only show if more items below)
+                                if (paths.size > 1 && vPagerState.currentPage < paths.size - 1) {
+                                    BouncingArrow(
+                                        modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 32.dp)
+                                    )
+                                }
                             }
                         }
                     }
@@ -153,6 +178,7 @@ fun HomeScreen(
     }
 }
 
+// ... (AuthGatekeeper, HeaderSection, DataLoadErrorFallback, BouncingArrow remain same) ...
 @Composable
 private fun AuthGatekeeper(currentLang: String, onSignIn: () -> Unit, onGuestSignIn: () -> Unit, onLangChange: (String) -> Unit) {
     Column(modifier = Modifier.padding(32.dp).fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
@@ -168,15 +194,9 @@ private fun AuthGatekeeper(currentLang: String, onSignIn: () -> Unit, onGuestSig
             LanguageChip("HE", "עברית", currentLang == "iw") { onLangChange("iw") }
         }
         Spacer(Modifier.height(48.dp))
-        Button(onClick = onSignIn, modifier = Modifier.fillMaxWidth().height(60.dp), colors = ButtonDefaults.buttonColors(containerColor = SakartveloRed), shape = RoundedCornerShape(12.dp)) {
-            Icon(Icons.AutoMirrored.Filled.Login, null)
-            Spacer(Modifier.width(12.dp))
-            Text(stringResource(R.string.auth_google_btn), fontWeight = FontWeight.Bold)
-        }
+        Button(onClick = onSignIn, modifier = Modifier.fillMaxWidth().height(60.dp), colors = ButtonDefaults.buttonColors(containerColor = SakartveloRed), shape = RoundedCornerShape(12.dp)) { Icon(Icons.AutoMirrored.Filled.Login, null); Spacer(Modifier.width(12.dp)); Text(stringResource(R.string.auth_google_btn), fontWeight = FontWeight.Bold) }
         Spacer(Modifier.height(12.dp))
-        OutlinedButton(onClick = onGuestSignIn, modifier = Modifier.fillMaxWidth().height(60.dp), border = BorderStroke(1.dp, Color.White.copy(0.3f)), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.outlinedButtonColors(contentColor = SnowWhite)) {
-            Text(stringResource(R.string.auth_guest_btn), fontWeight = FontWeight.Medium)
-        }
+        OutlinedButton(onClick = onGuestSignIn, modifier = Modifier.fillMaxWidth().height(60.dp), border = BorderStroke(1.dp, Color.White.copy(0.3f)), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.outlinedButtonColors(contentColor = SnowWhite)) { Text(stringResource(R.string.auth_guest_btn), fontWeight = FontWeight.Medium) }
         Spacer(Modifier.height(24.dp))
         Text(text = stringResource(R.string.auth_footer), color = Color.White.copy(alpha = 0.4f), fontSize = 10.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 16.dp))
     }
@@ -209,4 +229,23 @@ private fun DataLoadErrorFallback(onSettingsClick: () -> Unit) {
             Button(onClick = onSettingsClick, colors = ButtonDefaults.buttonColors(containerColor = SakartveloRed), shape = RoundedCornerShape(12.dp)) { Text("REINITIALIZE SYSTEM", fontWeight = FontWeight.Bold) }
         }
     }
+}
+
+@Composable
+fun BouncingArrow(modifier: Modifier = Modifier) {
+    val infiniteTransition = rememberInfiniteTransition(label = "Bounce")
+    val offsetY by infiniteTransition.animateFloat(
+        initialValue = 0f, targetValue = 15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ), label = "OffsetY"
+    )
+
+    Icon(
+        imageVector = Icons.Default.KeyboardArrowDown,
+        contentDescription = null,
+        tint = SakartveloRed,
+        modifier = modifier.size(32.dp).graphicsLayer { translationY = offsetY }
+    )
 }

@@ -1,20 +1,20 @@
 <resources>
     <string name="app_name">Sakartvelo Guide</string>
-    <string name="auth_init_title">אתחול זהות</string>
-    <string name="auth_welcome">ברוכים הבאים לגאורגיה.\nאבטח את הנתונים כדי להמשיך.</string>
+    <string name="auth_init_title">התחבר / הירשם</string>
+    <string name="auth_welcome">ברוכים הבאים לגאורגיה.\nהתחבר כדי לשמור את המסע שלך.</string>
     <string name="auth_google_btn">התחבר עם GOOGLE</string>
     <string name="auth_guest_btn">המשך כאורח</string>
-    <string name="auth_footer">ההתחברות מאפשרת סנכרון יומני משימה וחותמות בין מכשירים.</string>
+    <string name="auth_footer">ההתחברות מאפשרת סנכרון תוכניות טיול ומזכרות דיגיטליות בין מכשירים.</string>
     <string name="discover">חקור</string>
     <string name="settings_title">הגדרות</string>
     <string name="passport_title">הדרכון שלי</string>
-    <string name="lang_protocol">פროטוקול שפה</string>
+    <string name="lang_protocol">שפה</string>
     <string name="data_mgmt">ניהול נתונים</string>
-    <string name="nuke_data">אפס את כל הנתונים</string>
-    <string name="nuke_desc">מחק את היסטוריית המשימות לצמיתות</string>
-    <string name="logout_label">סיים הפעלה</string>
-    <string name="builder_title">בונה משימות</string>
-    <string name="builder_loadout">ציוד</string>
+    <string name="nuke_data">אפס נתוני אפליקציה</string>
+    <string name="nuke_desc">מחק את היסטוריית הטיולים לצמיתות</string>
+    <string name="logout_label">התנתק</string>
+    <string name="builder_title">מתכנן טיול</string>
+    <string name="builder_loadout">מסלול</string>
     <string name="builder_proceed">המשך</string>
     <string name="planner_title">מתכנן טיול</string>
     <string name="trip_essentials">יסודות הטיול</string>
@@ -23,20 +23,20 @@
     <string name="label_taxi">תחבורה</string>
     <string name="label_rent">השכרה</string>
     <string name="set_home_title">הגדר מיקום בית</string>
-    <string name="set_home_sub">(פותח המלצות חכמות)</string>
-    <string name="home_secured">הבית אובטח</string>
+    <string name="set_home_sub">(פותח המלצות)</string>
+    <string name="home_secured">בית הוגדר</string>
     <string name="home_start_title">בית (התחלה)</string>
     <string name="home_return_title">חזרה הביתה</string>
-    <string name="home_desc">מרכז המבצעים המאובטח שלך.</string>
+    <string name="home_desc">מקום הלינה שלך.</string>
     <string name="planner_empty_state">הגדר מיקום בית או הוסף עצירה כדי להתחיל.</string>
     <string name="trip_details_title">סקירת טיול</string>
-    <string name="configure_trip">התאם פרוטוקול</string>
+    <string name="configure_trip">התאם טיול</string>
     <string name="trip_duration_days">%d ימים</string>
     <string name="trip_drive_time">נהיגה: %s</string>
     <string name="trip_intensity">קצב: %s</string>
     <string name="snow_warning_title">התראת חורף</string>
     <string name="snow_warning_desc">רכב 4x4 נדרש (נובמבר-אפריל)</string>
-    <string name="trans_driver">טייס</string>
+    <string name="trans_driver">נהג</string>
     <string name="trans_driver_sub">השכרה / רכב פרטי</string>
     <string name="trans_passenger">נוסע</string>
     <string name="trans_passenger_sub">מונית / תחב״צ / ברגל</string>
@@ -63,7 +63,20 @@
     <string name="cat_relaxed">רגוע</string>
     <string name="region_visas">חותמות אזור</string>
     <string name="no_stamps">טרם נצברו חותמות.</string>
-    <string name="approved_protocol">פרוטוקול מאושר</string>
+    <string name="approved_protocol">טיול אושר</string>
     <string name="btn_more_info">מידע נוסף</string>
+    <string name="btn_preview_trip">הצג טיול</string>
+    <string name="btn_optimize_short">מטב</string>
+    <string name="tut_next">הבא</string>
+    <string name="tut_skip">דלג</string>
+
+    <string name="tut_step1_title">שלב 1: יסודות</string>
+    <string name="tut_step1_desc">השתמש ביסודות הטיול כדי להזמין טיסות, לינה ותחבורה לפני היציאה.</string>
+
+    <string name="tut_step2_title">שלב 2: הגדרת בית</string>
+    <string name="tut_step2_desc">הגדר את מיקום הבית שלך. זה פותח המלצות מותאמות אישית לטיול שלך.</string>
+
+    <string name="tut_step3_title">שלב 3: גילוי</string>
+    <string name="tut_step3_desc">לחץ על כפתור ההוספה כדי לחקור יותר מ-800 מקומות מאומתים ברחבי גאורגיה.</string>
 
 </resources>
