@@ -19,6 +19,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -41,14 +42,17 @@ fun ItineraryCard(
     isActive: Boolean,
     isExpanded: Boolean,
     isCompleted: Boolean,
-    isSmall: Boolean = false, // ARCHITECT'S FIX: Internal height control
+    isSmall: Boolean = false,
     onMapClick: () -> Unit,
     onTaxiClick: () -> Unit,
     onRentClick: () -> Unit,
     onMoreInfo: () -> Unit,
     onCheckIn: () -> Unit,
     onRemove: () -> Unit,
-    onCardClick: () -> Unit
+    onCardClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    navModifier: Modifier = Modifier,
+    actionButtonModifier: Modifier = Modifier
 ) {
     val isHomeNode = node.type == "HOME"
     val showActiveVisuals = mode == TripMode.LIVE && isActive
@@ -63,24 +67,24 @@ fun ItineraryCard(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         if (distFromPrev != null) {
-            TacticalConnector(dist = distFromPrev, showControls = showActiveVisuals, onMap = onMapClick, onTaxi = onTaxiClick, onRent = onRentClick)
+            Box(navModifier) {
+                TacticalConnector(distFromPrev, showActiveVisuals, onMapClick, onTaxiClick, onRentClick)
+            }
         } else {
             Spacer(Modifier.height(16.dp))
         }
 
-        // --- SINGLE CLICKABLE SURFACE ---
         Surface(
-            modifier = Modifier
+            modifier = modifier
                 .fillMaxWidth()
                 .animateContentSize()
-                .clickable { onCardClick() }, // Unified touch target
+                .clickable { onCardClick() },
             shape = if (showActiveVisuals && node.id != -1) RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp) else RoundedCornerShape(16.dp),
             border = BorderStroke(2.dp, borderColor),
             shadowElevation = if (showActiveVisuals) 12.dp else 4.dp,
             color = MaterialTheme.colorScheme.surface
         ) {
             Column {
-                // Image Header with dynamic height
                 Box(Modifier.height(if (isSmall && !isExpanded) 120.dp else 180.dp)) {
                     AsyncImage(
                         model = node.imageUrl,
@@ -95,20 +99,14 @@ fun ItineraryCard(
                         Surface(color = SakartveloRed, shape = RoundedCornerShape(4.dp)) {
                             Text(node.region.uppercase(), color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                         }
-
                         if (mode == TripMode.EDITING && !isCompleted && !isHomeNode) {
                             IconButton(onClick = onRemove, modifier = Modifier.size(24.dp).background(Color.Black.copy(0.5f), CircleShape)) {
                                 Icon(Icons.Default.Close, null, tint = Color.White, modifier = Modifier.size(14.dp))
                             }
                         } else if (isCompleted) {
                             Icon(Icons.Default.CheckCircle, null, tint = Color(0xFF4CAF50))
-                        } else if (isHomeNode && !isCompleted) {
-                            Surface(shape = CircleShape, color = SakartveloRed) {
-                                Icon(Icons.Default.EditLocation, null, tint = Color.White, modifier = Modifier.padding(4.dp).size(16.dp))
-                            }
                         }
                     }
-
                     Text(node.getDisplayName(lang), color = Color.White, fontWeight = FontWeight.Black, fontSize = if(isSmall && !isExpanded) 16.sp else 20.sp, maxLines = 2, modifier = Modifier.align(Alignment.BottomStart).padding(16.dp))
                 }
 
@@ -118,7 +116,7 @@ fun ItineraryCard(
                         Spacer(Modifier.height(12.dp))
                         Button(onClick = onMoreInfo, modifier = Modifier.fillMaxWidth().height(40.dp), shape = RoundedCornerShape(8.dp), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurface)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Place, null, modifier = Modifier.size(16.dp)); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.btn_more_info), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Icon(Icons.Default.Place, null, modifier = Modifier.size(16.dp)); Spacer(Modifier.width(8.dp)); Text("MORE INFO", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -126,14 +124,14 @@ fun ItineraryCard(
             }
         }
 
-        // Separate surface for Check-In so it doesn't collide with expansion logic
         if (showActiveVisuals && node.id != -1) {
             Surface(
                 onClick = { onCheckIn() },
                 color = SakartveloRed,
                 shape = RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp),
-                modifier = Modifier.fillMaxWidth().height(48.dp)
+                modifier = actionButtonModifier.fillMaxWidth().height(48.dp)
             ) {
+                // ARCHITECT'S FIX: Explicit Arrangement.Center
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
                     Icon(if (isHomeNode) Icons.Default.Home else Icons.Default.CheckCircle, null, tint = Color.White, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
@@ -155,8 +153,8 @@ fun TacticalConnector(dist: Double, showControls: Boolean, onMap: () -> Unit, on
             }
             if (showControls) {
                 DottedHorizontal(8.dp)
-                if (dist > 35.0) { DiscreetPill(Icons.Default.Key, stringResource(R.string.btn_rent), onRent) }
-                else { DiscreetPill(Icons.Default.LocalTaxi, stringResource(R.string.btn_taxi), onTaxi) }
+                if (dist > 35.0) { DiscreetPill(Icons.Default.Key, "RENT", onRent) }
+                else { DiscreetPill(Icons.Default.LocalTaxi, "TAXI", onTaxi) }
             }
         }
         DottedLine(height = 12.dp)
@@ -177,14 +175,18 @@ fun DiscreetPill(icon: androidx.compose.ui.graphics.vector.ImageVector, label: S
 @Composable
 fun DottedLine(height: androidx.compose.ui.unit.Dp) {
     Canvas(modifier = Modifier.height(height).width(2.dp)) {
-        drawLine(color = Color.Gray.copy(alpha = 0.4f), start = Offset(size.width / 2, 0f), end = Offset(size.width / 2, size.height), strokeWidth = 4f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f))
+        val strokeWidth = 4f
+        val dashPath = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
+        drawLine(color = Color.Gray.copy(alpha = 0.4f), start = Offset(size.width / 2f, 0f), end = Offset(size.width / 2f, size.height), strokeWidth = strokeWidth, pathEffect = dashPath)
     }
 }
 
 @Composable
 fun DottedHorizontal(width: androidx.compose.ui.unit.Dp) {
     Canvas(modifier = Modifier.width(width).height(2.dp)) {
-        drawLine(color = Color.Gray.copy(alpha = 0.4f), start = Offset(0f, size.height / 2), end = Offset(size.width, size.height / 2), strokeWidth = 4f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(5f, 5f), 0f))
+        val strokeWidth = 4f
+        val dashPath = PathEffect.dashPathEffect(floatArrayOf(5f, 5f), 0f)
+        drawLine(color = Color.Gray.copy(alpha = 0.4f), start = Offset(0f, size.height / 2f), end = Offset(size.width, size.height / 2f), strokeWidth = strokeWidth, pathEffect = dashPath)
     }
 }
 

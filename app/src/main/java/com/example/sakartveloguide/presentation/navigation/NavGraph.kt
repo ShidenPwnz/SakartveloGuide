@@ -1,6 +1,7 @@
 package com.example.sakartveloguide.presentation.navigation
 
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue // REQUIRED
 import androidx.navigation.compose.*
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
@@ -9,7 +10,7 @@ import com.example.sakartveloguide.presentation.home.*
 import com.example.sakartveloguide.presentation.passport.*
 import com.example.sakartveloguide.presentation.settings.*
 import com.example.sakartveloguide.presentation.planner.*
-import com.example.sakartveloguide.presentation.builder.FobSetupView // FIX: Added missing import
+import com.example.sakartveloguide.presentation.builder.FobSetupView
 import com.example.sakartveloguide.domain.model.*
 import kotlinx.coroutines.flow.collectLatest
 
@@ -84,16 +85,15 @@ fun SakartveloNavGraph(
                 val vm: AdventureViewModel = hiltViewModel(parentEntry)
                 val plannerState by vm.uiState.collectAsState()
 
-                val routeList = plannerState.route
-                val firstPoint = if (routeList.isNotEmpty()) {
-                    GeoPoint(routeList[0].latitude, routeList[0].longitude)
+                val firstPoint = if (plannerState.route.isNotEmpty()) {
+                    GeoPoint(plannerState.route[0].latitude, plannerState.route[0].longitude)
                 } else {
                     GeoPoint(41.7125, 44.7930)
                 }
 
                 FobSetupView(
                     initialCenter = firstPoint,
-                    onSetBase = { loc: GeoPoint -> // FIX: Explicit type for inference
+                    onSetBase = { loc ->
                         vm.setBaseCamp(loc)
                         navController.popBackStack()
                     }

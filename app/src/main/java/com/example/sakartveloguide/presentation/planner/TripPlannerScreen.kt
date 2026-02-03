@@ -16,9 +16,11 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.*
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
@@ -57,31 +59,30 @@ fun TripPlannerScreen(
     var showAddSheet by remember { mutableStateOf(false) }
     var expandedEditId by remember { mutableStateOf<Int?>(null) }
     var hasPerformedInitialFocus by remember { mutableStateOf(false) }
-
     var activeTargetCoords by remember { mutableStateOf<LayoutCoordinates?>(null) }
 
-    // Logic: Auto-Scroll to Target when Bootcamp or Mode changes
-    LaunchedEffect(state.bootcampStep, state.mode) {
+    LaunchedEffect(state.bootcampStep) {
+        activeTargetCoords = null
         if (state.bootcampStep != BootcampStep.NONE) {
             val targetIdx = when (state.bootcampStep) {
                 BootcampStep.ESSENTIALS -> 0
                 BootcampStep.SET_HOME -> 1
-                BootcampStep.ADD_LOCATION -> state.route.size + 1
-                BootcampStep.OPTIMIZE -> state.route.size + 2
+                BootcampStep.ADD_LOCATION -> if (state.route.isEmpty()) 2 else state.route.size + 1
                 BootcampStep.START -> 99
+                BootcampStep.LIVE_NAV -> 1
+                BootcampStep.CHECK_IN -> 1
+                BootcampStep.FINISH -> state.route.size + 1
                 else -> null
             }
-            targetIdx?.let { listState.animateScrollToItem(it.coerceAtMost(state.route.size + 5)) }
-        } else if (state.mode == TripMode.LIVE && !hasPerformedInitialFocus) {
-            val targetIndex = when (state.activeNodeId) {
-                -1 -> 0
-                -2 -> state.route.size + 1
-                else -> {
-                    val idx = state.route.indexOfFirst { it.id == state.activeNodeId }
-                    if (idx != -1) idx + 1 else 0
-                }
+            targetIdx?.let {
+                listState.animateScrollToItem(index = it.coerceAtMost(state.route.size + 5), scrollOffset = -250)
             }
-            listState.animateScrollToItem(targetIndex)
+        }
+    }
+
+    LaunchedEffect(state.mode) {
+        if (state.mode == TripMode.LIVE && !hasPerformedInitialFocus) {
+            listState.animateScrollToItem(0)
             hasPerformedInitialFocus = true
         } else if (state.mode == TripMode.EDITING) {
             hasPerformedInitialFocus = false
@@ -132,7 +133,6 @@ fun TripPlannerScreen(
                         Button(
                             onClick = {
                                 viewModel.toggleMode()
-                                if(state.bootcampStep == BootcampStep.START) viewModel.dismissTutorial()
                             },
                             modifier = Modifier.fillMaxSize(),
                             shape = RoundedCornerShape(16.dp),
@@ -159,8 +159,8 @@ fun TripPlannerScreen(
                                     hasFlights = !state.profile.needsFlight,
                                     onBaseLink = { viewModel.onStayAction(it); if(state.bootcampStep == BootcampStep.ESSENTIALS) viewModel.nextTutorialStep() },
                                     onFlightAction = { viewModel.onFlightAction(it); if(state.bootcampStep == BootcampStep.ESSENTIALS) viewModel.nextTutorialStep() },
-                                    onTransportAction = { viewModel.onTransportAction(it) },
-                                    onRentAction = { viewModel.onRentCarAction() }
+                                    onTransportAction = { viewModel.onTransportAction(it); if(state.bootcampStep == BootcampStep.ESSENTIALS) viewModel.nextTutorialStep() },
+                                    onRentAction = { viewModel.onRentCarAction(); if(state.bootcampStep == BootcampStep.ESSENTIALS) viewModel.nextTutorialStep() }
                                 )
                             }
                         }
@@ -168,42 +168,48 @@ fun TripPlannerScreen(
 
                     item {
                         val node = createSyntheticNode(state.baseLocation ?: GeoPoint(41.7125, 44.7930), -1, stringResource(R.string.home_start_title), stringResource(R.string.home_desc))
-                        Box(modifier = Modifier.onGloballyPositioned {
-                            if (state.bootcampStep == BootcampStep.SET_HOME) activeTargetCoords = it
-                        }) {
-                            val isActive = (state.activeNodeId == -1)
-                            ItineraryCard(
-                                node = node, lang = currentLang, distFromPrev = null, mode = state.mode,
-                                isActive = isActive,
-                                isExpanded = if (state.mode == TripMode.LIVE) isActive else (expandedEditId == -1),
-                                isCompleted = (state.baseLocation != null), isSmall = true,
-                                onMapClick = { viewModel.launchNavigation(state.baseLocation ?: GeoPoint(41.7125, 44.7930), "driving") },
-                                onTaxiClick = { viewModel.onTransportAction("bolt") }, onRentClick = { viewModel.onRentCarAction() },
-                                onMoreInfo = { viewModel.launchRecon(node, currentLang) }, onCheckIn = { viewModel.markCheckIn(-1) }, onRemove = {},
-                                onCardClick = {
-                                    if (state.mode == TripMode.LIVE) viewModel.onCardClicked(-1)
-                                    else if (state.baseLocation == null) onNavigateToFobMap()
-                                    else expandedEditId = if(expandedEditId == -1) null else -1
-                                }
-                            )
-                        }
+                        ItineraryCard(
+                            node = node, lang = currentLang, distFromPrev = null, mode = state.mode,
+                            isActive = (state.activeNodeId == -1),
+                            isExpanded = if (state.mode == TripMode.LIVE) (state.activeNodeId == -1) else (expandedEditId == -1),
+                            isCompleted = (state.baseLocation != null), isSmall = true,
+                            onMapClick = { viewModel.launchNavigation(state.baseLocation ?: GeoPoint(41.7125, 44.7930), "driving") },
+                            onTaxiClick = { viewModel.onTransportAction("bolt") }, onRentClick = { viewModel.onRentCarAction() },
+                            onMoreInfo = { viewModel.launchRecon(node, currentLang) }, onCheckIn = { viewModel.markCheckIn(-1) }, onRemove = {},
+                            onCardClick = {
+                                if (state.bootcampStep == BootcampStep.SET_HOME) viewModel.nextTutorialStep()
+                                if (state.mode == TripMode.LIVE) viewModel.onCardClicked(-1)
+                                else if (state.baseLocation == null) onNavigateToFobMap()
+                                else expandedEditId = if(expandedEditId == -1) null else -1
+                            },
+                            modifier = Modifier.onGloballyPositioned {
+                                if (state.bootcampStep == BootcampStep.SET_HOME) activeTargetCoords = it
+                            }
+                        )
                     }
 
-                    itemsIndexed(state.route) { _, node ->
+                    itemsIndexed(state.route) { index, node ->
                         val isActive = (state.activeNodeId == node.id)
                         ItineraryCard(
                             node = node, lang = currentLang, distFromPrev = state.distances[node.id], mode = state.mode,
                             isActive = isActive,
-                            isExpanded = if (state.mode == TripMode.LIVE) isActive else (expandedEditId == node.id),
+                            isExpanded = if (state.bootcampStep == BootcampStep.CHECK_IN || state.bootcampStep == BootcampStep.LIVE_NAV) true
+                            else if (state.mode == TripMode.LIVE) isActive
+                            else (expandedEditId == node.id),
                             isCompleted = state.completedIds.contains(node.id),
                             onMapClick = { viewModel.launchNavigation(GeoPoint(node.latitude, node.longitude), "driving") },
                             onTaxiClick = { viewModel.onTransportAction("bolt") }, onRentClick = { viewModel.onRentCarAction() },
-                            onMoreInfo = { viewModel.launchRecon(node, currentLang) },
-                            onCheckIn = { viewModel.markCheckIn(node.id) },
+                            onMoreInfo = { viewModel.launchRecon(node, currentLang) }, onCheckIn = { viewModel.markCheckIn(node.id) },
                             onRemove = { viewModel.removeStop(node.id) },
                             onCardClick = {
                                 if (state.mode == TripMode.LIVE) viewModel.onCardClicked(node.id)
-                                else expandedEditId = if(expandedEditId == node.id) null else node.id
+                                else expandedEditId = if(expandedEditId == -1) null else node.id
+                            },
+                            navModifier = Modifier.onGloballyPositioned {
+                                if (index == 0 && state.bootcampStep == BootcampStep.LIVE_NAV) activeTargetCoords = it
+                            },
+                            actionButtonModifier = Modifier.onGloballyPositioned {
+                                if (index == 0 && state.bootcampStep == BootcampStep.CHECK_IN) activeTargetCoords = it
                             }
                         )
                     }
@@ -212,12 +218,12 @@ fun TripPlannerScreen(
                         item {
                             Box(
                                 modifier = Modifier.fillMaxWidth().padding(24.dp)
-                                    .onGloballyPositioned { if(state.bootcampStep == BootcampStep.ADD_LOCATION) activeTargetCoords = it },
+                                    .onGloballyPositioned { if (state.bootcampStep == BootcampStep.ADD_LOCATION) activeTargetCoords = it },
                                 contentAlignment = Alignment.Center
                             ) {
                                 IconButton(onClick = {
-                                    showAddSheet = true
                                     if(state.bootcampStep == BootcampStep.ADD_LOCATION) viewModel.nextTutorialStep()
+                                    else showAddSheet = true
                                 }, modifier = Modifier.size(56.dp).background(SakartveloRed, CircleShape)) {
                                     Icon(Icons.Default.Add, null, tint = Color.White)
                                 }
@@ -229,44 +235,25 @@ fun TripPlannerScreen(
                         item {
                             val isActive = (state.activeNodeId == -2)
                             val node = createSyntheticNode(state.baseLocation ?: GeoPoint(41.7125, 44.7930), -2, stringResource(R.string.home_return_title), stringResource(R.string.home_desc))
-
                             ItineraryCard(
                                 node = node, lang = currentLang, distFromPrev = state.distances[-2], mode = state.mode,
                                 isActive = isActive,
-                                isExpanded = if (state.mode == TripMode.LIVE) isActive else (expandedEditId == -2),
+                                isExpanded = if (state.bootcampStep == BootcampStep.FINISH) true else if (state.mode == TripMode.LIVE) isActive else (expandedEditId == -2),
                                 isCompleted = false,
                                 onMapClick = { viewModel.launchNavigation(state.baseLocation ?: GeoPoint(41.7125, 44.7930), "driving") },
                                 onTaxiClick = { viewModel.onTransportAction("bolt") }, onRentClick = { viewModel.onRentCarAction() },
-                                onMoreInfo = { viewModel.launchRecon(node, currentLang) },
-                                onCheckIn = { viewModel.completeMission() }, onRemove = {},
+                                onMoreInfo = { viewModel.launchRecon(node, currentLang) }, onCheckIn = {
+                                    if(state.bootcampStep == BootcampStep.FINISH) viewModel.dismissTutorial()
+                                    viewModel.completeMission()
+                                }, onRemove = {},
                                 onCardClick = {
                                     if (state.mode == TripMode.LIVE) viewModel.onCardClicked(-2)
                                     else expandedEditId = if(expandedEditId == -2) null else -2
+                                },
+                                actionButtonModifier = Modifier.onGloballyPositioned {
+                                    if (state.bootcampStep == BootcampStep.FINISH) activeTargetCoords = it
                                 }
                             )
-                        }
-                    }
-
-                    if (state.mode == TripMode.EDITING && state.route.isNotEmpty()) {
-                        item {
-                            Spacer(Modifier.height(24.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).height(64.dp)
-                                    .onGloballyPositioned { if(state.bootcampStep == BootcampStep.OPTIMIZE) activeTargetCoords = it },
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                Surface(modifier = Modifier.weight(1f).fillMaxHeight(), shape = RoundedCornerShape(16.dp), color = Color.White.copy(alpha = 0.1f), border = BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)), onClick = { viewModel.launchFullTripIntent() }) {
-                                    Box(contentAlignment = Alignment.Center) { Text("PREVIEW", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp) }
-                                }
-                                Surface(modifier = Modifier.weight(1f).fillMaxHeight(), shape = RoundedCornerShape(16.dp), color = Color.White.copy(alpha = 0.1f), border = BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)),
-                                    onClick = {
-                                        viewModel.optimizeRoute()
-                                        if(state.bootcampStep == BootcampStep.OPTIMIZE) viewModel.nextTutorialStep()
-                                    }
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) { Text("OPTIMIZE", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp) }
-                                }
-                            }
                         }
                     }
                 }
@@ -276,7 +263,7 @@ fun TripPlannerScreen(
                 ModalBottomSheet(onDismissRequest = { showAddSheet = false }, containerColor = Color(0xFF121212)) {
                     AddStopSheet(
                         query = state.searchQuery, lang = currentLang, nearby = state.nearbyRecs, results = state.searchResults,
-                        onQuery = { viewModel.onSearchQuery(it) }, onAdd = { location -> viewModel.addStop(location); showAddSheet = false }
+                        bootcampStep = state.bootcampStep, onQuery = { viewModel.onSearchQuery(it) }, onAdd = { location -> viewModel.addStop(location); showAddSheet = false }, onCaptureCoords = { }
                     )
                 }
             }
@@ -287,17 +274,20 @@ fun TripPlannerScreen(
         }
 
         if (state.bootcampStep != BootcampStep.NONE) {
+            val isInteractive = when(state.bootcampStep) {
+                BootcampStep.ESSENTIALS, BootcampStep.ADD_LOCATION -> false
+                else -> true
+            }
             BootcampSpotlight(
                 step = state.bootcampStep,
                 targetCoords = activeTargetCoords,
+                isInteractive = isInteractive,
                 onNext = { viewModel.nextTutorialStep() },
                 onDismiss = { viewModel.dismissTutorial() }
             )
         }
     }
 }
-
-// --- CORE HELPER FUNCTIONS ---
 
 fun createSyntheticNode(loc: GeoPoint, id: Int, title: String, desc: String) = LocationEntity(
     id = id, type = "HOME", region = "HQ", latitude = loc.latitude, longitude = loc.longitude,
@@ -310,7 +300,7 @@ fun createSyntheticNode(loc: GeoPoint, id: Int, title: String, desc: String) = L
 @Composable
 fun AddStopSheet(
     query: String, lang: String, nearby: List<LocationEntity>, results: List<LocationEntity>,
-    onQuery: (String) -> Unit, onAdd: (LocationEntity) -> Unit
+    bootcampStep: BootcampStep, onQuery: (String) -> Unit, onAdd: (LocationEntity) -> Unit, onCaptureCoords: (LayoutCoordinates) -> Unit
 ) {
     var detailNode by remember { mutableStateOf<LocationEntity?>(null) }
     var isExplMode by remember { mutableStateOf(false) }
@@ -328,8 +318,8 @@ fun AddStopSheet(
     if (detailNode != null) {
         AlertDialog(
             onDismissRequest = { detailNode = null },
-            confirmButton = { Button(onClick = { onAdd(detailNode!!); detailNode = null }, colors = ButtonDefaults.buttonColors(containerColor = SakartveloRed)) { Text(stringResource(R.string.btn_add_to_trip)) } },
-            dismissButton = { TextButton(onClick = { detailNode = null }) { Text(stringResource(R.string.btn_close)) } },
+            confirmButton = { Button(onClick = { onAdd(detailNode!!); detailNode = null }, colors = ButtonDefaults.buttonColors(containerColor = SakartveloRed)) { Text("ADD TO TRIP") } },
+            dismissButton = { TextButton(onClick = { detailNode = null }) { Text("CLOSE") } },
             title = { Text(detailNode!!.getDisplayName(lang), fontWeight = FontWeight.Black) },
             text = {
                 Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
@@ -344,16 +334,18 @@ fun AddStopSheet(
     Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxHeight(0.85f)) {
         OutlinedTextField(
             value = query, onValueChange = { onQuery(it) }, modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
-            placeholder = { Text(stringResource(R.string.search_hint)) },
+            placeholder = { Text("Search places...") },
             leadingIcon = { Icon(Icons.Default.Search, null, tint = SakartveloRed) },
             singleLine = true, interactionSource = interactionSource
         )
         Spacer(Modifier.height(24.dp))
         if (!isExplMode) {
-            Text(stringResource(R.string.nearby_gems), fontWeight = FontWeight.Black, color = SakartveloRed, style = MaterialTheme.typography.labelMedium)
+            Text("NEARBY GEMS", fontWeight = FontWeight.Black, color = SakartveloRed, style = MaterialTheme.typography.labelMedium)
             Spacer(Modifier.height(12.dp))
             LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                items(nearby) { RecommendationCard(it, lang, { detailNode = it }, { onAdd(it) }) }
+                itemsIndexed(nearby) { index, item ->
+                    RecommendationCard(item, lang, { detailNode = item }, { onAdd(item) })
+                }
             }
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -364,8 +356,8 @@ fun AddStopSheet(
 }
 
 @Composable
-fun RecommendationCard(location: LocationEntity, lang: String, onInfo: () -> Unit, onAdd: () -> Unit) {
-    Card(modifier = Modifier.size(160.dp, 220.dp).clickable { onInfo() }, shape = RoundedCornerShape(16.dp)) {
+fun RecommendationCard(location: LocationEntity, lang: String, onInfo: () -> Unit, onAdd: () -> Unit, modifier: Modifier = Modifier) {
+    Card(modifier = modifier.size(160.dp, 220.dp).clickable { onInfo() }, shape = RoundedCornerShape(16.dp)) {
         Box {
             AsyncImage(model = location.imageUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
             Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(0.8f)))))
