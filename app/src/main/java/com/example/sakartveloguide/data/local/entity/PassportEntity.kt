@@ -5,8 +5,9 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "passport_stamps")
 data class PassportEntity(
-    @PrimaryKey val regionId: String, // e.g., "MTSKHETA_MTIANETI"
-    val regionName: String,
-    val dateUnlocked: Long,
-    val tripTitle: String
+    @PrimaryKey
+    val regionId: String = "", // e.g., "MTSKHETA_MTIANETI"
+    val regionName: String = "",
+    val dateUnlocked: Long = 0L,
+    val tripTitle: String = ""
 )

@@ -1,17 +1,14 @@
 package com.example.sakartveloguide.presentation.home
 
 import android.content.Context
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.sakartveloguide.data.local.PreferenceManager
-import com.example.sakartveloguide.domain.location.LocationManager
 import com.example.sakartveloguide.domain.model.*
 import com.example.sakartveloguide.domain.repository.AuthRepository
 import com.example.sakartveloguide.domain.repository.TripRepository
-import com.example.sakartveloguide.domain.usecase.AddPassportStampUseCase
+import com.example.sakartveloguide.domain.usecase.SyncCloudDataUseCase // ADDED
 import com.example.sakartveloguide.ui.manager.HapticManager
-import com.example.sakartveloguide.ui.manager.SoundManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
@@ -29,11 +26,9 @@ data class HomeUiState(
 class HomeViewModel @Inject constructor(
     private val repository: TripRepository,
     private val authRepository: AuthRepository,
-    private val addPassportStampUseCase: AddPassportStampUseCase,
+    private val syncCloudDataUseCase: SyncCloudDataUseCase, // INJECTED
     private val hapticManager: HapticManager,
-    private val soundManager: SoundManager,
     private val preferenceManager: PreferenceManager,
-    private val locationManager: LocationManager,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -52,7 +47,6 @@ class HomeViewModel @Inject constructor(
     val userSession: Flow<UserSession> = preferenceManager.userSession
     val currentUser = authRepository.currentUser
 
-    // Internal state to track if the background refresh task is done
     private val isEngineReady = MutableStateFlow(false)
 
     init {
@@ -60,8 +54,11 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun initAdventureEngine() {
-        // 1. SPLASH & NAV LOGIC
+        // 1. DATA SYNC & SPLASH
         viewModelScope.launch {
+            // CLOUD SYNC PROTOCOL: Pull latest stamps from Firebase
+            syncCloudDataUseCase()
+
             preferenceManager.userSession
                 .catch { emit(UserSession()) }
                 .collect { session ->
@@ -74,10 +71,10 @@ class HomeViewModel @Inject constructor(
                 }
         }
 
-        // 2. BACKGROUND SYNC
+        // 2. BACKGROUND REFRESH
         viewModelScope.launch {
             repository.refreshTrips()
-            isEngineReady.value = true // ARCHITECT'S MOVE: Data is now "Ready"
+            isEngineReady.value = true
         }
 
         // 3. UI PIPELINE
@@ -97,7 +94,6 @@ class HomeViewModel @Inject constructor(
                             .associateWith { grouped[it]!! }
                         _uiState.update { it.copy(groupedPaths = sortedMap, isLoading = false) }
                     } else {
-                        // If trips are empty but engine is ready, stop loading (shows error fallback)
                         _uiState.update { it.copy(isLoading = !ready) }
                     }
                 }
@@ -105,9 +101,19 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun signIn(context: Context) = viewModelScope.launch { authRepository.signIn(context) }
+    fun signIn(context: Context) = viewModelScope.launch {
+        val result = authRepository.signIn(context)
+        if (result.isSuccess) {
+            syncCloudDataUseCase() // Sync immediately after login
+        }
+    }
+
     fun onGuestSignIn() = viewModelScope.launch { authRepository.continueAsGuest() }
-    fun signOut() = viewModelScope.launch { authRepository.signOut(); _navigationEvent.emit("home") }
+
+    fun signOut() = viewModelScope.launch {
+        authRepository.signOut()
+        _navigationEvent.emit("home")
+    }
 
     fun wipeAllUserData() = viewModelScope.launch {
         isEngineReady.value = false
@@ -124,9 +130,4 @@ class HomeViewModel @Inject constructor(
     fun onLanguageChange(code: String) = viewModelScope.launch { preferenceManager.updateLanguage(code) }
     fun onHideTutorialPermanent() { viewModelScope.launch { preferenceManager.setHasSeenTutorial(true) } }
     fun prepareForNewMission() { viewModelScope.launch { preferenceManager.clearCurrentMissionData() } }
-
-    private val _stampingTrip = MutableStateFlow<TripPath?>(null)
-    val stampingTrip: StateFlow<TripPath?> = _stampingTrip.asStateFlow()
-    fun onCompleteTrip(trip: TripPath) { /* existing logic */ }
-    fun onSlamAnimationFinished() { _stampingTrip.value = null }
 }

@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue // REQUIRED FOR DELEGATE
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -69,13 +70,10 @@ fun TripPlannerScreen(
                 BootcampStep.SET_HOME -> 1
                 BootcampStep.ADD_LOCATION -> if (state.route.isEmpty()) 2 else state.route.size + 1
                 BootcampStep.START -> 99
-                BootcampStep.LIVE_NAV -> 1
-                BootcampStep.CHECK_IN -> 1
-                BootcampStep.FINISH -> state.route.size + 1
                 else -> null
             }
             targetIdx?.let {
-                listState.animateScrollToItem(index = it.coerceAtMost(state.route.size + 5), scrollOffset = -250)
+                listState.animateScrollToItem(index = it.coerceAtMost(state.route.size + 5), scrollOffset = -200)
             }
         }
     }
@@ -193,9 +191,7 @@ fun TripPlannerScreen(
                         ItineraryCard(
                             node = node, lang = currentLang, distFromPrev = state.distances[node.id], mode = state.mode,
                             isActive = isActive,
-                            isExpanded = if (state.bootcampStep == BootcampStep.CHECK_IN || state.bootcampStep == BootcampStep.LIVE_NAV) true
-                            else if (state.mode == TripMode.LIVE) isActive
-                            else (expandedEditId == node.id),
+                            isExpanded = if (state.mode == TripMode.LIVE) isActive else (expandedEditId == node.id),
                             isCompleted = state.completedIds.contains(node.id),
                             onMapClick = { viewModel.launchNavigation(GeoPoint(node.latitude, node.longitude), "driving") },
                             onTaxiClick = { viewModel.onTransportAction("bolt") }, onRentClick = { viewModel.onRentCarAction() },
@@ -204,12 +200,6 @@ fun TripPlannerScreen(
                             onCardClick = {
                                 if (state.mode == TripMode.LIVE) viewModel.onCardClicked(node.id)
                                 else expandedEditId = if(expandedEditId == -1) null else node.id
-                            },
-                            navModifier = Modifier.onGloballyPositioned {
-                                if (index == 0 && state.bootcampStep == BootcampStep.LIVE_NAV) activeTargetCoords = it
-                            },
-                            actionButtonModifier = Modifier.onGloballyPositioned {
-                                if (index == 0 && state.bootcampStep == BootcampStep.CHECK_IN) activeTargetCoords = it
                             }
                         )
                     }
@@ -238,20 +228,16 @@ fun TripPlannerScreen(
                             ItineraryCard(
                                 node = node, lang = currentLang, distFromPrev = state.distances[-2], mode = state.mode,
                                 isActive = isActive,
-                                isExpanded = if (state.bootcampStep == BootcampStep.FINISH) true else if (state.mode == TripMode.LIVE) isActive else (expandedEditId == -2),
+                                isExpanded = if (state.mode == TripMode.LIVE) isActive else (expandedEditId == -2),
                                 isCompleted = false,
                                 onMapClick = { viewModel.launchNavigation(state.baseLocation ?: GeoPoint(41.7125, 44.7930), "driving") },
                                 onTaxiClick = { viewModel.onTransportAction("bolt") }, onRentClick = { viewModel.onRentCarAction() },
                                 onMoreInfo = { viewModel.launchRecon(node, currentLang) }, onCheckIn = {
-                                    if(state.bootcampStep == BootcampStep.FINISH) viewModel.dismissTutorial()
                                     viewModel.completeMission()
                                 }, onRemove = {},
                                 onCardClick = {
                                     if (state.mode == TripMode.LIVE) viewModel.onCardClicked(-2)
                                     else expandedEditId = if(expandedEditId == -2) null else -2
-                                },
-                                actionButtonModifier = Modifier.onGloballyPositioned {
-                                    if (state.bootcampStep == BootcampStep.FINISH) activeTargetCoords = it
                                 }
                             )
                         }
@@ -289,6 +275,7 @@ fun TripPlannerScreen(
     }
 }
 
+// HELPERS
 fun createSyntheticNode(loc: GeoPoint, id: Int, title: String, desc: String) = LocationEntity(
     id = id, type = "HOME", region = "HQ", latitude = loc.latitude, longitude = loc.longitude,
     imageUrl = "https://images.pexels.com/photos/271624/pexels-photo-271624.jpeg",
@@ -302,6 +289,7 @@ fun AddStopSheet(
     query: String, lang: String, nearby: List<LocationEntity>, results: List<LocationEntity>,
     bootcampStep: BootcampStep, onQuery: (String) -> Unit, onAdd: (LocationEntity) -> Unit, onCaptureCoords: (LayoutCoordinates) -> Unit
 ) {
+    // ARCHITECT'S FIX: UsingDelegated state for detailNode
     var detailNode by remember { mutableStateOf<LocationEntity?>(null) }
     var isExplMode by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
@@ -318,14 +306,14 @@ fun AddStopSheet(
     if (detailNode != null) {
         AlertDialog(
             onDismissRequest = { detailNode = null },
-            confirmButton = { Button(onClick = { onAdd(detailNode!!); detailNode = null }, colors = ButtonDefaults.buttonColors(containerColor = SakartveloRed)) { Text("ADD TO TRIP") } },
+            confirmButton = { Button(onClick = { detailNode?.let { onAdd(it) }; detailNode = null }, colors = ButtonDefaults.buttonColors(containerColor = SakartveloRed)) { Text("ADD TO TRIP") } },
             dismissButton = { TextButton(onClick = { detailNode = null }) { Text("CLOSE") } },
-            title = { Text(detailNode!!.getDisplayName(lang), fontWeight = FontWeight.Black) },
+            title = { Text(detailNode?.getDisplayName(lang) ?: "", fontWeight = FontWeight.Black) },
             text = {
                 Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                    AsyncImage(model = detailNode!!.imageUrl, contentDescription = null, modifier = Modifier.fillMaxWidth().height(160.dp).clip(RoundedCornerShape(12.dp)), contentScale = ContentScale.Crop)
+                    AsyncImage(model = detailNode?.imageUrl, contentDescription = null, modifier = Modifier.fillMaxWidth().height(160.dp).clip(RoundedCornerShape(12.dp)), contentScale = ContentScale.Crop)
                     Spacer(Modifier.height(16.dp))
-                    Text(detailNode!!.getDisplayDesc(lang), style = MaterialTheme.typography.bodyMedium)
+                    Text(detailNode?.getDisplayDesc(lang) ?: "", style = MaterialTheme.typography.bodyMedium)
                 }
             }
         )

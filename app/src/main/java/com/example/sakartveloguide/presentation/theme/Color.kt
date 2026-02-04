@@ -2,8 +2,9 @@ package com.example.sakartveloguide.presentation.theme
 
 import androidx.compose.ui.graphics.Color
 
-val SakartveloRed = Color(0xFFD72638)
-val WineDark = Color(0xFF560319)
-val MatteCharcoal = Color(0xFF1A1A1A)
-val SnowWhite = Color(0xFFFFFFFF)
-val MountainGrey = Color(0xFFF5F5F5)
+// ARCHITECT'S REFINEMENT: Softening the palette for the "Dreamy" brand
+val SakartveloRed = Color(0xFFE23E44) // Brighter, more inviting
+val WineDark = Color(0xFF2D0A11)      // Deep, elegant wine
+val MatteCharcoal = Color(0xFF0F0F0F) // Deeper black for high contrast
+val SnowWhite = Color(0xFFFCFCFC)     // Off-white for reduced eye strain
+val MountainGrey = Color(0xFFF0F0F0)

@@ -7,31 +7,6 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.VIBRATE" />
 
-    <!-- ARCHITECT'S FIX: Visibility Queries for External Apps -->
-    <queries>
-        <!-- Navigation -->
-        <package android:name="com.google.android.apps.maps" />
-        <package android:name="com.waze" />
-
-        <!-- Taxi & Transport -->
-        <package android:name="ee.mtakso.client" /> <!-- Bolt -->
-        <package android:name="com.yandex.taxi" /> <!-- Yandex Go -->
-
-        <!-- Accommodation -->
-        <package android:name="com.booking" />
-        <package android:name="com.airbnb.android" />
-
-        <!-- Flights -->
-        <package android:name="net.skyscanner.android.main" />
-        <package android:name="com.wizzair.WizzAirApp" />
-
-        <!-- Browser Fallback -->
-        <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <data android:scheme="https" />
-        </intent>
-    </queries>
-
     <application
         android:name=".SakartveloApp"
         android:allowBackup="true"
@@ -43,15 +18,28 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.SakartveloGuide"
         tools:targetApi="31">
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.SakartveloGuide.Starting">
+            android:theme="@style/Theme.SakartveloGuide">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
+
     </application>
 
 </manifest>

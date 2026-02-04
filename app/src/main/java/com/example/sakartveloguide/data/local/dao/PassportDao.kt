@@ -14,4 +14,8 @@ interface PassportDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertStamp(stamp: PassportEntity)
+
+    // ARCHITECT'S FIX: Bulk insertion for Cloud Sync
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertStamps(stamps: List<PassportEntity>)
 }

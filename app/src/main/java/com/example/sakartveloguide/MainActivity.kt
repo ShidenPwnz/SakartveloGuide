@@ -26,7 +26,6 @@ class MainActivity : AppCompatActivity() {
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
 
-        // Keep splash on screen until initial navigation target is determined
         splashScreen.setKeepOnScreenCondition {
             !viewModel.isSplashReady.value
         }
@@ -34,7 +33,6 @@ class MainActivity : AppCompatActivity() {
         setContent {
             val session by viewModel.userSession.collectAsState(initial = UserSession())
 
-            // Reactive Locale Application
             LaunchedEffect(session.language) {
                 if (session.language.isNotEmpty()) {
                     val appLocale = LocaleListCompat.forLanguageTags(session.language)
@@ -46,9 +44,9 @@ class MainActivity : AppCompatActivity() {
 
             SakartveloTheme {
                 Box(modifier = Modifier.fillMaxSize()) {
+                    // ARCHITECT'S FIX: Removed 'onCompleteTrip' as navigation is now internal to the graph
                     SakartveloNavGraph(
-                        homeViewModel = viewModel,
-                        onCompleteTrip = { trip -> viewModel.onCompleteTrip(trip) }
+                        homeViewModel = viewModel
                     )
                 }
             }

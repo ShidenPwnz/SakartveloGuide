@@ -1,6 +1,6 @@
 package com.example.sakartveloguide.domain.model
 
-import com.example.sakartveloguide.R // CRITICAL IMPORT
+import com.example.sakartveloguide.R // EXPLICIT IMPORT
 
 data class TripPath(
     val id: String,
@@ -52,7 +52,6 @@ enum class ZoneType { URBAN_CORE, URBAN_PERIPHERY, RURAL_HUB, REMOTE_WILDERNESS,
 enum class RouteCategory { GUIDE, RELIGIOUS, WINE_CELLAR, WINE_REGION, MOUNTAIN, HIKING, URBAN, URBAN_EXPLORER, COASTAL, HISTORICAL, CULTURE, NATURE, CAPITAL }
 enum class Difficulty { RELAXED, NORMAL, EXPLORER, WARRIOR, EASY, MODERATE, HARD }
 
-// ARCHITECT'S FIX: Pointing to verified string IDs in strings.xml
 fun RouteCategory.getLabelRes(): Int {
     return when(this) {
         RouteCategory.GUIDE -> R.string.cat_guide

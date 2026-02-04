@@ -1,6 +1,6 @@
 package com.example.sakartveloguide.domain.model
 
-import com.example.sakartveloguide.R // CRITICAL IMPORT
+import com.example.sakartveloguide.R // EXPLICIT IMPORT
 
 data class LogisticsProfile(
     val transportStrategy: TransportStrategy = TransportStrategy.PASSENGER_URBAN,
@@ -38,7 +38,6 @@ enum class EntryPoint {
     AIRPORT_TBS, AIRPORT_KUT, AIRPORT_BUS, LAND_TURKEY, LAND_ARMENIA, LAND_AZERBAIJAN, LAND_RUSSIA, CITY_CENTER
 }
 
-// ARCHITECT'S FIX: Explicitly mapped to verified R.string IDs
 enum class TransportType(val titleRes: Int, val subRes: Int) {
     RENTAL_4X4(R.string.trans_driver, R.string.trans_driver_sub),
     TAXI(R.string.trans_passenger, R.string.trans_passenger_sub),

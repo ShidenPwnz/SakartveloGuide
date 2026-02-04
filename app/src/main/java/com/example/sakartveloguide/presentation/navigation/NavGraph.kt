@@ -1,7 +1,7 @@
 package com.example.sakartveloguide.presentation.navigation
 
 import androidx.compose.runtime.*
-import androidx.compose.runtime.getValue // REQUIRED
+import androidx.compose.runtime.getValue
 import androidx.navigation.compose.*
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
@@ -16,8 +16,9 @@ import kotlinx.coroutines.flow.collectLatest
 
 @Composable
 fun SakartveloNavGraph(
-    homeViewModel: HomeViewModel,
-    onCompleteTrip: (TripPath) -> Unit
+    homeViewModel: HomeViewModel
+    // ARCHITECT'S FIX: Removed unused 'onCompleteTrip' callback.
+    // Navigation is now event-driven via ViewModel flows.
 ) {
     val navController = rememberNavController()
     val startDestState by homeViewModel.initialDestination.collectAsState()

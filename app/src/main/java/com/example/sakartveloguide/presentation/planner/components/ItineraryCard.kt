@@ -131,7 +131,6 @@ fun ItineraryCard(
                 shape = RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp),
                 modifier = actionButtonModifier.fillMaxWidth().height(48.dp)
             ) {
-                // ARCHITECT'S FIX: Explicit Arrangement.Center
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
                     Icon(if (isHomeNode) Icons.Default.Home else Icons.Default.CheckCircle, null, tint = Color.White, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
