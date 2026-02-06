@@ -15,6 +15,7 @@ import com.example.sakartveloguide.domain.model.UserSession
 import com.example.sakartveloguide.presentation.home.HomeViewModel
 import com.example.sakartveloguide.presentation.navigation.SakartveloNavGraph
 import com.example.sakartveloguide.presentation.theme.SakartveloTheme
+import com.example.sakartveloguide.presentation.common.ErrorBoundary
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -43,11 +44,13 @@ class MainActivity : AppCompatActivity() {
             }
 
             SakartveloTheme {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    // ARCHITECT'S FIX: Removed 'onCompleteTrip' as navigation is now internal to the graph
-                    SakartveloNavGraph(
-                        homeViewModel = viewModel
-                    )
+                // HARDENING: Wrapping the entire NavGraph in an ErrorBoundary
+                ErrorBoundary {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        SakartveloNavGraph(
+                            homeViewModel = viewModel
+                        )
+                    }
                 }
             }
         }

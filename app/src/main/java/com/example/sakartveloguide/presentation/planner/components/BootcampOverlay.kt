@@ -25,7 +25,6 @@ import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -48,9 +47,8 @@ fun BootcampSpotlight(
 
     val density = LocalDensity.current
     val configuration = LocalConfiguration.current
-    val screenHeightPx = with(density) { configuration.screenHeightDp.dp.toPx() }
-    val maxWidthPx = configuration.screenWidthDp.toFloat() * density.density
     val maxHeightPx = configuration.screenHeightDp.toFloat() * density.density
+    val maxWidthPx = configuration.screenWidthDp.toFloat() * density.density
 
     val pos = targetCoords.positionInRoot()
     val size = targetCoords.size
@@ -67,17 +65,15 @@ fun BootcampSpotlight(
     val animAlpha = remember { Animatable(0f) }
 
     LaunchedEffect(targetRect) {
-        launch { animAlpha.animateTo(0f, tween(100)) }
-        animRect.animateTo(targetValue = targetRect, animationSpec = spring(Spring.DampingRatioLowBouncy, Spring.StiffnessLow))
+        launch { animAlpha.animateTo(0f, tween(150)) }
+        animRect.animateTo(targetValue = targetRect, animationSpec = spring(0.8f, 300f))
         delay(100)
-        animAlpha.animateTo(1f, tween(300))
+        animAlpha.animateTo(1f, tween(400))
     }
 
     val currentRect = animRect.value
-    val scrimColor = Color.Black.copy(alpha = 0.88f)
+    val scrimColor = Color.Black.copy(alpha = 0.75f)
     val noRipple = remember { MutableInteractionSource() }
-
-    // Always allow skip by tapping screen EXCEPT on the Final Start Journey button
     val canTapToNext = step != BootcampStep.START
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize().zIndex(1000f)) {
@@ -87,48 +83,48 @@ fun BootcampSpotlight(
         Box(Modifier.width(with(density) { (maxWidthPx - currentRect.right).coerceAtLeast(0f).toDp() }).height(with(density) { currentRect.height.toDp() }).offset(y = with(density) { currentRect.top.toDp() }).background(scrimColor).align(Alignment.TopEnd).clickable(noRipple, null) { if(canTapToNext) onNext() })
 
         val infiniteTransition = rememberInfiniteTransition(label = "Pulse")
-        val pulseAlpha by infiniteTransition.animateFloat(0.8f, 0.2f, infiniteRepeatable(tween(1000), RepeatMode.Reverse), "a")
+        val pulseAlpha by infiniteTransition.animateFloat(0.6f, 0.2f, infiniteRepeatable(tween(1500), RepeatMode.Reverse), "a")
         Canvas(Modifier.fillMaxSize()) {
-            drawRoundRect(color = SakartveloRed.copy(alpha = pulseAlpha), topLeft = currentRect.topLeft, size = currentRect.size, cornerRadius = CornerRadius(24f, 24f), style = Stroke(width = 3.dp.toPx()))
+            drawRoundRect(color = SakartveloRed.copy(alpha = pulseAlpha), topLeft = currentRect.topLeft, size = currentRect.size, cornerRadius = CornerRadius(24f, 24f), style = Stroke(width = 2.dp.toPx()))
         }
 
         val isTargetInTopHalf = currentRect.center.y < (maxHeightPx / 2)
         Column(
             modifier = Modifier
                 .align(if (isTargetInTopHalf) Alignment.BottomCenter else Alignment.TopCenter)
-                .padding(horizontal = 32.dp, vertical = 100.dp)
+                .padding(horizontal = 40.dp, vertical = 100.dp)
                 .graphicsLayer { alpha = animAlpha.value },
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(getJourneyTitle(step), color = SakartveloRed, fontWeight = FontWeight.Black, fontSize = 14.sp, letterSpacing = 2.sp)
+            Text(getDreamyTitle(step), color = SakartveloRed, fontWeight = FontWeight.Bold, fontSize = 12.sp, letterSpacing = 2.sp)
             Spacer(Modifier.height(12.dp))
-            Surface(color = Color.Black.copy(alpha = 0.7f), shape = RoundedCornerShape(8.dp), border = BorderStroke(1.dp, SakartveloRed.copy(0.4f))) {
-                Text(getJourneyDesc(step), color = Color.White, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Default, fontSize = 16.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(16.dp))
+            Surface(color = Color.White.copy(alpha = 0.9f), shape = RoundedCornerShape(12.dp)) {
+                Text(getDreamyDesc(step), color = Color.Black, fontWeight = FontWeight.Medium, fontSize = 16.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(16.dp))
             }
             if (canTapToNext) {
                 Spacer(Modifier.height(16.dp))
-                Text("TAP SCREEN TO CONTINUE", color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                Text("TAP TO CONTINUE", color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
             }
         }
 
         IconButton(onClick = onDismiss, modifier = Modifier.align(Alignment.TopEnd).padding(16.dp).statusBarsPadding()) {
-            Icon(Icons.Default.Close, null, tint = Color.White.copy(alpha = 0.7f))
+            Icon(Icons.Default.Close, null, tint = Color.White.copy(alpha = 0.5f))
         }
     }
 }
 
-private fun getJourneyTitle(step: BootcampStep) = when(step) {
-    BootcampStep.ESSENTIALS -> "YOUR ESSENTIALS"
-    BootcampStep.SET_HOME -> "YOUR HOME BASE"
-    BootcampStep.ADD_LOCATION -> "DISCOVER PLACES"
-    BootcampStep.START -> "START THE JOURNEY"
+private fun getDreamyTitle(step: BootcampStep) = when(step) {
+    BootcampStep.ESSENTIALS -> "YOUR TRIP AT A GLANCE"
+    BootcampStep.SET_HOME -> "YOUR HOME IN THE CITY"
+    BootcampStep.ADD_LOCATION -> "DISCOVER TBILISI"
+    BootcampStep.START -> "READY TO EXPLORE?"
     else -> ""
 }
 
-private fun getJourneyDesc(step: BootcampStep) = when(step) {
-    BootcampStep.ESSENTIALS -> "Quickly access flights, stays, and transport here."
-    BootcampStep.SET_HOME -> "Set your hotel or apartment location to get smart recommendations nearby."
-    BootcampStep.ADD_LOCATION -> "We will simulate adding Metekhi Palace now."
-    BootcampStep.START -> "When you're ready to go, tap Start Journey."
+private fun getDreamyDesc(step: BootcampStep) = when(step) {
+    BootcampStep.ESSENTIALS -> "Everything you need for your stay, from flights to local rides."
+    BootcampStep.SET_HOME -> "Pin your hotel to see beautiful places nearby."
+    BootcampStep.ADD_LOCATION -> "We'll suggest iconic landmarks to get you started."
+    BootcampStep.START -> "When you're ready, let's start the journey together."
     else -> ""
 }

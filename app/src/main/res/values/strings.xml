@@ -1,12 +1,12 @@
 <resources>
-    <string name="app_name">Sakartvelo Guide</string>
+    <string name="app_name">Georgia: Tbilisi Travel Guide</string>
 
     <!-- Auth -->
-    <string name="auth_init_title">INITIALIZE IDENTITY</string>
-    <string name="auth_welcome">Welcome to Georgia.\nSecure your data to proceed.</string>
+    <string name="auth_init_title">SIGN IN OR CONTINUE</string>
+    <string name="auth_welcome">Welcome to Georgia.\nSave your trip and travel smarter.</string>
     <string name="auth_google_btn">SIGN IN WITH GOOGLE</string>
-    <string name="auth_guest_btn">PROCEED AS GUEST</string>
-    <string name="auth_footer">Signing in allows mission logs and passport stamps to sync across devices.</string>
+    <string name="auth_guest_btn">CONTINUE AS GUEST</string>
+    <string name="auth_footer">Signing in syncs your trips and saved places across devices.</string>
 
     <!-- Home -->
     <string name="discover">EXPLORE</string>
@@ -14,36 +14,36 @@
 
     <!-- Categories -->
     <string name="cat_guide">GUIDE</string>
-    <string name="cat_urban">URBAN</string>
-    <string name="cat_mountain">MOUNTAIN</string>
+    <string name="cat_urban">CITY</string>
+    <string name="cat_mountain">MOUNTAINS</string>
     <string name="cat_wine">WINE</string>
     <string name="cat_culture">CULTURE</string>
     <string name="cat_nature">NATURE</string>
-    <string name="cat_relaxed">RELAXED</string>
+    <string name="cat_relaxed">RELAX</string>
 
     <!-- Trip Details -->
     <string name="trip_details_title">TRIP OVERVIEW</string>
-    <string name="configure_trip">CUSTOMIZE PROTOCOL</string>
+    <string name="configure_trip">CUSTOMIZE TRIP</string>
     <string name="trip_duration_days">%d DAYS</string>
-    <string name="trip_drive_time">DRIVE: %s</string>
+    <string name="trip_drive_time">DRIVE TIME: %s</string>
     <string name="trip_intensity">PACE: %s</string>
-    <string name="snow_warning_title">WINTER ALERT</string>
-    <string name="snow_warning_desc">4x4 required Nov-April</string>
+    <string name="snow_warning_title">WINTER NOTICE</string>
+    <string name="snow_warning_desc">4x4 recommended from November to April</string>
 
     <!-- Transport Types -->
-    <string name="trans_driver">PILOT</string>
-    <string name="trans_driver_sub">Rental / Own Vehicle</string>
-    <string name="trans_passenger">PASSENGER</string>
-    <string name="trans_passenger_sub">Taxi / Transit / Walk</string>
+    <string name="trans_driver">DRIVING</string>
+    <string name="trans_driver_sub">Rental or Personal Car</string>
+    <string name="trans_passenger">NO CAR</string>
+    <string name="trans_passenger_sub">Taxi, Transit or Walking</string>
 
     <!-- Buttons -->
-    <string name="btn_start_journey">START JOURNEY</string>
+    <string name="btn_start_journey">START TRIP</string>
     <string name="btn_pause_edit">PAUSE &amp; EDIT</string>
     <string name="btn_optimize">OPTIMIZE ROUTE</string>
     <string name="btn_check_in">CHECK IN</string>
-    <string name="btn_arrive_home">ARRIVE HOME &amp; FINISH</string>
-    <string name="btn_taxi">TAXI</string>
-    <string name="btn_rent">RENT 4X4</string>
+    <string name="btn_arrive_home">FINISH TRIP</string>
+    <string name="btn_taxi">TAKE A TAXI</string>
+    <string name="btn_rent">RENT A 4X4</string>
     <string name="btn_add_to_trip">ADD TO TRIP</string>
     <string name="btn_close">CLOSE</string>
     <string name="btn_more_info">MORE INFO</string>
@@ -55,48 +55,87 @@
     <string name="label_stay">STAY</string>
     <string name="label_flight">FLIGHT</string>
     <string name="label_taxi">TRANSPORT</string>
-    <string name="label_rent">RENT CAR</string>
+    <string name="label_rent">RENT A CAR</string>
 
     <!-- Home Base -->
-    <string name="set_home_title">SET HOME LOCATION</string>
-    <string name="set_home_sub">(Unlocks Smart Recs)</string>
-    <string name="home_secured">HOME SECURED</string>
-    <string name="home_start_title">HOME (START)</string>
-    <string name="home_return_title">RETURN HOME</string>
-    <string name="home_desc">Your secured base of operations.</string>
-    <string name="planner_empty_state">Set Home Location or Add a Stop to begin.</string>
+    <string name="set_home_title">SET START LOCATION</string>
+    <string name="set_home_sub">(Unlocks smart recommendations)</string>
+    <string name="home_secured">START LOCATION SAVED</string>
+    <string name="home_start_title">START LOCATION</string>
+    <string name="home_return_title">RETURN HERE</string>
+    <string name="home_desc">Where your journey begins.</string>
+    <string name="planner_empty_state">Set a start location or add a stop to begin.</string>
+    <string name="home_unset_title">SET YOUR HOME BASE</string>
+    <string name="home_unset_desc">Tap here to pin your hotel. This unlocks smart nearby suggestions.</string>
 
     <!-- Search -->
     <string name="search_hint">Search places or regions…</string>
-    <string name="nearby_gems">NEARBY GEMS</string>
-    <string name="regional_highlights">REGIONAL HIGHLIGHTS</string>
+    <string name="nearby_gems">NEARBY HIGHLIGHTS</string>
+    <string name="regional_highlights">REGIONAL PICKS</string>
     <string name="search_results">SEARCH RESULTS</string>
     <string name="recommended_for_you">RECOMMENDED FOR YOU</string>
 
-    <!-- Tutorial (Journey) -->
-    <string name="tut_next">NEXT TIP</string>
-    <string name="tut_skip">SKIP TUTORIAL</string>
-    <string name="tut_step1_title">STEP 1: LOGISTICS</string>
-    <string name="tut_step1_desc">Use Trip Essentials to secure flights, booking, and transport before you deploy.</string>
-    <string name="tut_step2_title">STEP 2: THE ANCHOR</string>
-    <string name="tut_step2_desc">Set your Home location. This is mission critical—it unlocks personalized smart recommendations.</string>
-    <string name="tut_step3_title">STEP 3: DISCOVERY</string>
-    <string name="tut_step3_desc">Tap the add button to explore 800+ verified locations across Georgia.</string>
+    <!-- Tutorial -->
+    <string name="tut_next">NEXT</string>
+    <string name="tut_skip">SKIP</string>
+    <string name="tut_step1_title">STEP 1: PLAN THE BASICS</string>
+    <string name="tut_step1_desc">Book flights, places to stay, and transportation before heading out.</string>
+    <string name="tut_step2_title">STEP 2: SET YOUR START</string>
+    <string name="tut_step2_desc">Choose where your trip begins to unlock personalized recommendations.</string>
+    <string name="tut_step3_title">STEP 3: DISCOVER</string>
+    <string name="tut_step3_desc">Tap the add button to explore over 800 verified places across Georgia.</string>
 
     <!-- Passport & Settings -->
     <string name="passport_title">MY PASSPORT</string>
     <string name="region_visas">REGION STAMPS</string>
-    <string name="no_stamps">No stamps earned yet.</string>
-    <string name="approved_protocol">APPROVED PROTOCOL</string>
+    <string name="no_stamps">No stamps yet.</string>
+    <string name="approved_protocol">TRIP CONFIRMED</string>
     <string name="settings_title">SETTINGS</string>
-    <string name="lang_protocol">LANGUAGE PROTOCOL</string>
+    <string name="lang_protocol">LANGUAGE</string>
     <string name="data_mgmt">DATA MANAGEMENT</string>
     <string name="nuke_data">RESET ALL DATA</string>
-    <string name="nuke_desc">Permanently delete mission history</string>
-    <string name="logout_label">TERMINATE SESSION</string>
+    <string name="nuke_desc">Delete all saved trips and history</string>
+    <string name="logout_label">LOG OUT</string>
 
     <!-- Builder -->
-    <string name="builder_title">MISSION BUILDER</string>
-    <string name="builder_loadout">LOADOUT</string>
-    <string name="builder_proceed">PROCEED</string>
+    <string name="builder_title">TRIP BUILDER</string>
+    <string name="builder_loadout">ROUTE</string>
+    <string name="builder_proceed">CONTINUE</string>
+
+    <!-- Wizard (New) -->
+    <string name="wiz_rogue_mode">ROGUE MODE</string>
+    <string name="wiz_infiltration_status">INFILTRATION STATUS</string>
+    <string name="wiz_flight_question">Have you secured air transport assets?</string>
+    <string name="wiz_flight_confirmed_title">CONFIRMED</string>
+    <string name="wiz_flight_confirmed_desc">I have my flight tickets.</string>
+    <string name="wiz_flight_negative_title">NEGATIVE</string>
+    <string name="wiz_flight_negative_desc">I need to find a route.</string>
+    <string name="wiz_scan_skynet">SCANNING SKYNET</string>
+    <string name="wiz_skyscanner_desc">Use Skyscanner to identify optimal routes.</string>
+    <string name="wiz_launch_skyscanner">LAUNCH SKYSCANNER</string>
+    <string name="wiz_have_dates">I HAVE DATES NOW</string>
+    <string name="wiz_comms_check">COMMS CHECK</string>
+    <string name="wiz_comms_sub">Connectivity is mission critical.</string>
+    <string name="wiz_online_title">ONLINE</string>
+    <string name="wiz_online_desc">I have Roaming / SIM.</string>
+    <string name="wiz_offline_title">OFFLINE</string>
+    <string name="wiz_offline_desc">I need a local eSIM.</string>
+    <string name="wiz_mobility_protocol">MOBILITY PROTOCOL</string>
+    <string name="wiz_mobility_sub">How will you traverse the terrain?</string>
+    <string name="wiz_passenger_label">PASSENGER</string>
+    <string name="wiz_hybrid_title">Hybrid (Taxi + Walk)</string>
+    <string name="wiz_hybrid_desc">Flexible &amp; Easy.</string>
+    <string name="wiz_budget_title">Budget (Public)</string>
+    <string name="wiz_budget_desc">Metro &amp; Marshrutka.</string>
+    <string name="wiz_pilot_label">PILOT</string>
+    <string name="wiz_rental_title">Rental 4x4</string>
+    <string name="wiz_rental_desc">Total freedom.</string>
+    <string name="wiz_own_car_title">Own Vehicle</string>
+    <string name="wiz_fob_title">FORWARD OPERATING BASE</string>
+    <string name="wiz_fob_sub">Do you have a stay secured?</string>
+    <string name="wiz_fob_secured">SECURED</string>
+    <string name="wiz_fob_unsecured">UNSECURED</string>
+    <string name="wiz_params_locked">PARAMETERS LOCKED</string>
+    <string name="wiz_initiate">INITIATE MISSION</string>
+    <string name="cta_initialize_journey">INITIALIZE JOURNEY</string>
 </resources>

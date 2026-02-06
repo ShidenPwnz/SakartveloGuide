@@ -14,8 +14,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import org.maplibre.android.camera.CameraUpdateFactory
-import org.maplibre.android.geometry.LatLng
+import com.example.sakartveloguide.BuildConfig
 import org.maplibre.android.location.LocationComponentActivationOptions
 import org.maplibre.android.location.modes.CameraMode
 import org.maplibre.android.maps.MapLibreMap
@@ -28,8 +27,9 @@ fun MapViewContainer(
     onMapReady: (MapLibreMap) -> Unit
 ) {
     val context = LocalContext.current
-    val mapTilerKey = "qkMaulJ2NlsVPfbF8xwp"
-    val styleUrl = "https://api.maptiler.com/maps/outdoor-v2/style.json?key=$mapTilerKey"
+
+    // ARCHITECT'S FIX: Use BuildConfig key for map style requests
+    val styleUrl = "https://api.maptiler.com/maps/outdoor-v2/style.json?key=${BuildConfig.MAPTILER_API_KEY}"
 
     val mapView = remember { MapView(context) }
 
@@ -59,22 +59,14 @@ fun MapViewContainer(
                     map.uiSettings.isZoomGesturesEnabled = false
                 }
 
-                if (ContextCompat.checkSelfPermission(
-                        context, Manifest.permission.ACCESS_FINE_LOCATION
-                    ) == PackageManager.PERMISSION_GRANTED) {
+                if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
                     try {
                         val locationComponent = map.locationComponent
-                        locationComponent.activateLocationComponent(
-                            LocationComponentActivationOptions.builder(context, style).build()
-                        )
+                        locationComponent.activateLocationComponent(LocationComponentActivationOptions.builder(context, style).build())
                         locationComponent.isLocationComponentEnabled = true
-
-                        // ARCHITECT'S FIX: Do not auto-track if map is being used for Recon
-                        if (isInteractable) {
-                            locationComponent.cameraMode = CameraMode.NONE
-                        }
+                        if (isInteractable) { locationComponent.cameraMode = CameraMode.NONE }
                     } catch (e: Exception) {
-                        Log.e("SAKARTVELO", "Location activation failed: ${e.message}")
+                        Log.e("SAKARTVELO_MAP", "GPS Activation Failed: ${e.message}")
                     }
                 }
                 onMapReady(map)

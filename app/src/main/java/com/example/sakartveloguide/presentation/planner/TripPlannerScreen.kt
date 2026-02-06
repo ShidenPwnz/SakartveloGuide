@@ -16,8 +16,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue // REQUIRED FOR DELEGATE
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -32,6 +30,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -42,6 +42,7 @@ import com.example.sakartveloguide.domain.util.*
 import com.example.sakartveloguide.presentation.planner.components.*
 import com.example.sakartveloguide.presentation.passport.components.PassportSlamOverlay
 import com.example.sakartveloguide.presentation.theme.SakartveloRed
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,7 +60,6 @@ fun TripPlannerScreen(
 
     var showAddSheet by remember { mutableStateOf(false) }
     var expandedEditId by remember { mutableStateOf<Int?>(null) }
-    var hasPerformedInitialFocus by remember { mutableStateOf(false) }
     var activeTargetCoords by remember { mutableStateOf<LayoutCoordinates?>(null) }
 
     LaunchedEffect(state.bootcampStep) {
@@ -69,28 +69,14 @@ fun TripPlannerScreen(
                 BootcampStep.ESSENTIALS -> 0
                 BootcampStep.SET_HOME -> 1
                 BootcampStep.ADD_LOCATION -> if (state.route.isEmpty()) 2 else state.route.size + 1
-                BootcampStep.START -> 99
                 else -> null
             }
-            targetIdx?.let {
-                listState.animateScrollToItem(index = it.coerceAtMost(state.route.size + 5), scrollOffset = -200)
-            }
-        }
-    }
-
-    LaunchedEffect(state.mode) {
-        if (state.mode == TripMode.LIVE && !hasPerformedInitialFocus) {
-            listState.animateScrollToItem(0)
-            hasPerformedInitialFocus = true
-        } else if (state.mode == TripMode.EDITING) {
-            hasPerformedInitialFocus = false
+            targetIdx?.let { listState.animateScrollToItem(index = it, scrollOffset = -200) }
         }
     }
 
     LaunchedEffect(Unit) {
-        viewModel.navigationEvent.collectLatest { route ->
-            if (route == "passport") onNavigateToPassport()
-        }
+        viewModel.navigationEvent.collectLatest { if (it == "passport") onNavigateToPassport() }
     }
 
     BackHandler(enabled = state.mode == TripMode.LIVE) { }
@@ -108,7 +94,7 @@ fun TripPlannerScreen(
             containerColor = Color.Transparent,
             topBar = {
                 CenterAlignedTopAppBar(
-                    title = { Text(state.title.uppercase(), fontWeight = FontWeight.Black, color = Color.White) },
+                    title = { Text(state.title.uppercase(), fontWeight = FontWeight.Black, color = Color.White, letterSpacing = 2.sp) },
                     navigationIcon = {
                         if (state.mode == TripMode.EDITING) {
                             IconButton(onClick = { viewModel.onBackCleanup(); onBack() }) {
@@ -123,21 +109,17 @@ fun TripPlannerScreen(
                 Surface(
                     tonalElevation = 8.dp,
                     color = Color.Black.copy(alpha = 0.4f),
-                    modifier = Modifier.onGloballyPositioned {
-                        if (state.bootcampStep == BootcampStep.START) activeTargetCoords = it
-                    }
+                    modifier = Modifier.onGloballyPositioned { if (state.bootcampStep == BootcampStep.START) activeTargetCoords = it }
                 ) {
-                    Row(modifier = Modifier.fillMaxWidth().padding(24.dp).height(56.dp)) {
+                    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp).height(56.dp)) {
                         Button(
-                            onClick = {
-                                viewModel.toggleMode()
-                            },
+                            onClick = { viewModel.toggleMode() },
                             modifier = Modifier.fillMaxSize(),
                             shape = RoundedCornerShape(16.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = if (state.mode == TripMode.EDITING) SakartveloRed else Color(0xFF333333))
                         ) {
-                            val labelId = if (state.mode == TripMode.EDITING) R.string.btn_start_journey else R.string.btn_pause_edit
-                            Text(stringResource(labelId), fontWeight = FontWeight.Black)
+                            val label = if (state.mode == TripMode.EDITING) R.string.btn_start_journey else R.string.btn_pause_edit
+                            Text(stringResource(label), fontWeight = FontWeight.Black)
                         }
                     }
                 }
@@ -148,29 +130,50 @@ fun TripPlannerScreen(
 
                     if (state.mode == TripMode.EDITING) {
                         item {
-                            Box(modifier = Modifier.onGloballyPositioned {
-                                if (state.bootcampStep == BootcampStep.ESSENTIALS) activeTargetCoords = it
-                            }) {
+                            Box(modifier = Modifier.onGloballyPositioned { if (state.bootcampStep == BootcampStep.ESSENTIALS) activeTargetCoords = it }) {
                                 LogisticsHeader(
                                     imageUrl = "https://images.pexels.com/photos/459225/pexels-photo-459225.jpeg",
                                     hasBase = state.baseLocation != null,
                                     hasFlights = !state.profile.needsFlight,
-                                    onBaseLink = { viewModel.onStayAction(it); if(state.bootcampStep == BootcampStep.ESSENTIALS) viewModel.nextTutorialStep() },
-                                    onFlightAction = { viewModel.onFlightAction(it); if(state.bootcampStep == BootcampStep.ESSENTIALS) viewModel.nextTutorialStep() },
-                                    onTransportAction = { viewModel.onTransportAction(it); if(state.bootcampStep == BootcampStep.ESSENTIALS) viewModel.nextTutorialStep() },
-                                    onRentAction = { viewModel.onRentCarAction(); if(state.bootcampStep == BootcampStep.ESSENTIALS) viewModel.nextTutorialStep() }
+                                    onBaseLink = { viewModel.onStayAction(it) },
+                                    onFlightAction = { viewModel.onFlightAction(it) },
+                                    onTransportAction = { viewModel.onTransportAction(it) },
+                                    onRentAction = { viewModel.onRentCarAction() }
                                 )
+                            }
+                        }
+
+                        item {
+                            AnimatedVisibility(visible = state.route.isNotEmpty()) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    UtilityActionButton(stringResource(R.string.btn_optimize_short), Icons.Default.AutoFixHigh, Modifier.weight(1f)) { viewModel.optimizeRoute() }
+                                    UtilityActionButton(stringResource(R.string.btn_preview_trip), Icons.Default.Map, Modifier.weight(1f)) { viewModel.launchFullTripIntent() }
+                                }
                             }
                         }
                     }
 
                     item {
-                        val node = createSyntheticNode(state.baseLocation ?: GeoPoint(41.7125, 44.7930), -1, stringResource(R.string.home_start_title), stringResource(R.string.home_desc))
+                        val hasBase = state.baseLocation != null
+                        val homeTitle = if (hasBase) stringResource(R.string.home_start_title) else stringResource(R.string.home_unset_title)
+                        val homeDesc = if (hasBase) stringResource(R.string.home_desc) else stringResource(R.string.home_unset_desc)
+
+                        val node = createSyntheticNode(
+                            loc = state.baseLocation ?: GeoPoint(41.7125, 44.7930),
+                            id = -1,
+                            title = homeTitle,
+                            desc = homeDesc
+                        )
+
                         ItineraryCard(
                             node = node, lang = currentLang, distFromPrev = null, mode = state.mode,
                             isActive = (state.activeNodeId == -1),
                             isExpanded = if (state.mode == TripMode.LIVE) (state.activeNodeId == -1) else (expandedEditId == -1),
-                            isCompleted = (state.baseLocation != null), isSmall = true,
+                            isCompleted = hasBase,
+                            isSmall = true,
                             onMapClick = { viewModel.launchNavigation(state.baseLocation ?: GeoPoint(41.7125, 44.7930), "driving") },
                             onTaxiClick = { viewModel.onTransportAction("bolt") }, onRentClick = { viewModel.onRentCarAction() },
                             onMoreInfo = { viewModel.launchRecon(node, currentLang) }, onCheckIn = { viewModel.markCheckIn(-1) }, onRemove = {},
@@ -180,13 +183,11 @@ fun TripPlannerScreen(
                                 else if (state.baseLocation == null) onNavigateToFobMap()
                                 else expandedEditId = if(expandedEditId == -1) null else -1
                             },
-                            modifier = Modifier.onGloballyPositioned {
-                                if (state.bootcampStep == BootcampStep.SET_HOME) activeTargetCoords = it
-                            }
+                            modifier = Modifier.onGloballyPositioned { if (state.bootcampStep == BootcampStep.SET_HOME) activeTargetCoords = it }
                         )
                     }
 
-                    itemsIndexed(state.route) { index, node ->
+                    itemsIndexed(state.route) { _, node ->
                         val isActive = (state.activeNodeId == node.id)
                         ItineraryCard(
                             node = node, lang = currentLang, distFromPrev = state.distances[node.id], mode = state.mode,
@@ -199,18 +200,14 @@ fun TripPlannerScreen(
                             onRemove = { viewModel.removeStop(node.id) },
                             onCardClick = {
                                 if (state.mode == TripMode.LIVE) viewModel.onCardClicked(node.id)
-                                else expandedEditId = if(expandedEditId == -1) null else node.id
+                                else expandedEditId = if(expandedEditId == node.id) null else node.id
                             }
                         )
                     }
 
                     if (state.mode == TripMode.EDITING) {
                         item {
-                            Box(
-                                modifier = Modifier.fillMaxWidth().padding(24.dp)
-                                    .onGloballyPositioned { if (state.bootcampStep == BootcampStep.ADD_LOCATION) activeTargetCoords = it },
-                                contentAlignment = Alignment.Center
-                            ) {
+                            Box(modifier = Modifier.fillMaxWidth().padding(24.dp).onGloballyPositioned { if (state.bootcampStep == BootcampStep.ADD_LOCATION) activeTargetCoords = it }, contentAlignment = Alignment.Center) {
                                 IconButton(onClick = {
                                     if(state.bootcampStep == BootcampStep.ADD_LOCATION) viewModel.nextTutorialStep()
                                     else showAddSheet = true
@@ -224,7 +221,12 @@ fun TripPlannerScreen(
                     if (state.route.isNotEmpty()) {
                         item {
                             val isActive = (state.activeNodeId == -2)
-                            val node = createSyntheticNode(state.baseLocation ?: GeoPoint(41.7125, 44.7930), -2, stringResource(R.string.home_return_title), stringResource(R.string.home_desc))
+                            val node = createSyntheticNode(
+                                loc = state.baseLocation ?: GeoPoint(41.7125, 44.7930),
+                                id = -2,
+                                title = stringResource(R.string.home_return_title),
+                                desc = stringResource(R.string.home_desc)
+                            )
                             ItineraryCard(
                                 node = node, lang = currentLang, distFromPrev = state.distances[-2], mode = state.mode,
                                 isActive = isActive,
@@ -232,9 +234,7 @@ fun TripPlannerScreen(
                                 isCompleted = false,
                                 onMapClick = { viewModel.launchNavigation(state.baseLocation ?: GeoPoint(41.7125, 44.7930), "driving") },
                                 onTaxiClick = { viewModel.onTransportAction("bolt") }, onRentClick = { viewModel.onRentCarAction() },
-                                onMoreInfo = { viewModel.launchRecon(node, currentLang) }, onCheckIn = {
-                                    viewModel.completeMission()
-                                }, onRemove = {},
+                                onMoreInfo = { viewModel.launchRecon(node, currentLang) }, onCheckIn = { viewModel.completeMission() }, onRemove = {},
                                 onCardClick = {
                                     if (state.mode == TripMode.LIVE) viewModel.onCardClicked(-2)
                                     else expandedEditId = if(expandedEditId == -2) null else -2
@@ -248,8 +248,10 @@ fun TripPlannerScreen(
             if (showAddSheet) {
                 ModalBottomSheet(onDismissRequest = { showAddSheet = false }, containerColor = Color(0xFF121212)) {
                     AddStopSheet(
-                        query = state.searchQuery, lang = currentLang, nearby = state.nearbyRecs, results = state.searchResults,
-                        bootcampStep = state.bootcampStep, onQuery = { viewModel.onSearchQuery(it) }, onAdd = { location -> viewModel.addStop(location); showAddSheet = false }, onCaptureCoords = { }
+                        query = state.searchQuery, lang = currentLang,
+                        nearby = state.nearbyRecs, nearbyFood = state.nearbyFood, results = state.searchResults,
+                        onQuery = { viewModel.onSearchQuery(it) },
+                        onAdd = { location -> viewModel.addStop(location); showAddSheet = false }
                     )
                 }
             }
@@ -260,14 +262,10 @@ fun TripPlannerScreen(
         }
 
         if (state.bootcampStep != BootcampStep.NONE) {
-            val isInteractive = when(state.bootcampStep) {
-                BootcampStep.ESSENTIALS, BootcampStep.ADD_LOCATION -> false
-                else -> true
-            }
             BootcampSpotlight(
                 step = state.bootcampStep,
                 targetCoords = activeTargetCoords,
-                isInteractive = isInteractive,
+                isInteractive = (state.bootcampStep != BootcampStep.ESSENTIALS && state.bootcampStep != BootcampStep.ADD_LOCATION),
                 onNext = { viewModel.nextTutorialStep() },
                 onDismiss = { viewModel.dismissTutorial() }
             )
@@ -275,10 +273,28 @@ fun TripPlannerScreen(
     }
 }
 
-// HELPERS
+// --- CORE HELPERS ---
+
+@Composable
+fun UtilityActionButton(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, modifier: Modifier, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        modifier = modifier.height(48.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.1f)),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)),
+        shape = RoundedCornerShape(12.dp),
+        contentPadding = PaddingValues(horizontal = 8.dp)
+    ) {
+        Icon(icon, null, modifier = Modifier.size(16.dp))
+        Spacer(Modifier.width(8.dp))
+        Text(label, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
 fun createSyntheticNode(loc: GeoPoint, id: Int, title: String, desc: String) = LocationEntity(
     id = id, type = "HOME", region = "HQ", latitude = loc.latitude, longitude = loc.longitude,
     imageUrl = "https://images.pexels.com/photos/271624/pexels-photo-271624.jpeg",
+    priority = 1, popularity = 0, isLandmark = true, tags = emptyList(),
     nameEn = title, nameKa = title, nameRu = title, nameTr = title, nameHy = title, nameIw = title, nameAr = title,
     descEn = desc, descKa = desc, descRu = desc, descTr = desc, descHy = desc, descIw = desc, descAr = desc
 )
@@ -286,21 +302,30 @@ fun createSyntheticNode(loc: GeoPoint, id: Int, title: String, desc: String) = L
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddStopSheet(
-    query: String, lang: String, nearby: List<LocationEntity>, results: List<LocationEntity>,
-    bootcampStep: BootcampStep, onQuery: (String) -> Unit, onAdd: (LocationEntity) -> Unit, onCaptureCoords: (LayoutCoordinates) -> Unit
+    query: String, lang: String,
+    nearby: List<LocationEntity>, nearbyFood: List<LocationEntity>, results: List<LocationEntity>,
+    onQuery: (String) -> Unit, onAdd: (LocationEntity) -> Unit
 ) {
-    // ARCHITECT'S FIX: UsingDelegated state for detailNode
     var detailNode by remember { mutableStateOf<LocationEntity?>(null) }
     var isExplMode by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
     val interactionSource = remember { MutableInteractionSource() }
 
-    LaunchedEffect(interactionSource) {
-        interactionSource.interactions.collectLatest { interaction ->
-            if (interaction is PressInteraction.Release) {
-                if (!isExplMode) { isExplMode = true } else { focusRequester.requestFocus() }
+    val gemsScrollState = rememberLazyListState()
+    val foodScrollState = rememberLazyListState()
+
+    LaunchedEffect(isExplMode) {
+        if (!isExplMode) {
+            while (true) {
+                if (!gemsScrollState.isScrollInProgress) gemsScrollState.dispatchRawDelta(0.7f)
+                if (!foodScrollState.isScrollInProgress) foodScrollState.dispatchRawDelta(-0.7f)
+                delay(16)
             }
         }
+    }
+
+    LaunchedEffect(interactionSource) {
+        interactionSource.interactions.collectLatest { if (it is PressInteraction.Release) { if (!isExplMode) isExplMode = true else focusRequester.requestFocus() } }
     }
 
     if (detailNode != null) {
@@ -327,13 +352,21 @@ fun AddStopSheet(
             singleLine = true, interactionSource = interactionSource
         )
         Spacer(Modifier.height(24.dp))
+
         if (!isExplMode) {
-            Text("NEARBY GEMS", fontWeight = FontWeight.Black, color = SakartveloRed, style = MaterialTheme.typography.labelMedium)
+            Text("NEARBY GEMS", fontWeight = FontWeight.Black, color = SakartveloRed, style = MaterialTheme.typography.labelMedium, letterSpacing = 2.sp)
             Spacer(Modifier.height(12.dp))
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                itemsIndexed(nearby) { index, item ->
-                    RecommendationCard(item, lang, { detailNode = item }, { onAdd(item) })
-                }
+            LazyRow(state = gemsScrollState, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                val loop = if (nearby.isNotEmpty()) List(10) { nearby }.flatten() else emptyList()
+                items(loop) { item -> RecommendationCard(item, lang, { detailNode = item }, { onAdd(item) }) }
+            }
+            Spacer(Modifier.height(32.dp))
+
+            Text("LOCAL FLAVORS", fontWeight = FontWeight.Black, color = SakartveloRed, style = MaterialTheme.typography.labelMedium, letterSpacing = 2.sp)
+            Spacer(Modifier.height(12.dp))
+            LazyRow(state = foodScrollState, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                val loopFood = if (nearbyFood.isNotEmpty()) List(10) { nearbyFood }.flatten() else emptyList()
+                items(loopFood) { item -> RecommendationCard(item, lang, { detailNode = item }, { onAdd(item) }) }
             }
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -344,16 +377,13 @@ fun AddStopSheet(
 }
 
 @Composable
-fun RecommendationCard(location: LocationEntity, lang: String, onInfo: () -> Unit, onAdd: () -> Unit, modifier: Modifier = Modifier) {
-    Card(modifier = modifier.size(160.dp, 220.dp).clickable { onInfo() }, shape = RoundedCornerShape(16.dp)) {
+fun RecommendationCard(location: LocationEntity, lang: String, onInfo: () -> Unit, onAdd: () -> Unit) {
+    Card(modifier = Modifier.size(160.dp, 220.dp).clickable { onInfo() }, shape = RoundedCornerShape(16.dp)) {
         Box {
             AsyncImage(model = location.imageUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
             Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(0.8f)))))
             Column(Modifier.align(Alignment.BottomStart).padding(12.dp)) {
-                if (location.isLandmark) {
-                    Text("MUST SEE", color = Color(0xFFFFD700), fontSize = 9.sp, fontWeight = FontWeight.Black)
-                    Spacer(Modifier.height(4.dp))
-                }
+                if (location.isLandmark) { Text("MUST SEE", color = Color(0xFFFFD700), fontSize = 9.sp, fontWeight = FontWeight.Black); Spacer(Modifier.height(4.dp)) }
                 Text(location.getDisplayName(lang), color = Color.White, fontWeight = FontWeight.Black, fontSize = 14.sp, maxLines = 2)
             }
             IconButton(onClick = onAdd, modifier = Modifier.align(Alignment.TopEnd).padding(4.dp)) { Icon(Icons.Default.AddCircle, null, tint = Color.White) }

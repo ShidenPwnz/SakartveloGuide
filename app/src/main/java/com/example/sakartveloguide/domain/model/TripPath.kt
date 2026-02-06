@@ -1,6 +1,7 @@
 package com.example.sakartveloguide.domain.model
 
-import com.example.sakartveloguide.R // EXPLICIT IMPORT
+import com.example.sakartveloguide.R
+import com.example.sakartveloguide.data.local.entity.LocationEntity
 
 data class TripPath(
     val id: String,
@@ -15,20 +16,8 @@ data class TripPath(
     val isLocked: Boolean = false,
     val isPremium: Boolean = false,
     val route: List<GeoPoint> = emptyList(),
-    val itinerary: List<BattleNode> = emptyList()
-)
-
-data class BattleNode(
-    val title: LocalizedString,
-    val description: LocalizedString,
-    val timeLabel: String,
-    val imageUrl: String? = null,
-    val alertType: String? = null,
-    val location: GeoPoint? = null,
-    val zoneType: ZoneType = ZoneType.URBAN_CORE,
-    val elevationMeters: Int = 0,
-    val isRentalHub: Boolean = false,
-    val specialLogisticsNote: String? = null
+    // ARCHITECT'S FIX: Use actual Database Entities to preserve IDs across state changes
+    val itinerary: List<LocationEntity> = emptyList()
 )
 
 data class LocalizedString(
@@ -48,7 +37,6 @@ data class LocalizedString(
 
 fun String.toLocalized() = LocalizedString(en = this)
 
-enum class ZoneType { URBAN_CORE, URBAN_PERIPHERY, RURAL_HUB, REMOTE_WILDERNESS, ALPINE_PASS }
 enum class RouteCategory { GUIDE, RELIGIOUS, WINE_CELLAR, WINE_REGION, MOUNTAIN, HIKING, URBAN, URBAN_EXPLORER, COASTAL, HISTORICAL, CULTURE, NATURE, CAPITAL }
 enum class Difficulty { RELAXED, NORMAL, EXPLORER, WARRIOR, EASY, MODERATE, HARD }
 

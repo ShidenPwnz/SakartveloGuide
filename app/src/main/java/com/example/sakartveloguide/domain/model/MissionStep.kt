@@ -1,11 +1,12 @@
 package com.example.sakartveloguide.domain.model
 
+import com.example.sakartveloguide.data.local.entity.LocationEntity
+
 sealed class MissionStep {
     abstract val title: String
     abstract val description: String
     abstract val actionUrl: String?
 
-    // NEW: The Accommodation Step
     data class SecureBase(
         override val title: String,
         override val description: String,
@@ -34,10 +35,11 @@ sealed class MissionStep {
         override val actionUrl: String? = null
     ) : MissionStep()
 
+    // ARCHITECT'S FIX: Reference LocationEntity instead of BattleNode
     data class Activity(
         override val title: String,
         override val description: String,
-        val node: BattleNode,
+        val node: LocationEntity,
         override val actionUrl: String? = null
     ) : MissionStep()
 
@@ -47,10 +49,7 @@ sealed class MissionStep {
         override val actionUrl: String? = null
     ) : MissionStep()
 
-    // Keep legacy types for safety
     data class AcquireEsim(override val title: String, override val description: String, override val actionUrl: String) : MissionStep()
     data class LogisticsAnchor(override val title: String, override val description: String, override val actionUrl: String, val iconType: String) : MissionStep()
     data class PremiumExperience(override val title: String, override val description: String, override val actionUrl: String) : MissionStep()
 }
-
-enum class StepStatus { SECURED, ACTIVE, PLANNED }

@@ -15,17 +15,11 @@ import com.example.sakartveloguide.domain.model.*
 import kotlinx.coroutines.flow.collectLatest
 
 @Composable
-fun SakartveloNavGraph(
-    homeViewModel: HomeViewModel
-    // ARCHITECT'S FIX: Removed unused 'onCompleteTrip' callback.
-    // Navigation is now event-driven via ViewModel flows.
-) {
+fun SakartveloNavGraph(homeViewModel: HomeViewModel) {
     val navController = rememberNavController()
     val startDestState by homeViewModel.initialDestination.collectAsState()
 
     if (startDestState != null) {
-        val initialRoute = remember { startDestState!! }
-
         LaunchedEffect(Unit) {
             homeViewModel.navigationEvent.collectLatest { route ->
                 navController.navigate(route) {
@@ -35,20 +29,15 @@ fun SakartveloNavGraph(
             }
         }
 
-        NavHost(navController = navController, startDestination = initialRoute) {
+        NavHost(navController = navController, startDestination = startDestState!!) {
             composable("home") {
                 HomeScreen(
                     viewModel = homeViewModel,
                     onPathClick = { id ->
-                        if (id == "meta_sandbox") {
+                        if (id == "meta_sandbox" || id == "meta_tutorial") {
                             homeViewModel.prepareForNewMission()
-                            navController.navigate("briefing/custom_cargo?ids=")
-                        } else if (id == "meta_tutorial") {
-                            homeViewModel.prepareForNewMission()
-                            navController.navigate("briefing/meta_tutorial?ids=")
-                        } else {
-                            navController.navigate("briefing/$id?ids=")
                         }
+                        navController.navigate("briefing/$id?ids=")
                     },
                     onPassportClick = { navController.navigate("passport") },
                     onSettingsClick = { navController.navigate("settings") }
@@ -82,23 +71,21 @@ fun SakartveloNavGraph(
                 val parentEntry = remember(backStackEntry) {
                     navController.getBackStackEntry("briefing/$tripId?ids=")
                 }
-
                 val vm: AdventureViewModel = hiltViewModel(parentEntry)
+
+                // ARCHITECT'S FIX: Explicitly collect state for Recon center point
                 val plannerState by vm.uiState.collectAsState()
 
-                val firstPoint = if (plannerState.route.isNotEmpty()) {
+                val center = if (plannerState.route.isNotEmpty()) {
                     GeoPoint(plannerState.route[0].latitude, plannerState.route[0].longitude)
                 } else {
                     GeoPoint(41.7125, 44.7930)
                 }
 
-                FobSetupView(
-                    initialCenter = firstPoint,
-                    onSetBase = { loc ->
-                        vm.setBaseCamp(loc)
-                        navController.popBackStack()
-                    }
-                )
+                FobSetupView(initialCenter = center, onSetBase = { loc ->
+                    vm.setBaseCamp(loc)
+                    navController.popBackStack()
+                })
             }
 
             composable("settings") {
@@ -109,11 +96,8 @@ fun SakartveloNavGraph(
                     session = sessionState,
                     onBack = { navController.popBackStack() },
                     onWipeData = { homeViewModel.wipeAllUserData() },
-                    onLogout = {
-                        homeViewModel.signOut()
-                        navController.navigate("home") { popUpTo(0) }
-                    },
-                    onLanguageChange = { code -> homeViewModel.onLanguageChange(code) }
+                    onLogout = { homeViewModel.signOut() },
+                    onLanguageChange = { homeViewModel.onLanguageChange(it) }
                 )
             }
 

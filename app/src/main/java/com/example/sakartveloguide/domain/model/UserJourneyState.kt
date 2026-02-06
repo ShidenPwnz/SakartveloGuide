@@ -1,10 +1,8 @@
 package com.example.sakartveloguide.domain.model
 
 enum class UserJourneyState {
-    BROWSING,
-    PATH_LOCKED,
-    ON_THE_ROAD, // <--- Add this new state
-    COMPLETED,
-
-
+    BROWSING,    // Home Screen
+    PATH_LOCKED,  // In the Planner (Editing Mode)
+    ON_THE_ROAD, // In the Planner (Live Mode)
+    COMPLETED    // Mission Finished
 }

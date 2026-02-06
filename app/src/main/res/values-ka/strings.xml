@@ -1,82 +1,93 @@
 <resources>
-    <string name="app_name">Sakartvelo Guide</string>
-    <string name="auth_init_title">შესვლა / რეგისტრაცია</string>
-    <string name="auth_welcome">კეთილი იყოს თქვენი მობრძანება საქართველოში.\nგაიარეთ ავტორიზაცია თქვენი მოგზაურობის შესანახად.</string>
-    <string name="auth_google_btn">შესვლა GOOGLE-ით</string>
-    <string name="auth_guest_btn">გაგრძელება სტუმრის სტატუსით</string>
-    <string name="auth_footer">ავტორიზაცია საშუალებას გაძლევთ დაასინქრონოთ მოგზაურობის გეგმები და ციფრული სუვენირები მოწყობილობებს შორის.</string>
-    <string name="discover">აღმოჩენა</string>
-    <string name="settings_title">პარამეტრები</string>
-    <string name="passport_title">ჩემი პასპორტი</string>
-    <string name="lang_protocol">ენა</string>
-    <string name="data_mgmt">მონაცემთა მართვა</string>
-    <string name="nuke_data">აპლიკაციის მონაცემების განულება</string>
-    <string name="nuke_desc">მოგზაურობის ისტორიის სამუდამოდ წაშლა</string>
-    <string name="logout_label">გასვლა</string>
-    <string name="builder_title">ტურის დამგეგმავი</string>
-    <string name="builder_loadout">მარშრუტი</string>
-    <string name="builder_proceed">გაგრძელება</string>
-    <string name="planner_title">ტურის დამგეგმავი</string>
-    <string name="trip_essentials">ტურის საჭიროებები</string>
-    <string name="label_stay">განთავსება</string>
-    <string name="label_flight">ფრენა</string>
-    <string name="label_taxi">ტრანსპორტი</string>
-    <string name="label_rent">ქირაობა</string>
-    <string name="set_home_title">ბაზის დაყენება</string>
-    <string name="set_home_sub">(რეკომენდაციების გააქტიურება)</string>
-    <string name="home_secured">სახლი მითითებულია</string>
-    <string name="home_start_title">ბაზა (სტარტი)</string>
-    <string name="home_return_title">დაბრუნება ბაზაზე</string>
-    <string name="home_desc">თქვენი საცხოვრებელი ადგილი.</string>
-    <string name="planner_empty_state">დააყენეთ ბაზა ან დაამატეთ გაჩერება დასაწყებად.</string>
-    <string name="trip_details_title">ტურის მიმოხილვა</string>
-    <string name="configure_trip">ტურის მორგება</string>
-    <string name="trip_duration_days">%d დღე</string>
-    <string name="trip_drive_time">მგზავრობა: %s</string>
-    <string name="trip_intensity">ტემპი: %s</string>
-    <string name="snow_warning_title">ზამთრის გაფრთხილება</string>
-    <string name="snow_warning_desc">საჭიროა 4x4 (ნოემბერი-აპრილი)</string>
-    <string name="trans_driver">მძღოლი</string>
-    <string name="trans_driver_sub">ქირაობა / საკუთარი ავტო</string>
-    <string name="trans_passenger">მგზავრი</string>
-    <string name="trans_passenger_sub">ტაქსი / ტრანსპორტი / ფეხით</string>
-    <string name="btn_start_journey">მოგზაურობის დაწყება</string>
-    <string name="btn_pause_edit">პაუზა და რედაქტირება</string>
-    <string name="btn_optimize">მარშრუტის ოპტიმიზაცია</string>
-    <string name="btn_check_in">ჩექ-ინი</string>
-    <string name="btn_arrive_home">დაბრუნება და დასრულება</string>
-    <string name="btn_taxi">ტაქსი</string>
-    <string name="btn_rent">ქირაობა 4X4</string>
-    <string name="search_hint">მოძებნეთ ადგილები ან რეგიონები…</string>
-    <string name="nearby_gems">ახლომდებარე მარგალიტები</string>
-    <string name="regional_highlights">რეგიონული ჰაილაითები</string>
-    <string name="search_results">ძიების შედეგები</string>
-    <string name="recommended_for_you">რეკომენდებულია თქვენთვის</string>
-    <string name="btn_add_to_trip">ტურში დამატება</string>
-    <string name="btn_close">დახურვა</string>
+    <string name="app_name">Georgia: Tbilisi Travel Guide</string>
+
+    <string name="auth_init_title">შესვლა ან გაგრძელება</string>
+    <string name="auth_welcome">მოგესალმებით საქართველოში.\nდაგეგმეთ მოგზაურობა ჭკვიანურად.</string>
+    <string name="auth_google_btn">Google-ით შესვლა</string>
+    <string name="auth_guest_btn">სტუმრად გაგრძელება</string>
+    <string name="auth_footer">შესვლა საშუალებას გაძლევთ დაასინქრონოთ მოგზაურობები და შენახული ადგილები მოწყობილობებს შორის.</string>
+
+    <string name="discover">აღმოაჩინე</string>
+    <string name="planner_title">მოგზაურობის დამგეგმავი</string>
+
     <string name="cat_guide">გიდი</string>
-    <string name="cat_urban">ურბანული</string>
-    <string name="cat_mountain">მთა</string>
+    <string name="cat_urban">ქალაქი</string>
+    <string name="cat_mountain">მთები</string>
     <string name="cat_wine">ღვინო</string>
     <string name="cat_culture">კულტურა</string>
     <string name="cat_nature">ბუნება</string>
-    <string name="cat_relaxed">მშვიდი</string>
-    <string name="region_visas">რეგიონის ვიზები</string>
-    <string name="no_stamps">შტამპები ჯერ არ არის.</string>
-    <string name="approved_protocol">ტური დადასტურებულია</string>
-    <string name="btn_more_info">მეტი ინფორმაცია</string>
-b    <string name="btn_preview_trip">ტურის ნახვა</string>
+    <string name="cat_relaxed">დასვენება</string>
+
+    <string name="trip_details_title">მოგზაურობის მიმოხილვა</string>
+    <string name="configure_trip">მოგზაურობის მორგება</string>
+    <string name="trip_duration_days">%d დღე</string>
+    <string name="trip_drive_time">მართვის დრო: %s</string>
+    <string name="trip_intensity">ინტენსივობა: %s</string>
+    <string name="snow_warning_title">ზამთრის გაფრთხილება</string>
+    <string name="snow_warning_desc">ნოემბრიდან აპრილამდე რეკომენდებულია 4x4 მანქანა</string>
+
+    <string name="trans_driver">მანქანით</string>
+    <string name="trans_driver_sub">პირადი ან ქირავნული მანქანა</string>
+    <string name="trans_passenger">მანქანის გარეშე</string>
+    <string name="trans_passenger_sub">ტაქსი, საზოგადოებრივი ტრანსპორტი ან ფეხით</string>
+
+    <string name="btn_start_journey">მოგზაურობის დაწყება</string>
+    <string name="btn_pause_edit">დაპაუზება და რედაქტირება</string>
+    <string name="btn_optimize">მარშრუტის ოპტიმიზაცია</string>
+    <string name="btn_check_in">ჩექ-ინი</string>
+    <string name="btn_arrive_home">მოგზაურობის დასრულება</string>
+    <string name="btn_taxi">ტაქსის გამოძახება</string>
+    <string name="btn_rent">4x4-ის ქირაობა</string>
+    <string name="btn_add_to_trip">მოგზაურობაში დამატება</string>
+    <string name="btn_close">დახურვა</string>
+    <string name="btn_more_info">დამატებითი ინფორმაცია</string>
+    <string name="btn_preview_trip">მოგზაურობის ნახვა</string>
     <string name="btn_optimize_short">ოპტიმიზაცია</string>
+
+    <string name="trip_essentials">მოგზაურობის საჭიროებები</string>
+    <string name="label_stay">დასარჩენი ადგილი</string>
+    <string name="label_flight">ფრენა</string>
+    <string name="label_taxi">ტრანსპორტი</string>
+    <string name="label_rent">ავტომობილის ქირაობა</string>
+
+    <string name="set_home_title">საწყისი წერტილის დაყენება</string>
+    <string name="set_home_sub">(ხსნის ჭკვიან რეკომენდაციებს)</string>
+    <string name="home_secured">საწყისი წერტილი შენახულია</string>
+    <string name="home_start_title">საწყისი წერტილი</string>
+    <string name="home_return_title">აქ დაბრუნება</string>
+    <string name="home_desc">აქ იწყება შენი მოგზაურობა.</string>
+    <string name="planner_empty_state">დასაწყებად მიუთითეთ საწყისი წერტილი ან დაამატეთ გაჩერება.</string>
+
+    <string name="search_hint">მოძებნეთ ადგილები ან რეგიონები…</string>
+    <string name="nearby_gems">ახლომდებარე მარგალიტები</string>
+    <string name="regional_highlights">რეგიონული გამორჩეულები</string>
+    <string name="search_results">ძიების შედეგები</string>
+    <string name="recommended_for_you">თქვენთვის რეკომენდებული</string>
+
     <string name="tut_next">შემდეგი</string>
     <string name="tut_skip">გამოტოვება</string>
 
-    <string name="tut_step1_title">ნაბიჯი 1: საფუძვლები</string>
-    <string name="tut_step1_desc">გამოიყენეთ ტურის საჭიროებები ფრენების, განთავსებისა და ტრანსპორტის დასაჯავშნად გამგზავრებამდე.</string>
+    <string name="tut_step1_title">ნაბიჯი 1: ძირითადი დაგეგმვა</string>
+    <string name="tut_step1_desc">წინასწარ დაჯავშნეთ ფრენები, საცხოვრებელი და ტრანსპორტი.</string>
 
-    <string name="tut_step2_title">ნაბიჯი 2: სახლის დაყენება</string>
-    <string name="tut_step2_desc">მიუთითეთ თქვენი სახლის მდებარეობა. ეს გახსნის პერსონალიზებულ რეკომენდაციებს თქვენი ტურისთვის.</string>
+    <string name="tut_step2_title">ნაბიჯი 2: საწყისი წერტილი</string>
+    <string name="tut_step2_desc">აირჩიეთ დასაწყისი პერსონალური რეკომენდაციებისთვის.</string>
 
     <string name="tut_step3_title">ნაბიჯი 3: აღმოჩენა</string>
-    <string name="tut_step3_desc">დააჭირეთ დამატების ღილაკს, რათა აღმოაჩინოთ 800-ზე მეტი შემოწმებული ადგილი საქართველოში.</string>
+    <string name="tut_step3_desc">დააჭირეთ დამატებას საქართველოში 800-ზე მეტი ადგილის სანახავად.</string>
 
+    <string name="passport_title">ჩემი პასპორტი</string>
+    <string name="region_visas">რეგიონული შტამპები</string>
+    <string name="no_stamps">ჯერ შტამპები არ გაქვთ.</string>
+    <string name="approved_protocol">მოგზაურობა დამტკიცებულია</string>
+    <string name="settings_title">პარამეტრები</string>
+    <string name="lang_protocol">ენა</string>
+    <string name="data_mgmt">მონაცემების მართვა</string>
+    <string name="nuke_data">ყველა მონაცემის განულება</string>
+    <string name="nuke_desc">ყველა შენახული მოგზაურობისა და ისტორიის წაშლა</string>
+    <string name="logout_label">გასვლა</string>
+
+    <string name="builder_title">მოგზაურობის შემქმნელი</string>
+    <string name="builder_loadout">მარშრუტი</string>
+    <string name="builder_proceed">გაგრძელება</string>
 </resources>

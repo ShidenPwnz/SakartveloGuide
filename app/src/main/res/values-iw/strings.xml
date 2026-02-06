@@ -1,82 +1,93 @@
 <resources>
-    <string name="app_name">Sakartvelo Guide</string>
-    <string name="auth_init_title">התחבר / הירשם</string>
-    <string name="auth_welcome">ברוכים הבאים לגאורגיה.\nהתחבר כדי לשמור את המסע שלך.</string>
-    <string name="auth_google_btn">התחבר עם GOOGLE</string>
+    <string name="app_name">Georgia: Tbilisi Travel Guide</string>
+
+    <string name="auth_init_title">כניסה או המשך</string>
+    <string name="auth_welcome">ברוכים הבאים לגאורגיה.\nשמרו את המסע שלכם וטיילו חכם.</string>
+    <string name="auth_google_btn">כניסה עם Google</string>
     <string name="auth_guest_btn">המשך כאורח</string>
-    <string name="auth_footer">ההתחברות מאפשרת סנכרון תוכניות טיול ומזכרות דיגיטליות בין מכשירים.</string>
-    <string name="discover">חקור</string>
-    <string name="settings_title">הגדרות</string>
-    <string name="passport_title">הדרכון שלי</string>
-    <string name="lang_protocol">שפה</string>
-    <string name="data_mgmt">ניהול נתונים</string>
-    <string name="nuke_data">אפס נתוני אפליקציה</string>
-    <string name="nuke_desc">מחק את היסטוריית הטיולים לצמיתות</string>
-    <string name="logout_label">התנתק</string>
-    <string name="builder_title">מתכנן טיול</string>
-    <string name="builder_loadout">מסלול</string>
-    <string name="builder_proceed">המשך</string>
-    <string name="planner_title">מתכנן טיול</string>
-    <string name="trip_essentials">יסודות הטיול</string>
-    <string name="label_stay">לינה</string>
-    <string name="label_flight">טיסה</string>
-    <string name="label_taxi">תחבורה</string>
-    <string name="label_rent">השכרה</string>
-    <string name="set_home_title">הגדר מיקום בית</string>
-    <string name="set_home_sub">(פותח המלצות)</string>
-    <string name="home_secured">בית הוגדר</string>
-    <string name="home_start_title">בית (התחלה)</string>
-    <string name="home_return_title">חזרה הביתה</string>
-    <string name="home_desc">מקום הלינה שלך.</string>
-    <string name="planner_empty_state">הגדר מיקום בית או הוסף עצירה כדי להתחיל.</string>
-    <string name="trip_details_title">סקירת טיול</string>
-    <string name="configure_trip">התאם טיול</string>
-    <string name="trip_duration_days">%d ימים</string>
-    <string name="trip_drive_time">נהיגה: %s</string>
-    <string name="trip_intensity">קצב: %s</string>
-    <string name="snow_warning_title">התראת חורף</string>
-    <string name="snow_warning_desc">רכב 4x4 נדרש (נובמבר-אפריל)</string>
-    <string name="trans_driver">נהג</string>
-    <string name="trans_driver_sub">השכרה / רכב פרטי</string>
-    <string name="trans_passenger">נוסע</string>
-    <string name="trans_passenger_sub">מונית / תחב״צ / ברגל</string>
-    <string name="btn_start_journey">התחל מסע</string>
-    <string name="btn_pause_edit">השהה וערוך</string>
-    <string name="btn_optimize">מטב מסלול</string>
-    <string name="btn_check_in">צ׳ק-אין</string>
-    <string name="btn_arrive_home">הגעה לבית וסיום</string>
-    <string name="btn_taxi">מונית</string>
-    <string name="btn_rent">השכרת 4X4</string>
-    <string name="search_hint">חפש מקומות או אזורים...</string>
-    <string name="nearby_gems">פנינים בקרבת מקום</string>
-    <string name="regional_highlights">שיאי האזור</string>
-    <string name="search_results">תוצאות חיפוש</string>
-    <string name="recommended_for_you">מומלץ עבורך</string>
-    <string name="btn_add_to_trip">הוסף לטיול</string>
-    <string name="btn_close">סגור</string>
+    <string name="auth_footer">כניסה מאפשרת סנכרון מסעות ומקומות שמורים בין מכשירים.</string>
+
+    <string name="discover">גלו</string>
+    <string name="planner_title">מתכנן מסלולים</string>
+
     <string name="cat_guide">מדריך</string>
-    <string name="cat_urban">עירוני</string>
+    <string name="cat_urban">עיר</string>
     <string name="cat_mountain">הרים</string>
     <string name="cat_wine">יין</string>
     <string name="cat_culture">תרבות</string>
     <string name="cat_nature">טבע</string>
     <string name="cat_relaxed">רגוע</string>
-    <string name="region_visas">חותמות אזור</string>
-    <string name="no_stamps">טרם נצברו חותמות.</string>
-    <string name="approved_protocol">טיול אושר</string>
+
+    <string name="trip_details_title">סקירת המסע</string>
+    <string name="configure_trip">התאמת המסע</string>
+    <string name="trip_duration_days">%d ימים</string>
+    <string name="trip_drive_time">זמן נסיעה: %s</string>
+    <string name="trip_intensity">קצב: %s</string>
+    <string name="snow_warning_title">אזהרת חורף</string>
+    <string name="snow_warning_desc">מומלץ רכב 4x4 מנובמבר עד אפריל</string>
+
+    <string name="trans_driver">עם רכב</string>
+    <string name="trans_driver_sub">רכב פרטי או שכור</string>
+    <string name="trans_passenger">בלי רכב</string>
+    <string name="trans_passenger_sub">מונית, תחבורה ציבורית או הליכה</string>
+
+    <string name="btn_start_journey">התחל מסע</string>
+    <string name="btn_pause_edit">השהה וערוך</string>
+    <string name="btn_optimize">אופטימיזציית מסלול</string>
+    <string name="btn_check_in">צ׳ק-אין</string>
+    <string name="btn_arrive_home">סיים מסע</string>
+    <string name="btn_taxi">הזמן מונית</string>
+    <string name="btn_rent">השכר 4x4</string>
+    <string name="btn_add_to_trip">הוסף למסע</string>
+    <string name="btn_close">סגור</string>
     <string name="btn_more_info">מידע נוסף</string>
-    <string name="btn_preview_trip">הצג טיול</string>
-    <string name="btn_optimize_short">מטב</string>
+    <string name="btn_preview_trip">תצוגה מקדימה</string>
+    <string name="btn_optimize_short">אופטימיזציה</string>
+
+    <string name="trip_essentials">יסודות המסע</string>
+    <string name="label_stay">לינה</string>
+    <string name="label_flight">טיסה</string>
+    <string name="label_taxi">תחבורה</string>
+    <string name="label_rent">השכרת רכב</string>
+
+    <string name="set_home_title">קבע נקודת התחלה</string>
+    <string name="set_home_sub">(פותח המלצות חכמות)</string>
+    <string name="home_secured">נקודת ההתחלה נשמרה</string>
+    <string name="home_start_title">נקודת התחלה</string>
+    <string name="home_return_title">חזרה לכאן</string>
+    <string name="home_desc">כאן מתחיל המסע שלך.</string>
+    <string name="planner_empty_state">קבע נקודת התחלה או הוסף תחנה כדי להתחיל.</string>
+
+    <string name="search_hint">חפש מקומות או אזורים…</string>
+    <string name="nearby_gems">אוצרות בקרבת מקום</string>
+    <string name="regional_highlights">המלצות אזוריות</string>
+    <string name="search_results">תוצאות חיפוש</string>
+    <string name="recommended_for_you">מומלץ עבורך</string>
+
     <string name="tut_next">הבא</string>
     <string name="tut_skip">דלג</string>
 
-    <string name="tut_step1_title">שלב 1: יסודות</string>
-    <string name="tut_step1_desc">השתמש ביסודות הטיול כדי להזמין טיסות, לינה ותחבורה לפני היציאה.</string>
+    <string name="tut_step1_title">שלב 1: תכנון בסיסי</string>
+    <string name="tut_step1_desc">הזמן מראש טיסות, לינה ותחבורה.</string>
 
-    <string name="tut_step2_title">שלב 2: הגדרת בית</string>
-    <string name="tut_step2_desc">הגדר את מיקום הבית שלך. זה פותח המלצות מותאמות אישית לטיול שלך.</string>
+    <string name="tut_step2_title">שלב 2: קבע התחלה</string>
+    <string name="tut_step2_desc">בחר מאיפה להתחיל לקבלת המלצות מותאמות.</string>
 
     <string name="tut_step3_title">שלב 3: גילוי</string>
-    <string name="tut_step3_desc">לחץ על כפתור ההוספה כדי לחקור יותר מ-800 מקומות מאומתים ברחבי גאורגיה.</string>
+    <string name="tut_step3_desc">לחץ על הוסף כדי לגלות יותר מ-800 אתרים בגאורגיה.</string>
 
+    <string name="passport_title">הדרכון שלי</string>
+    <string name="region_visas">חותמות אזוריות</string>
+    <string name="no_stamps">עדיין אין חותמות.</string>
+    <string name="approved_protocol">המסע אושר</string>
+    <string name="settings_title">הגדרות</string>
+    <string name="lang_protocol">שפה</string>
+    <string name="data_mgmt">ניהול נתונים</string>
+    <string name="nuke_data">איפוס כל הנתונים</string>
+    <string name="nuke_desc">מחיקת כל המסעות וההיסטוריה</string>
+    <string name="logout_label">התנתק</string>
+
+    <string name="builder_title">בונה מסלולים</string>
+    <string name="builder_loadout">מסלול</string>
+    <string name="builder_proceed">המשך</string>
 </resources>

@@ -14,7 +14,7 @@ data class PathStats(
     val driveTime: String = "",
     val intensity: Difficulty = Difficulty.RELAXED,
     val hasSnowWarning: Boolean = false,
-    val durationDays: Int = 0 // ARCHITECT'S ADDITION
+    val durationDays: Int = 0
 )
 
 data class TimelineUiModel(

@@ -1,5 +1,6 @@
 package com.example.sakartveloguide.data.local
 
+import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
@@ -17,8 +18,11 @@ import com.example.sakartveloguide.data.local.entity.LocationEntity
         PassportEntity::class,
         LocationEntity::class
     ],
-    version = 12, // BUMPED TO 12 for Smart Schema
-    exportSchema = false
+    version = 13, // ARCHITECT'S FIX: Migration baseline set to 13
+    exportSchema = true,
+    autoMigrations = [
+        AutoMigration(from = 12, to = 13)
+    ]
 )
 @TypeConverters(RouteConverter::class)
 abstract class TripDatabase : RoomDatabase() {

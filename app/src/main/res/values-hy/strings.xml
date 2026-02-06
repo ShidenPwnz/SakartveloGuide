@@ -1,82 +1,93 @@
 <resources>
-    <string name="app_name">Sakartvelo Guide</string>
-    <string name="auth_init_title">ՄՈՒՏՔ / ԳՐԱՆՑՈՒՄ</string>
-    <string name="auth_welcome">Բարի գալուստ Վրաստան:\nՄուտք գործեք՝ ձեր ճանապարհորդությունը պահպանելու համար:</string>
-    <string name="auth_google_btn">ՄՈՒՏՔ GOOGLE-ՈՎ</string>
-    <string name="auth_guest_btn">ՇԱՐՈՒՆԱԿԵԼ ՈՐՊԵՍ ՀՅՈՒՐ</string>
-    <string name="auth_footer">Մուտքը թույլ է տալիս համաժամեցնել ճանապարհորդության պլանները և թվային հուշանվերները սարքերի միջև:</string>
-    <string name="discover">ԲԱՑԱՀԱՅՏԵԼ</string>
-    <string name="settings_title">ԿԱՐԳԱՎՈՐՈՒՄՆԵՐ</string>
-    <string name="passport_title">ԻՄ ԱՆՁՆԱԳԻՐԸ</string>
-    <string name="lang_protocol">ԼԵԶՈՒ</string>
-    <string name="data_mgmt">ՏՎՅԱԼՆԵՐԻ ԿԱՌԱՎԱՐՈՒՄ</string>
-    <string name="nuke_data">ՎԵՐԱԿԱՆԳՆԵԼ ՀԱՎԵԼՎԱԾԻ ՏՎՅԱԼՆԵՐԸ</string>
-    <string name="nuke_desc">Անդառնալիորեն ջնջել ճանապարհորդության պատմությունը</string>
-    <string name="logout_label">ԴՈՒՐՍ ԳԱԼ</string>
-    <string name="builder_title">ՃԱՆԱՊԱՐՀՈՐԴՈՒԹՅԱՆ ՊԼԱՆԱՎՈՐԻՉ</string>
-    <string name="builder_loadout">ԵՐԹՈՒՂԻ</string>
-    <string name="builder_proceed">ՇԱՐՈՒՆԱԿԵԼ</string>
-    <string name="planner_title">ՈՒՂԵՎՈՐՈՒԹՅԱՆ ՊԼԱՆԱՎՈՐԻՉ</string>
-    <string name="trip_essentials">ՈՒՂԵՎՈՐՈՒԹՅԱՆ ՀԻՄՈՒՆՔՆԵՐ</string>
-    <string name="label_stay">ԿԱՑԱՐԱՆ</string>
-    <string name="label_flight">ԹՌԻՉՔ</string>
-    <string name="label_taxi">ՏՐԱՆՍՊՈՐՏ</string>
-    <string name="label_rent">ՎԱՐՁՈՒՅԹ</string>
-    <string name="set_home_title">ՍԱՀՄԱՆԵԼ ՏԱՆ ԴԻՐՔԸ</string>
-    <string name="set_home_sub">(Բացում է խելացի առաջարկները)</string>
-    <string name="home_secured">ՏՈՒՆԸ ՍԱՀՄԱՆՎԱԾ Է</string>
-    <string name="home_start_title">ՏՈՒՆ (ՄԵԿՆԱՐԿ)</string>
-    <string name="home_return_title">ՎԵՐԱԴԱՐՁ ՏՈՒՆ</string>
-    <string name="home_desc">Ձեր կացարանը:</string>
-    <string name="planner_empty_state">Սահմանեք տան դիրքը կամ ավելացրեք կանգառ՝ սկսելու համար:</string>
-    <string name="trip_details_title">ՈՒՂԵՎՈՐՈՒԹՅԱՆ ԱԿՆԱՐԿ</string>
-    <string name="configure_trip">ՀԱՐՄԱՐԵՑՆԵԼ ՃԱՆԱՊԱՐՀՈՐԴՈՒԹՅՈՒՆԸ</string>
+    <string name="app_name">Georgia: Tbilisi Travel Guide</string>
+
+    <string name="auth_init_title">Մուտք կամ շարունակել</string>
+    <string name="auth_welcome">Բարի գալուստ Վրաստան։\nՊահպանեք ձեր ճանապարհորդությունը և ճանապարհորդեք խելացի։</string>
+    <string name="auth_google_btn">Մուտք գործել Google-ով</string>
+    <string name="auth_guest_btn">Շարունակել որպես հյուր</string>
+    <string name="auth_footer">Մուտքը թույլ է տալիս համաժամեցնել ձեր ուղևորությունները և պահված վայրերը սարքերի միջև։</string>
+
+    <string name="discover">Բացահայտել</string>
+    <string name="planner_title">Ճանապարհորդության պլանավորիչ</string>
+
+    <string name="cat_guide">Ուղեցույց</string>
+    <string name="cat_urban">Քաղաք</string>
+    <string name="cat_mountain">Լեռներ</string>
+    <string name="cat_wine">Գինի</string>
+    <string name="cat_culture">Մշակույթ</string>
+    <string name="cat_nature">Բնություն</string>
+    <string name="cat_relaxed">Հանգիստ</string>
+
+    <string name="trip_details_title">Ուղևորության ակնարկ</string>
+    <string name="configure_trip">Կարգավորել ուղևորությունը</string>
     <string name="trip_duration_days">%d օր</string>
-    <string name="trip_drive_time">Վարում. %s</string>
-    <string name="trip_intensity">Տեմպ. %s</string>
-    <string name="snow_warning_title">ՁՄԵՌԱՅԻՆ ԶԳՈՒՇԱՑՈՒՄ</string>
-    <string name="snow_warning_desc">Պահանջվում է 4x4 (Նոյ-Ապր)</string>
-    <string name="trans_driver">ՎԱՐՈՐԴ</string>
-    <string name="trans_driver_sub">Վարձույթ / Անձնական մեքենա</string>
-    <string name="trans_passenger">ՈՒՂԵՎՈՐ</string>
-    <string name="trans_passenger_sub">Տաքսի / Տրանսպորտ / Քայլել</string>
-    <string name="btn_start_journey">ՍԿՍԵԼ ՃԱՆԱՊԱՐՀՈՐԴՈՒԹՅՈՒՆԸ</string>
-    <string name="btn_pause_edit">ԴԱԴԱՐ ԵՎ ԽՄԲԱԳՐՈՒՄ</string>
-    <string name="btn_optimize">ՕՊՏԻՄԱԼԱՑՆԵԼ ԵՐԹՈՒՂԻՆ</string>
-    <string name="btn_check_in">ԳՐԱՆՑՎԵԼ</string>
-    <string name="btn_arrive_home">ԺԱՄԱՆՈՒՄ ԵՎ ԱՎԱՐՏ</string>
-    <string name="btn_taxi">ՏԱՔՍԻ</string>
-    <string name="btn_rent">ՎԱՐՁՈՒՅԹ 4X4</string>
-    <string name="search_hint">Փնտրել վայրեր կամ տարածաշրջաններ…</string>
-    <string name="nearby_gems">ՄՈՏԱԿԱ ԳՈՀԱՐՆԵՐ</string>
-    <string name="regional_highlights">ՏԱՐԱԾԱՇՐՋԱՆԱՅԻՆ ԿԱՐԵՎՈՐՆԵՐ</string>
-    <string name="search_results">ՈՐՈՆՄԱՆ ԱՐԴՅՈՒՆՔՆԵՐ</string>
-    <string name="recommended_for_you">ԱՌԱՋԱՐԿՎՈՒՄ Է ՁԵԶ</string>
-    <string name="btn_add_to_trip">ԱՎԵԼԱՑՆԵԼ ՈՒՂԵՎՈՐՈՒԹՅԱՆԸ</string>
-    <string name="btn_close">ՓԱԿԵԼ</string>
-    <string name="cat_guide">ՈՒՂԵՑՈՒՅՑ</string>
-    <string name="cat_urban">ՔԱՂԱՔԱՅԻՆ</string>
-    <string name="cat_mountain">ԼԵՌՆԱՅԻՆ</string>
-    <string name="cat_wine">ԳԻՆԻ</string>
-    <string name="cat_culture">ՄՇԱԿՈՒՅԹ</string>
-    <string name="cat_nature">ԲՆՈՒԹՅՈՒՆ</string>
-    <string name="cat_relaxed">ՀԱՆԳԻՍՏ</string>
-    <string name="region_visas">ՏԱՐԱԾԱՇՐՋԱՆԻ ԿՆԻՔՆԵՐ</string>
-    <string name="no_stamps">Դեռ կնիքներ չկան:</string>
-    <string name="approved_protocol">ՃԱՆԱՊԱՐՀՈՐԴՈՒԹՅՈՒՆԸ ՀԱՍՏԱՏՎԱԾ Է</string>
-    <string name="btn_more_info">ԱՎԵԼԻՆ</string>
-    <string name="btn_preview_trip">ԴԻՏԵԼ ՈՒՂԵՎՈՐՈՒԹՅՈՒՆԸ</string>
-    <string name="btn_optimize_short">ՕՊՏԻՄԱԼԱՑՆԵԼ</string>
-    <string name="tut_next">ՀԱՋՈՐԴ</string>
-    <string name="tut_skip">ԲԱՑ ԹՈՂՆԵԼ</string>
+    <string name="trip_drive_time">Ճանապարհի տևողությունը՝ %s</string>
+    <string name="trip_intensity">Տեմպ՝ %s</string>
+    <string name="snow_warning_title">Ձմեռային զգուշացում</string>
+    <string name="snow_warning_desc">Նոյեմբերից ապրիլ խորհուրդ է տրվում 4x4 մեքենա</string>
 
-    <string name="tut_step1_title">ՔԱՅԼ 1. ՀԻՄՈՒՆՔՆԵՐ</string>
-    <string name="tut_step1_desc">Օգտագործեք Ուղևորության Հիմունքները թռիչքներ, կացարաններ և տրանսպորտ ամրագրելու համար մինչ մեկնելը:</string>
+    <string name="trans_driver">Մեքենայով</string>
+    <string name="trans_driver_sub">Անձնական կամ վարձակալված մեքենա</string>
+    <string name="trans_passenger">Առանց մեքենայի</string>
+    <string name="trans_passenger_sub">Տաքսի, հանրային տրանսպորտ կամ քայլելով</string>
 
-    <string name="tut_step2_title">ՔԱՅԼ 2. ՍԱՀՄԱՆԵԼ ՏՈՒՆԸ</string>
-    <string name="tut_step2_desc">Սահմանեք ձեր Տան դիրքը: Այն բացում է անհատականացված առաջարկներ ձեր ուղևորության համար:</string>
+    <string name="btn_start_journey">Սկսել ճանապարհորդությունը</string>
+    <string name="btn_pause_edit">Դադարեցնել և խմբագրել</string>
+    <string name="btn_optimize">Օպտիմալացնել երթուղին</string>
+    <string name="btn_check_in">Գրանցվել</string>
+    <string name="btn_arrive_home">Ավարտել ուղևորությունը</string>
+    <string name="btn_taxi">Վերցնել տաքսի</string>
+    <string name="btn_rent">Վարձել 4x4</string>
+    <string name="btn_add_to_trip">Ավելացնել ուղևորությանը</string>
+    <string name="btn_close">Փակել</string>
+    <string name="btn_more_info">Մանրամասներ</string>
+    <string name="btn_preview_trip">Նախադիտել ուղևորությունը</string>
+    <string name="btn_optimize_short">Օպտիմալացնել</string>
 
-    <string name="tut_step3_title">ՔԱՅԼ 3. ԲԱՑԱՀԱՅՏՈՒՄ</string>
-    <string name="tut_step3_desc">Հպեք ավելացնելու կոճակին՝ Վրաստանի ավելի քան 800 ստուգված վայրեր բացահայտելու համար:</string>
+    <string name="trip_essentials">Ուղևորության կարևորները</string>
+    <string name="label_stay">Մնալու վայր</string>
+    <string name="label_flight">Թռիչք</string>
+    <string name="label_taxi">Տրանսպորտ</string>
+    <string name="label_rent">Մեքենայի վարձույթ</string>
 
+    <string name="set_home_title">Սահմանել մեկնարկային կետը</string>
+    <string name="set_home_sub">(բացում է խելացի առաջարկներ)</string>
+    <string name="home_secured">Մեկնարկային կետը պահպանված է</string>
+    <string name="home_start_title">Մեկնարկային կետ</string>
+    <string name="home_return_title">Վերադարձ այստեղ</string>
+    <string name="home_desc">Այստեղից է սկսվում ձեր ճանապարհորդությունը։</string>
+    <string name="planner_empty_state">Սահմանեք մեկնարկային կետ կամ ավելացրեք կանգառ՝ սկսելու համար։</string>
+
+    <string name="search_hint">Որոնել վայրեր կամ շրջաններ…</string>
+    <string name="nearby_gems">Մոտակա կարևոր վայրեր</string>
+    <string name="regional_highlights">Տարածաշրջանային ընտրված վայրեր</string>
+    <string name="search_results">Որոնման արդյունքներ</string>
+    <string name="recommended_for_you">Առաջարկվում է ձեզ համար</string>
+
+    <string name="tut_next">Հաջորդ</string>
+    <string name="tut_skip">Բաց թողնել</string>
+
+    <string name="tut_step1_title">Քայլ 1. Հիմնական պլանավորում</string>
+    <string name="tut_step1_desc">Նախօրոք ամրագրեք թռիչքները, մնալու վայրերը և տրանսպորտը։</string>
+
+    <string name="tut_step2_title">Քայլ 2. Սահմանեք մեկնարկը</string>
+    <string name="tut_step2_desc">Ընտրեք, որտեղից եք սկսում՝ անհատական առաջարկների համար։</string>
+
+    <string name="tut_step3_title">Քայլ 3. Բացահայտում</string>
+    <string name="tut_step3_desc">Սեղմեք ավելացնել կոճակը՝ բացահայտելու Վրաստանի ավելի քան 800 վայրեր։</string>
+
+    <string name="passport_title">Իմ անձնագիրը</string>
+    <string name="region_visas">Տարածաշրջանային կնիքներ</string>
+    <string name="no_stamps">Դեռ կնիքներ չկան։</string>
+    <string name="approved_protocol">Ուղևորությունը հաստատված է</string>
+    <string name="settings_title">Կարգավորումներ</string>
+    <string name="lang_protocol">Լեզու</string>
+    <string name="data_mgmt">Տվյալների կառավարում</string>
+    <string name="nuke_data">Վերակայել բոլոր տվյալները</string>
+    <string name="nuke_desc">Ջնջել բոլոր պահված ուղևորությունները և պատմությունը</string>
+    <string name="logout_label">Ելք</string>
+
+    <string name="builder_title">Ուղևորության ստեղծող</string>
+    <string name="builder_loadout">Երթուղի</string>
+    <string name="builder_proceed">Շարունակել</string>
 </resources>

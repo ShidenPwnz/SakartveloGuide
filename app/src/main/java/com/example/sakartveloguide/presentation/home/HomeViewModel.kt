@@ -7,7 +7,7 @@ import com.example.sakartveloguide.data.local.PreferenceManager
 import com.example.sakartveloguide.domain.model.*
 import com.example.sakartveloguide.domain.repository.AuthRepository
 import com.example.sakartveloguide.domain.repository.TripRepository
-import com.example.sakartveloguide.domain.usecase.SyncCloudDataUseCase // ADDED
+import com.example.sakartveloguide.domain.usecase.SyncCloudDataUseCase
 import com.example.sakartveloguide.ui.manager.HapticManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -26,7 +26,7 @@ data class HomeUiState(
 class HomeViewModel @Inject constructor(
     private val repository: TripRepository,
     private val authRepository: AuthRepository,
-    private val syncCloudDataUseCase: SyncCloudDataUseCase, // INJECTED
+    private val syncCloudDataUseCase: SyncCloudDataUseCase,
     private val hapticManager: HapticManager,
     private val preferenceManager: PreferenceManager,
     @ApplicationContext private val context: Context
@@ -44,6 +44,10 @@ class HomeViewModel @Inject constructor(
     private val _navigationEvent = MutableSharedFlow<String>()
     val navigationEvent = _navigationEvent.asSharedFlow()
 
+    // ARCHITECT'S ADDITION: Error reporting for login mismatches
+    private val _errorEvent = MutableSharedFlow<String>()
+    val errorEvent = _errorEvent.asSharedFlow()
+
     val userSession: Flow<UserSession> = preferenceManager.userSession
     val currentUser = authRepository.currentUser
 
@@ -54,15 +58,16 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun initAdventureEngine() {
-        // 1. DATA SYNC & SPLASH
         viewModelScope.launch {
-            // CLOUD SYNC PROTOCOL: Pull latest stamps from Firebase
             syncCloudDataUseCase()
-
             preferenceManager.userSession
                 .catch { emit(UserSession()) }
                 .collect { session ->
-                    if (session.state == UserJourneyState.ON_THE_ROAD && session.activePathId != null) {
+                    // ARCHITECT'S FIX: Recognize PATH_LOCKED so the app stays in the Planner
+                    val isRunning = session.state == UserJourneyState.ON_THE_ROAD ||
+                            session.state == UserJourneyState.PATH_LOCKED
+
+                    if (isRunning && session.activePathId != null) {
                         _initialDestination.value = "briefing/${session.activePathId}?ids="
                     } else {
                         _initialDestination.value = "home"
@@ -71,13 +76,11 @@ class HomeViewModel @Inject constructor(
                 }
         }
 
-        // 2. BACKGROUND REFRESH
         viewModelScope.launch {
             repository.refreshTrips()
             isEngineReady.value = true
         }
 
-        // 3. UI PIPELINE
         viewModelScope.launch {
             combine(
                 authRepository.currentUser,
@@ -103,8 +106,11 @@ class HomeViewModel @Inject constructor(
 
     fun signIn(context: Context) = viewModelScope.launch {
         val result = authRepository.signIn(context)
-        if (result.isSuccess) {
-            syncCloudDataUseCase() // Sync immediately after login
+        result.onSuccess {
+            syncCloudDataUseCase()
+        }.onFailure { e ->
+            val msg = if (e.message?.contains("id_token") == true) "Identity Sync Mismatch (Cycle 11)" else "Login failed."
+            _errorEvent.emit(msg)
         }
     }
 

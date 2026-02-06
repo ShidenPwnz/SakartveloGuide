@@ -8,7 +8,7 @@ interface TripRepository {
     suspend fun refreshTrips()
     suspend fun lockTrip(tripId: String)
     suspend fun getTripById(id: String): TripPath?
-
-    // ARCHITECT'S FIX: The contract for the Nuclear Reset
     suspend fun nukeAllData()
+    // ARCHITECT'S FIX: Added missing contract method
+    suspend fun getTripCount(): Int
 }

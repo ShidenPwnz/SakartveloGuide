@@ -17,7 +17,6 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
 
-    // ...
     @Provides
     @Singleton
     fun provideTripDatabase(@ApplicationContext context: Context): TripDatabase {
@@ -26,10 +25,10 @@ object DatabaseModule {
             TripDatabase::class.java,
             "sakartvelo_guide.db"
         )
-            .fallbackToDestructiveMigration() // <--- CRITICAL
+            // ARCHITECT'S FIX: Removed .fallbackToDestructiveMigration()
+            // This ensures user data (stamps) is never accidentally wiped on update.
             .build()
     }
-// ...
 
     @Provides
     fun provideTripDao(db: TripDatabase): TripDao = db.tripDao()

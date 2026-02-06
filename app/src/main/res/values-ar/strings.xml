@@ -1,82 +1,93 @@
 <resources>
-    <string name="app_name">Sakartvelo Guide</string>
-    <string name="auth_init_title">تسجيل الدخول / إنشاء حساب</string>
-    <string name="auth_welcome">مرحبًا بك في جورجيا.\nسجل الدخول لحفظ رحلتك.</string>
-    <string name="auth_google_btn">تسجيل الدخول عبر GOOGLE</string>
+    <string name="app_name">Georgia: Tbilisi Travel Guide</string>
+
+    <string name="auth_init_title">تسجيل الدخول أو المتابعة</string>
+    <string name="auth_welcome">مرحبًا بك في جورجيا.\nاحفظ رحلتك وسافر بذكاء.</string>
+    <string name="auth_google_btn">تسجيل الدخول عبر Google</string>
     <string name="auth_guest_btn">المتابعة كضيف</string>
-    <string name="auth_footer">يسمح تسجيل الدخول بمزامنة خطط الرحلة والهدايا التذكارية الرقمية عبر الأجهزة.</string>
-    <string name="discover">استكشاف</string>
-    <string name="settings_title">الإعدادات</string>
-    <string name="passport_title">جواز سفري</string>
-    <string name="lang_protocol">اللغة</string>
-    <string name="data_mgmt">إدارة البيانات</string>
-    <string name="nuke_data">إعادة تعيين بيانات التطبيق</string>
-    <string name="nuke_desc">حذف سجل الرحلات نهائيًا</string>
-    <string name="logout_label">تسجيل الخروج</string>
-    <string name="builder_title">مخطط الرحلة</string>
-    <string name="builder_loadout">مسار الرحلة</string>
-    <string name="builder_proceed">متابعة</string>
+    <string name="auth_footer">يسمح تسجيل الدخول بمزامنة رحلاتك والأماكن المحفوظة عبر الأجهزة.</string>
+
+    <string name="discover">استكشف</string>
     <string name="planner_title">مخطط الرحلة</string>
-    <string name="trip_essentials">أساسيات الرحلة</string>
-    <string name="label_stay">إقامة</string>
-    <string name="label_flight">طيران</string>
-    <string name="label_taxi">وسائل النقل</string>
-    <string name="label_rent">تأجير</string>
-    <string name="set_home_title">تعيين الموقع الرئيسي</string>
-    <string name="set_home_sub">(فتح التوصيات)</string>
-    <string name="home_secured">تم تعيين المنزل</string>
-    <string name="home_start_title">المنزل (بداية)</string>
-    <string name="home_return_title">العودة للمنزل</string>
-    <string name="home_desc">مكان إقامتك.</string>
-    <string name="planner_empty_state">قم بتعيين الموقع الرئيسي أو أضف محطة للبدء.</string>
-    <string name="trip_details_title">نظرة عامة على الرحلة</string>
-    <string name="configure_trip">تخصيص الرحلة</string>
-    <string name="trip_duration_days">%d أيام</string>
-    <string name="trip_drive_time">القيادة: %s</string>
-    <string name="trip_intensity">الوتيرة: %s</string>
-    <string name="snow_warning_title">تنبيه شتوي</string>
-    <string name="snow_warning_desc">دفع رباعي مطلوب (نوفمبر-أبريل)</string>
-    <string name="trans_driver">سائق</string>
-    <string name="trans_driver_sub">تأجير / سيارة خاصة</string>
-    <string name="trans_passenger">راكب</string>
-    <string name="trans_passenger_sub">تاكسي / نقل عام / مشي</string>
-    <string name="btn_start_journey">بدء الرحلة</string>
-    <string name="btn_pause_edit">إيقاف وتعديل</string>
-    <string name="btn_optimize">تحسين المسار</string>
-    <string name="btn_check_in">تسجيل الوصول</string>
-    <string name="btn_arrive_home">الوصول للمنزل وإنهاء</string>
-    <string name="btn_taxi">تاكسي</string>
-    <string name="btn_rent">استئجار 4X4</string>
-    <string name="search_hint">بحث عن أماكن أو مناطق...</string>
-    <string name="nearby_gems">جواهر قريبة</string>
-    <string name="regional_highlights">أبرز المعالم الإقليمية</string>
-    <string name="search_results">نتائج البحث</string>
-    <string name="recommended_for_you">موصى به لك</string>
-    <string name="btn_add_to_trip">إضافة للرحلة</string>
-    <string name="btn_close">إغلاق</string>
+
     <string name="cat_guide">دليل</string>
-    <string name="cat_urban">حضري</string>
-    <string name="cat_mountain">جبلي</string>
+    <string name="cat_urban">مدينة</string>
+    <string name="cat_mountain">جبال</string>
     <string name="cat_wine">نبيذ</string>
     <string name="cat_culture">ثقافة</string>
     <string name="cat_nature">طبيعة</string>
     <string name="cat_relaxed">استرخاء</string>
-    <string name="region_visas">أختام المنطقة</string>
-    <string name="no_stamps">لم يتم جمع أي أختام بعد.</string>
-    <string name="approved_protocol">تم تأكيد الرحلة</string>
+
+    <string name="trip_details_title">نظرة عامة على الرحلة</string>
+    <string name="configure_trip">تخصيص الرحلة</string>
+    <string name="trip_duration_days">%d أيام</string>
+    <string name="trip_drive_time">مدة القيادة: %s</string>
+    <string name="trip_intensity">الوتيرة: %s</string>
+    <string name="snow_warning_title">تنبيه شتوي</string>
+    <string name="snow_warning_desc">يوصى بسيارة دفع رباعي من نوفمبر إلى أبريل</string>
+
+    <string name="trans_driver">بالسيارة</string>
+    <string name="trans_driver_sub">سيارة خاصة أو مستأجرة</string>
+    <string name="trans_passenger">بدون سيارة</string>
+    <string name="trans_passenger_sub">تاكسي أو نقل عام أو مشيًا</string>
+
+    <string name="btn_start_journey">ابدأ الرحلة</string>
+    <string name="btn_pause_edit">إيقاف مؤقت وتعديل</string>
+    <string name="btn_optimize">تحسين المسار</string>
+    <string name="btn_check_in">تسجيل الوصول</string>
+    <string name="btn_arrive_home">إنهاء الرحلة</string>
+    <string name="btn_taxi">استقلال تاكسي</string>
+    <string name="btn_rent">استئجار 4X4</string>
+    <string name="btn_add_to_trip">إضافة للرحلة</string>
+    <string name="btn_close">إغلاق</string>
     <string name="btn_more_info">مزيد من المعلومات</string>
     <string name="btn_preview_trip">معاينة الرحلة</string>
     <string name="btn_optimize_short">تحسين</string>
+
+    <string name="trip_essentials">أساسيات الرحلة</string>
+    <string name="label_stay">الإقامة</string>
+    <string name="label_flight">الطيران</string>
+    <string name="label_taxi">النقل</string>
+    <string name="label_rent">استئجار سيارة</string>
+
+    <string name="set_home_title">تحديد نقطة البداية</string>
+    <string name="set_home_sub">(يفتح التوصيات الذكية)</string>
+    <string name="home_secured">تم حفظ نقطة البداية</string>
+    <string name="home_start_title">نقطة البداية</string>
+    <string name="home_return_title">العودة إلى هنا</string>
+    <string name="home_desc">حيث تبدأ رحلتك.</string>
+    <string name="planner_empty_state">حدد نقطة بداية أو أضف محطة للبدء.</string>
+
+    <string name="search_hint">ابحث عن أماكن أو مناطق…</string>
+    <string name="nearby_gems">أبرز الأماكن القريبة</string>
+    <string name="regional_highlights">مختارات المناطق</string>
+    <string name="search_results">نتائج البحث</string>
+    <string name="recommended_for_you">موصى به لك</string>
+
     <string name="tut_next">التالي</string>
     <string name="tut_skip">تخطي</string>
 
-    <string name="tut_step1_title">الخطوة 1: الأساسيات</string>
-    <string name="tut_step1_desc">استخدم أساسيات الرحلة لحجز الرحلات والإقامة والمواصلات قبل الانطلاق.</string>
+    <string name="tut_step1_title">الخطوة 1: التخطيط الأساسي</string>
+    <string name="tut_step1_desc">احجز الرحلات وأماكن الإقامة ووسائل النقل قبل الانطلاق.</string>
 
-    <string name="tut_step2_title">الخطوة 2: تعيين المنزل</string>
-    <string name="tut_step2_desc">قم بتعيين موقع منزلك. هذا يفتح توصيات مخصصة لرحلتك.</string>
+    <string name="tut_step2_title">الخطوة 2: تحديد البداية</string>
+    <string name="tut_step2_desc">اختر مكان بدء رحلتك للحصول على توصيات مخصصة.</string>
 
-    <string name="tut_step3_title">الخطوة 3: اكتشاف</string>
-    <string name="tut_step3_desc">اضغط على زر الإضافة لاستكشاف أكثر من 800 موقع تم التحقق منه في جميع أنحاء جورجيا.</string>
+    <string name="tut_step3_title">الخطوة 3: الاكتشاف</string>
+    <string name="tut_step3_desc">اضغط على زر الإضافة لاستكشاف أكثر من 800 موقع في جورجيا.</string>
 
+    <string name="passport_title">جوازي</string>
+    <string name="region_visas">أختام المناطق</string>
+    <string name="no_stamps">لا توجد أختام بعد.</string>
+    <string name="approved_protocol">تم تأكيد الرحلة</string>
+    <string name="settings_title">الإعدادات</string>
+    <string name="lang_protocol">اللغة</string>
+    <string name="data_mgmt">إدارة البيانات</string>
+    <string name="nuke_data">إعادة تعيين جميع البيانات</string>
+    <string name="nuke_desc">حذف جميع الرحلات المحفوظة والسجل</string>
+    <string name="logout_label">تسجيل الخروج</string>
+
+    <string name="builder_title">منشئ الرحلات</string>
+    <string name="builder_loadout">المسار</string>
+    <string name="builder_proceed">متابعة</string>
 </resources>

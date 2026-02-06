@@ -17,21 +17,19 @@ class SakartveloApp : Application(), Configuration.Provider {
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
             .setWorkerFactory(workerFactory)
-            .setMinimumLoggingLevel(android.util.Log.DEBUG)
             .build()
 
     override fun onCreate() {
         super.onCreate()
 
-        // ARCHITECT'S FIX: Initialize Firebase explicitly to prevent Hilt injection race conditions
+        // Initialize Firebase for Cloud Mirroring
         FirebaseApp.initializeApp(this)
 
-        // Centralized MapLibre Initialization
+        // ARCHITECT'S FIX: Use secure BuildConfig field for MapTiler API
         MapLibre.getInstance(
             this,
-            "qkMaulJ2NlsVPfbF8xwp",
+            BuildConfig.MAPTILER_API_KEY,
             WellKnownTileServer.MapTiler
         )
-        MapLibre.setConnected(true)
     }
 }

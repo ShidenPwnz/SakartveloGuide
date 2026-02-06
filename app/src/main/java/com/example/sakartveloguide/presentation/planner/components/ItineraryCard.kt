@@ -1,6 +1,7 @@
 package com.example.sakartveloguide.presentation.planner.components
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -14,19 +15,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.example.sakartveloguide.R
 import com.example.sakartveloguide.data.local.entity.LocationEntity
 import com.example.sakartveloguide.presentation.planner.TripMode
 import com.example.sakartveloguide.presentation.theme.SakartveloRed
@@ -50,14 +48,24 @@ fun ItineraryCard(
     onCheckIn: () -> Unit,
     onRemove: () -> Unit,
     onCardClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    navModifier: Modifier = Modifier,
-    actionButtonModifier: Modifier = Modifier
+    modifier: Modifier = Modifier
 ) {
     val isHomeNode = node.type == "HOME"
     val showActiveVisuals = mode == TripMode.LIVE && isActive
 
-    val borderColor = if (showActiveVisuals) SakartveloRed else if (isHomeNode && !isCompleted) SakartveloRed.copy(alpha = 0.5f) else Color.Transparent
+    val infiniteTransition = rememberInfiniteTransition(label = "Pulse")
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(1000), RepeatMode.Reverse), label = "Alpha"
+    )
+
+    val borderColor = when {
+        showActiveVisuals -> SakartveloRed
+        isHomeNode && !isCompleted -> SakartveloRed.copy(alpha = pulseAlpha)
+        isHomeNode && isCompleted -> Color(0xFF4CAF50).copy(alpha = 0.5f)
+        else -> Color.Transparent
+    }
+
     val cardAlpha = if (isCompleted && !isHomeNode) 0.6f else 1f
 
     Column(
@@ -67,9 +75,7 @@ fun ItineraryCard(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         if (distFromPrev != null) {
-            Box(navModifier) {
-                TacticalConnector(distFromPrev, showActiveVisuals, onMapClick, onTaxiClick, onRentClick)
-            }
+            TacticalConnector(distFromPrev, showActiveVisuals, onMapClick, onTaxiClick, onRentClick)
         } else {
             Spacer(Modifier.height(16.dp))
         }
@@ -80,14 +86,14 @@ fun ItineraryCard(
                 .animateContentSize()
                 .clickable { onCardClick() },
             shape = if (showActiveVisuals && node.id != -1) RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp) else RoundedCornerShape(16.dp),
-            border = BorderStroke(2.dp, borderColor),
-            shadowElevation = if (showActiveVisuals) 12.dp else 4.dp,
+            border = BorderStroke(if(isHomeNode && !isCompleted) 3.dp else 2.dp, borderColor),
+            shadowElevation = if (showActiveVisuals || (isHomeNode && !isCompleted)) 12.dp else 4.dp,
             color = MaterialTheme.colorScheme.surface
         ) {
             Column {
                 Box(Modifier.height(if (isSmall && !isExpanded) 120.dp else 180.dp)) {
                     AsyncImage(
-                        model = node.imageUrl,
+                        model = if(isHomeNode && !isCompleted) "https://images.pexels.com/photos/271624/pexels-photo-271624.jpeg" else node.imageUrl,
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
@@ -96,18 +102,28 @@ fun ItineraryCard(
                     Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(0.9f)))))
 
                     Row(modifier = Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Surface(color = SakartveloRed, shape = RoundedCornerShape(4.dp)) {
-                            Text(node.region.uppercase(), color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                        Surface(color = if(isHomeNode && !isCompleted) SakartveloRed else Color.Black.copy(0.4f), shape = RoundedCornerShape(4.dp)) {
+                            Text(
+                                text = if(isHomeNode && !isCompleted) "ACTION REQUIRED" else node.region.uppercase(),
+                                color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
                         }
-                        if (mode == TripMode.EDITING && !isCompleted && !isHomeNode) {
-                            IconButton(onClick = onRemove, modifier = Modifier.size(24.dp).background(Color.Black.copy(0.5f), CircleShape)) {
-                                Icon(Icons.Default.Close, null, tint = Color.White, modifier = Modifier.size(14.dp))
-                            }
+
+                        if (isHomeNode && !isCompleted) {
+                            Icon(Icons.Default.PriorityHigh, null, tint = SakartveloRed, modifier = Modifier.size(24.dp))
                         } else if (isCompleted) {
                             Icon(Icons.Default.CheckCircle, null, tint = Color(0xFF4CAF50))
                         }
                     }
-                    Text(node.getDisplayName(lang), color = Color.White, fontWeight = FontWeight.Black, fontSize = if(isSmall && !isExpanded) 16.sp else 20.sp, maxLines = 2, modifier = Modifier.align(Alignment.BottomStart).padding(16.dp))
+
+                    Text(
+                        text = node.getDisplayName(lang),
+                        color = if(isHomeNode && !isCompleted) SakartveloRed else Color.White,
+                        fontWeight = FontWeight.Black,
+                        fontSize = if(isSmall && !isExpanded) 16.sp else 20.sp,
+                        maxLines = 2,
+                        modifier = Modifier.align(Alignment.BottomStart).padding(16.dp)
+                    )
                 }
 
                 if (isExpanded && !isHomeNode) {
@@ -129,7 +145,7 @@ fun ItineraryCard(
                 onClick = { onCheckIn() },
                 color = SakartveloRed,
                 shape = RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp),
-                modifier = actionButtonModifier.fillMaxWidth().height(48.dp)
+                modifier = Modifier.fillMaxWidth().height(48.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
                     Icon(if (isHomeNode) Icons.Default.Home else Icons.Default.CheckCircle, null, tint = Color.White, modifier = Modifier.size(18.dp))

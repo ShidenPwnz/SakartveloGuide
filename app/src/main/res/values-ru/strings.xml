@@ -1,82 +1,93 @@
 <resources>
-    <string name="app_name">Sakartvelo Guide</string>
-    <string name="auth_init_title">ВХОД / РЕГИСТРАЦИЯ</string>
-    <string name="auth_welcome">Добро пожаловать в Грузию.\nВойдите, чтобы сохранить путешествие.</string>
-    <string name="auth_google_btn">ВОЙТИ ЧЕРЕЗ GOOGLE</string>
-    <string name="auth_guest_btn">ПРОДОЛЖИТЬ КАК ГОСТЬ</string>
-    <string name="auth_footer">Вход позволяет синхронизировать планы поездок и цифровые сувениры между устройствами.</string>
-    <string name="discover">ОБЗОР</string>
-    <string name="settings_title">НАСТРОЙКИ</string>
-    <string name="passport_title">МОЙ ПАСПОРТ</string>
-    <string name="lang_protocol">ЯЗЫК</string>
-    <string name="data_mgmt">УПРАВЛЕНИЕ ДАННЫМИ</string>
-    <string name="nuke_data">СБРОСИТЬ ДАННЫЕ ПРИЛОЖЕНИЯ</string>
-    <string name="nuke_desc">Безвозвратно удалить историю поездок</string>
-    <string name="logout_label">ВЫЙТИ</string>
-    <string name="builder_title">ПЛАНИРОВЩИК</string>
-    <string name="builder_loadout">МАРШРУТ</string>
-    <string name="builder_proceed">ПРОДОЛЖИТЬ</string>
-    <string name="planner_title">ПЛАНИРОВЩИК</string>
-    <string name="trip_essentials">ОСНОВЫ ПОЕЗДКИ</string>
-    <string name="label_stay">ОТЕЛЬ</string>
-    <string name="label_flight">ПЕРЕЛЕТ</string>
-    <string name="label_taxi">ТРАНСПОРТ</string>
-    <string name="label_rent">АРЕНДА</string>
-    <string name="set_home_title">ЗАДАТЬ ЖИЛЬЕ</string>
-    <string name="set_home_sub">(Разблокирует рекомендации)</string>
-    <string name="home_secured">ЖИЛЬЕ ЗАДАНО</string>
-    <string name="home_start_title">ЖИЛЬЕ (СТАРТ)</string>
-    <string name="home_return_title">ВОЗВРАТ В ЖИЛЬЕ</string>
-    <string name="home_desc">Ваше место проживания.</string>
-    <string name="planner_empty_state">Задайте жилье или добавьте точку для начала.</string>
-    <string name="trip_details_title">ОБЗОР ПОЕЗДКИ</string>
-    <string name="configure_trip">НАСТРОИТЬ ПОЕЗДКУ</string>
-    <string name="trip_duration_days">%d дн.</string>
-    <string name="trip_drive_time">Вождение: %s</string>
+    <string name="app_name">Georgia: Tbilisi Travel Guide</string>
+
+    <string name="auth_init_title">Войти или продолжить</string>
+    <string name="auth_welcome">Добро пожаловать в Грузию.\nСохраняйте маршруты и путешествуйте умно.</string>
+    <string name="auth_google_btn">Войти через Google</string>
+    <string name="auth_guest_btn">Продолжить как гость</string>
+    <string name="auth_footer">Вход позволяет синхронизировать поездки и сохранённые места между устройствами.</string>
+
+    <string name="discover">Исследовать</string>
+    <string name="planner_title">Планировщик поездки</string>
+
+    <string name="cat_guide">Гид</string>
+    <string name="cat_urban">Город</string>
+    <string name="cat_mountain">Горы</string>
+    <string name="cat_wine">Вино</string>
+    <string name="cat_culture">Культура</string>
+    <string name="cat_nature">Природа</string>
+    <string name="cat_relaxed">Отдых</string>
+
+    <string name="trip_details_title">Обзор поездки</string>
+    <string name="configure_trip">Настроить поездку</string>
+    <string name="trip_duration_days">%d дней</string>
+    <string name="trip_drive_time">Время в пути: %s</string>
     <string name="trip_intensity">Темп: %s</string>
-    <string name="snow_warning_title">ЗИМНЕЕ ПРЕДУПРЕЖДЕНИЕ</string>
-    <string name="snow_warning_desc">Требуется 4x4 (Нояб-Апр)</string>
-    <string name="trans_driver">ВОДИТЕЛЬ</string>
-    <string name="trans_driver_sub">Аренда / Свой авто</string>
-    <string name="trans_passenger">ПАССАЖИР</string>
-    <string name="trans_passenger_sub">Такси / Транспорт / Пешком</string>
-    <string name="btn_start_journey">НАЧАТЬ ПОЕЗДКУ</string>
-    <string name="btn_pause_edit">ПАУЗА И РЕД.</string>
-    <string name="btn_optimize">ОПТИМИЗАЦИЯ</string>
-    <string name="btn_check_in">ОТМЕТИТЬСЯ</string>
-    <string name="btn_arrive_home">ПРИБЫТИЕ И ЗАВЕРШЕНИЕ</string>
-    <string name="btn_taxi">ТАКСИ</string>
-    <string name="btn_rent">АРЕНДА 4X4</string>
+    <string name="snow_warning_title">Зимнее предупреждение</string>
+    <string name="snow_warning_desc">С ноября по апрель рекомендуется 4x4</string>
+
+    <string name="trans_driver">С машиной</string>
+    <string name="trans_driver_sub">Личный или арендованный автомобиль</string>
+    <string name="trans_passenger">Без машины</string>
+    <string name="trans_passenger_sub">Такси, общественный транспорт или пешком</string>
+
+    <string name="btn_start_journey">Начать путешествие</string>
+    <string name="btn_pause_edit">Пауза и редактирование</string>
+    <string name="btn_optimize">Оптимизировать маршрут</string>
+    <string name="btn_check_in">Отметиться</string>
+    <string name="btn_arrive_home">Завершить поездку</string>
+    <string name="btn_taxi">Вызвать такси</string>
+    <string name="btn_rent">Арендовать 4x4</string>
+    <string name="btn_add_to_trip">Добавить в поездку</string>
+    <string name="btn_close">Закрыть</string>
+    <string name="btn_more_info">Подробнее</string>
+    <string name="btn_preview_trip">Предпросмотр</string>
+    <string name="btn_optimize_short">Оптимизировать</string>
+
+    <string name="trip_essentials">Основы поездки</string>
+    <string name="label_stay">Проживание</string>
+    <string name="label_flight">Перелёт</string>
+    <string name="label_taxi">Транспорт</string>
+    <string name="label_rent">Аренда авто</string>
+
+    <string name="set_home_title">Установить точку старта</string>
+    <string name="set_home_sub">(открывает умные рекомендации)</string>
+    <string name="home_secured">Точка старта сохранена</string>
+    <string name="home_start_title">Точка старта</string>
+    <string name="home_return_title">Вернуться сюда</string>
+    <string name="home_desc">Здесь начинается ваше путешествие.</string>
+    <string name="planner_empty_state">Установите точку старта или добавьте остановку.</string>
+
     <string name="search_hint">Поиск мест или регионов…</string>
-    <string name="nearby_gems">РЯДОМ С ВАМИ</string>
-    <string name="regional_highlights">ГЛАВНОЕ В РЕГИОНЕ</string>
-    <string name="search_results">РЕЗУЛЬТАТЫ ПОИСКА</string>
-    <string name="recommended_for_you">РЕКОМЕНДОВАНО ВАМ</string>
-    <string name="btn_add_to_trip">ДОБАВИТЬ В МАРШРУТ</string>
-    <string name="btn_close">ЗАКРЫТЬ</string>
-    <string name="cat_guide">ГИД</string>
-    <string name="cat_urban">ГОРОД</string>
-    <string name="cat_mountain">ГОРЫ</string>
-    <string name="cat_wine">ВИНО</string>
-    <string name="cat_culture">КУЛЬТУРА</string>
-    <string name="cat_nature">ПРИРОДА</string>
-    <string name="cat_relaxed">ОТДЫХ</string>
-    <string name="region_visas">ВИЗЫ РЕГИОНОВ</string>
-    <string name="no_stamps">Штампов пока нет.</string>
-    <string name="approved_protocol">ПОЕЗДКА ПОДТВЕРЖДЕНА</string>
-    <string name="btn_more_info">ПОДРОБНЕЕ</string>
-    <string name="btn_preview_trip">ПРОСМОТР</string>
-    <string name="btn_optimize_short">ОПТИМИЗИРОВАТЬ</string>
-    <string name="tut_next">ДАЛЕЕ</string>
-    <string name="tut_skip">ПРОПУСТИТЬ</string>
+    <string name="nearby_gems">Рядом интересное</string>
+    <string name="regional_highlights">Лучшее в регионах</string>
+    <string name="search_results">Результаты поиска</string>
+    <string name="recommended_for_you">Рекомендуем вам</string>
 
-    <string name="tut_step1_title">ШАГ 1: ОСНОВЫ</string>
-    <string name="tut_step1_desc">Используйте Основы поездки, чтобы забронировать перелеты, жилье и транспорт перед отправлением.</string>
+    <string name="tut_next">Далее</string>
+    <string name="tut_skip">Пропустить</string>
 
-    <string name="tut_step2_title">ШАГ 2: ЖИЛЬЕ</string>
-    <string name="tut_step2_desc">Укажите место вашего проживания. Это откроет доступ к персональным рекомендациям.</string>
+    <string name="tut_step1_title">Шаг 1: Базовое планирование</string>
+    <string name="tut_step1_desc">Забронируйте заранее перелёты, жильё и транспорт.</string>
 
-    <string name="tut_step3_title">ШАГ 3: ОТКРЫТИЯ</string>
-    <string name="tut_step3_desc">Нажмите кнопку добавления, чтобы открыть для себя более 800 проверенных мест по всей Грузии.</string>
+    <string name="tut_step2_title">Шаг 2: Выберите старт</string>
+    <string name="tut_step2_desc">Укажите начало для персональных рекомендаций.</string>
 
+    <string name="tut_step3_title">Шаг 3: Исследуйте</string>
+    <string name="tut_step3_desc">Нажмите «Добавить», чтобы открыть более 800 мест в Грузии.</string>
+
+    <string name="passport_title">Мой паспорт</string>
+    <string name="region_visas">Региональные штампы</string>
+    <string name="no_stamps">Пока нет штампов.</string>
+    <string name="approved_protocol">Поездка подтверждена</string>
+    <string name="settings_title">Настройки</string>
+    <string name="lang_protocol">Язык</string>
+    <string name="data_mgmt">Управление данными</string>
+    <string name="nuke_data">Сбросить все данные</string>
+    <string name="nuke_desc">Удалить все поездки и историю</string>
+    <string name="logout_label">Выйти</string>
+
+    <string name="builder_title">Конструктор маршрута</string>
+    <string name="builder_loadout">Маршрут</string>
+    <string name="builder_proceed">Продолжить</string>
 </resources>
